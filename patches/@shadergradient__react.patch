@@ -1,0 +1,7 @@
+diff --git a/dist/chunk-27WNIDXB.mjs b/dist/chunk-27WNIDXB.mjs
+index 03e480b98035b04c8f4427202322ec65be5eae63..9a6c621ae590a7712778f71c31c3807e3124b10a 100644
+--- a/dist/chunk-27WNIDXB.mjs
++++ b/dist/chunk-27WNIDXB.mjs
+@@ -1 +1 @@
+-import{Fragment as t,jsx as o,jsxs as a}from"react/jsx-runtime";var e=192;function n({type:r}){return a(t,{children:[r==="plane"&&o("planeGeometry",{args:[10,10,1,e]}),r==="sphere"&&o("icosahedronGeometry",{args:[1,e/3]}),r==="waterPlane"&&o("planeGeometry",{args:[10,10,e,e]})]})}export{n as a};
++import{Fragment as t,jsx as o,jsxs as a}from"react/jsx-runtime";var e=192;function n({type:r}){return a(t,{children:[r==="plane"&&o("PlaneGeometry",{args:[10,10,1,e]}),r==="sphere"&&o("IcosahedronGeometry",{args:[1,e/3]}),r==="waterPlane"&&o("PlaneGeometry",{args:[10,10,e,e]})]})}export{n as a};

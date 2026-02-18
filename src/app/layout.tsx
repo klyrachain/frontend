@@ -1,16 +1,76 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import {
+  Geist,
+  Geist_Mono,
+  Inter,
+  Plus_Jakarta_Sans,
+  Outfit,
+  DM_Sans,
+  Manrope,
+  Lexend,
+  JetBrains_Mono,
+  IBM_Plex_Mono,
+} from "next/font/google";
+import { StoreProvider } from "@/components/Providers/StoreProvider";
+import { ThemeSync } from "@/components/Theme/ThemeSync";
 import "./globals.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
 });
-
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
 });
+const inter = Inter({
+  variable: "--font-inter",
+  subsets: ["latin"],
+});
+const plusJakarta = Plus_Jakarta_Sans({
+  variable: "--font-plus-jakarta",
+  subsets: ["latin"],
+});
+const outfit = Outfit({
+  variable: "--font-outfit",
+  subsets: ["latin"],
+});
+const dmSans = DM_Sans({
+  variable: "--font-dm-sans",
+  subsets: ["latin"],
+});
+const manrope = Manrope({
+  variable: "--font-manrope",
+  subsets: ["latin"],
+});
+const lexend = Lexend({
+  variable: "--font-lexend",
+  subsets: ["latin"],
+});
+const jetbrainsMono = JetBrains_Mono({
+  variable: "--font-jetbrains-mono",
+  subsets: ["latin"],
+});
+const ibmPlexMono = IBM_Plex_Mono({
+  variable: "--font-ibm-plex-mono",
+  weight: ["400", "500", "600"],
+  subsets: ["latin"],
+});
+
+const fontClassNames = [
+  geistSans,
+  geistMono,
+  inter,
+  plusJakarta,
+  outfit,
+  dmSans,
+  manrope,
+  lexend,
+  jetbrainsMono,
+  ibmPlexMono,
+]
+  .map((f) => f.variable)
+  .join(" ");
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -23,11 +83,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        {children}
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${fontClassNames} antialiased`}>
+        <StoreProvider>
+          <ThemeSync />
+          {children}
+        </StoreProvider>
       </body>
     </html>
   );
