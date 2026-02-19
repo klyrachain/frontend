@@ -55,10 +55,13 @@
   --duration-normal: var(--duration-normal-token);
   --duration-slow: var(--duration-slow-token);
   --ease-default: var(--ease-token);
+  --width-modal: var(--modal-width);
 }
 
 :root {
   --radius: 0.625rem;
+  /* Modal / tab container width - use across Add, Transfer, Swap, Claim containers */
+  --modal-width: 520px;
   /* Design system tokens (md/product/design.system.md) - allow dynamic override for density/VisionOS */
   --space-1: 4px;
   --space-2: 8px;
@@ -166,17 +169,90 @@
 }
 
 /* Configurable font selection (data-sans-font / data-mono-font set by ThemeSync) */
-html[data-sans-font="geist"] { --font-sans-active: var(--font-geist-sans); }
-html[data-sans-font="inter"] { --font-sans-active: var(--font-inter); }
-html[data-sans-font="plusJakarta"] { --font-sans-active: var(--font-plus-jakarta); }
-html[data-sans-font="outfit"] { --font-sans-active: var(--font-outfit); }
-html[data-sans-font="dmSans"] { --font-sans-active: var(--font-dm-sans); }
-html[data-sans-font="manrope"] { --font-sans-active: var(--font-manrope); }
-html[data-sans-font="lexend"] { --font-sans-active: var(--font-lexend); }
-html[data-mono-font="geistMono"] { --font-mono-active: var(--font-geist-mono); }
-html[data-mono-font="jetbrainsMono"] { --font-mono-active: var(--font-jetbrains-mono); }
-html[data-mono-font="ibmPlexMono"] { --font-mono-active: var(--font-ibm-plex-mono); }
+html[data-sans-font="geist"] {
+  --font-sans-active: var(--font-geist-sans);
+}
+html[data-sans-font="inter"] {
+  --font-sans-active: var(--font-inter);
+}
+html[data-sans-font="plusJakarta"] {
+  --font-sans-active: var(--font-plus-jakarta);
+}
+html[data-sans-font="outfit"] {
+  --font-sans-active: var(--font-outfit);
+}
+html[data-sans-font="dmSans"] {
+  --font-sans-active: var(--font-dm-sans);
+}
+html[data-sans-font="manrope"] {
+  --font-sans-active: var(--font-manrope);
+}
+html[data-sans-font="lexend"] {
+  --font-sans-active: var(--font-lexend);
+}
+html[data-mono-font="geistMono"] {
+  --font-mono-active: var(--font-geist-mono);
+}
+html[data-mono-font="jetbrainsMono"] {
+  --font-mono-active: var(--font-jetbrains-mono);
+}
+html[data-mono-font="ibmPlexMono"] {
+  --font-mono-active: var(--font-ibm-plex-mono);
+}
 
+/* Liquid glass: frosted, translucent panel (Uniswap-style sidebar) */
+.glass-panel {
+  background: oklch(1 0 0 / 0.06);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-right: 1px solid oklch(1 0 0 / 0.08);
+}
+.dark .glass-panel {
+  background: oklch(0.145 0.01 285 / 0.65);
+  border-right-color: oklch(1 0 0 / 0.06);
+}
+
+/* Tab modal: consistent width for Add, Transfer, Swap, Claim containers */
+.tab-modal {
+  width: var(--modal-width);
+  max-width: 100%;
+}
+
+/* Bento card: frosted glass content block */
+.glass-card {
+  background: oklch(1 0 0 / 0.05);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid oklch(1 0 0 / 0.08);
+  border-radius: 16px;
+}
+.dark .glass-card {
+  background: oklch(0.18 0.01 285 / 0.5);
+  border-color: oklch(1 0 0 / 0.06);
+}
+
+.input-text {
+  font-size: 2.5rem;
+  font-weight: var(--font-weight-medium);
+  border: var(--border-0);
+  background: var(--bg-transparent);
+  padding: var(--p-0);
+  margin: var(--m-0);
+}
+.modal-content {
+  width: 100vw;
+  max-width: 100%;
+  position: fixed;
+  z-index: 100;
+  display: flex;
+  top: 0;
+  /* flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--background);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px); */
+}
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -184,7 +260,9 @@ html[data-mono-font="ibmPlexMono"] { --font-mono-active: var(--font-ibm-plex-mon
   body {
     @apply bg-background text-foreground font-sans;
   }
-  code, kbd, pre {
+  code,
+  kbd,
+  pre {
     font-family: var(--font-mono), ui-monospace, monospace;
   }
 }

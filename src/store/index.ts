@@ -10,7 +10,9 @@ import {
   REGISTER,
 } from "redux-persist";
 import { themeReducer } from "./slices/themeSlice";
+import { navigationReducer } from "./slices/navigationSlice";
 import { baseApi } from "./api/baseApi";
+import { squidApi } from "./api/squidApi";
 import { getPersistStorage } from "./storage";
 
 const themePersistConfig = {
@@ -25,14 +27,16 @@ export const makeStore = () =>
   configureStore({
     reducer: {
       theme: persistedThemeReducer,
+      navigation: navigationReducer,
       [baseApi.reducerPath]: baseApi.reducer,
+      [squidApi.reducerPath]: squidApi.reducer,
     },
     middleware: (getDefaultMiddleware) =>
       getDefaultMiddleware({
         serializableCheck: {
           ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
         },
-      }).concat(baseApi.middleware),
+      }).concat(baseApi.middleware, squidApi.middleware),
   });
 
 export type AppStore = ReturnType<typeof makeStore>;

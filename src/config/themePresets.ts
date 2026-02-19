@@ -6,10 +6,15 @@ import type { GradientColors } from "@/types/theme";
  */
 export const GRADIENT_THEME_PRESETS: Record<string, GradientColors> = {
   default: {
-    color1: "#553bff",
-    color2: "#9bc1db",
-    color3: "#d0bce1",
+    color1: "#000088",
+    color2: "#878ecc",
+    color3: "#b7abe1",
   },
+  // default: {
+  //   color1: "#553bff",
+  //   color2: "#9bc1db",
+  //   color3: "#d0bce1",
+  // },
   ocean: {
     color1: "#0EA5E9",
     color2: "#06B6D4",

@@ -1,10 +1,11 @@
 "use client";
 
+import { memo } from "react";
 import { ShaderGradient, ShaderGradientCanvas } from "@shadergradient/react";
 import { useAppSelector } from "@/store/hooks";
 import { GRADIENT_THEME_PRESETS } from "@/config/themePresets";
 
-export function ShaderGradientBackground() {
+function ShaderGradientBackgroundInner() {
   const gradientThemeId = useAppSelector((s) => s.theme.gradientThemeId);
   const colors =
     GRADIENT_THEME_PRESETS[gradientThemeId] ??
@@ -18,7 +19,7 @@ export function ShaderGradientBackground() {
       <ShaderGradientCanvas>
         <ShaderGradient
           animate="on"
-          brightness={0}
+          brightness={1}
           cAzimuthAngle={180}
           cDistance={3.6}
           cPolarAngle={90}
@@ -53,3 +54,6 @@ export function ShaderGradientBackground() {
     </section>
   );
 }
+
+export const ShaderGradientBackground = memo(ShaderGradientBackgroundInner);
+ShaderGradientBackground.displayName = "ShaderGradientBackground";

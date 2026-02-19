@@ -12,6 +12,7 @@ import {
   IBM_Plex_Mono,
 } from "next/font/google";
 import { StoreProvider } from "@/components/Providers/StoreProvider";
+import { TabCookieSync } from "@/components/Providers/TabCookieSync";
 import { ThemeSync } from "@/components/Theme/ThemeSync";
 import "./globals.css";
 
@@ -86,6 +87,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={`${fontClassNames} antialiased`}>
         <StoreProvider>
+          <TabCookieSync />
           <ThemeSync />
           {children}
         </StoreProvider>
