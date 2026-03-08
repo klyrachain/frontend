@@ -1,10 +1,11 @@
 // components/Layout/RightSidebar.tsx
+import { cn } from "@/lib/utils";
 import { FC } from "react";
 // import { Card } from "@/components/ui/card";
 
 export const RightSidebar: FC<{ className?: string }> = ({ className }) => {
   return (
-    <aside className={className}>
+    <div className={cn("lg:block hidden")}>
       {/* <Card className="p-4"> */}
       <h2 className="text-lg font-semibold mb-2">Settings</h2>
       {/* Your settings controls here */}
@@ -19,6 +20,6 @@ export const RightSidebar: FC<{ className?: string }> = ({ className }) => {
         </label>
       </div>
       {/* </Card> */}
-    </aside >
+    </div>
   );
 };

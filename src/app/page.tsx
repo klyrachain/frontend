@@ -67,7 +67,7 @@ export default function Home() {
         /> */}
       </div>
       <main className="relative z-0 min-h-screen flex ">
-        <div className="glass-panel px-2 py-20 w-64">
+        <div className="glass-panel px-2 py-20 w-64 lg:block hidden">
           <Sidebar />
         </div>
         <div className="flex flex-col flex-1 gap-5">
@@ -79,7 +79,7 @@ export default function Home() {
           </header>
           <div className="bg-green-00 flex flex-1">
             <BentoContent />
-            <RightSidebar />
+            <RightSidebar className="hidden md:block" />
           </div>
         </div>
       </main>

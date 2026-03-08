@@ -3,11 +3,12 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Settings, ArrowRight, ChevronDown, ArrowDown } from "lucide-react";
-import { TransferSelectModal } from "./TransferSelectModal";
+import { Settings, ArrowRight, ChevronDown } from "lucide-react";
+import { TransferSelectPanel } from "./TransferSelectPanel";
 import type { TokenSelection } from "../Exchange/TokenChainSelectModal";
 import type { Token } from "@/types/token";
 import Image from "next/image";
+
 const PRICE_PREVIEW = "≈ $0.00";
 
 
@@ -93,11 +94,8 @@ function TokenSelectorButton({
 
 function SelectMode({
   label,
-  amount,
-  onAmountChange,
   selection,
   onSelectClick,
-  pricePreview,
 }: {
   label: string;
   amount: string;
@@ -118,10 +116,9 @@ function SelectMode({
           onClick={onSelectClick}
         /> */}
         <div className="flex items-center justify-between gap-2" >
-          <Image src="/images/tokens/eth.png" alt="ETH" width={24} height={24} />
-          <span className="font-medium">ETH</span>
-          <span className="text-xs text-muted-foreground">(Ethereum)</span>
-
+          <Image src={selection?.token.logoURI as string} alt="ETH" width={34} height={34} />
+          <span className="font-medium">{selection?.token.name}</span>
+          <span className="text-xs text-muted-foreground">{selection?.chain.name}</span>
         </div>
       </div>
     </div>
@@ -159,69 +156,72 @@ export function TransferContainer() {
   };
 
   return (
-    <article className="glass-card tab-modal overflow-hidden p-2 shadow-xl">
-      <header className="mb-6 flex flex-row items-center justify-between pl-2">
-        <h3 className="text-xl font-semibold">Transfer</h3>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          onClick={handleSettings}
-          className="rounded-full cursor-pointer"
-          aria-label="Settings"
-        >
-          <Settings className="size-5" />
-        </Button>
-      </header>
+    <div className="flex duration-300 ease-out bg-red-00 relative w-full justify-center">
+      {!selectModalOpen && <article className="glass-card tab-modal overflow-hidden p-2 shadow-xl shrink-0 min-w-0 transition-all duration-300 ease-out h-fit w-[--modal-width]">
+        <header className="mb-6 flex flex-row items-center justify-between pl-2">
+          <h3 className="text-xl font-semibold">Transfer</h3>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={handleSettings}
+            className="rounded-full cursor-pointer"
+            aria-label="Settings"
+          >
+            <Settings className="size-5" />
+          </Button>
+        </header>
 
-      <section className="flex flex-col gap-4">
-        <div className="flex items-stretch gap-2 relative">
-          <SelectMode
-            label="From"
-            amount={leftAmount}
-            onAmountChange={setLeftAmount}
-            selection={leftSelection}
-            onSelectClick={() => openSelectModal("left")}
-            pricePreview={PRICE_PREVIEW}
-          />
-          <div className="flex justify-center -my-1 absolute z-10 left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2">
-            <button
-              type="button"
-              className="rounded-full border-2 border-card bg-card p-2 shadow-md hover:bg-muted transition-colors"
-              aria-label="Swap direction"
-            >
-              <ArrowRight className="size-5 text-muted-foreground" />
-            </button>
+        <section className="flex flex-col gap-4">
+          <div className="flex items-stretch gap-2 relative">
+            <SelectMode
+              label="From"
+              amount={leftAmount}
+              onAmountChange={setLeftAmount}
+              selection={leftSelection}
+              onSelectClick={() => openSelectModal("left")}
+              pricePreview={PRICE_PREVIEW}
+            />
+            <div className="flex justify-center -my-1 absolute z-10 left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2">
+              <button
+                type="button"
+                className="rounded-full border-2 border-card bg-card p-2 shadow-md hover:bg-muted transition-colors"
+                aria-label="Swap direction"
+              >
+                <ArrowRight className="size-5 text-muted-foreground" />
+              </button>
+            </div>
+
+            <SelectMode
+              label="To"
+              amount={rightAmount}
+              onAmountChange={setRightAmount}
+              selection={rightSelection}
+              onSelectClick={() => openSelectModal("right")}
+              pricePreview={PRICE_PREVIEW}
+            />
           </div>
-
-          <SelectMode
-            label="To"
+          <SwapRow
+            label="Amount"
             amount={rightAmount}
             onAmountChange={setRightAmount}
-            selection={rightSelection}
-            onSelectClick={() => openSelectModal("right")}
+            tokenSymbol={rightSelection?.token.symbol ?? ""}
+            chainName={rightSelection?.chain.name ?? ""}
+            onTokenClick={() => openSelectModal("right")}
             pricePreview={PRICE_PREVIEW}
           />
-        </div>
-        <SwapRow
-          label="Buy"
-          amount={rightAmount}
-          onAmountChange={setRightAmount}
-          tokenSymbol={rightSelection?.token.symbol ?? ""}
-          chainName={rightSelection?.chain.name ?? ""}
-          onTokenClick={() => openSelectModal("right")}
-          pricePreview={PRICE_PREVIEW}
-        />
 
-        <Button
-          size="lg"
-          className="w-full rounded-xl py-6 text-base font-semibold"
-        >
-          Confirm
-        </Button>
-      </section>
+          <Button
+            size="lg"
+            className="w-full rounded-xl py-6 text-base font-semibold"
+          >
+            Confirm
+          </Button>
+        </section>
+      </article>
+      }
 
-      <TransferSelectModal
+      <TransferSelectPanel
         open={selectModalOpen}
         onOpenChange={setSelectModalOpen}
         onSelect={handleSelect}
@@ -231,6 +231,6 @@ export function TransferContainer() {
             : leftSelection?.token.symbol
         }
       />
-    </article>
+    </div>
   );
 }

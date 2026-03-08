@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { Search, X } from "lucide-react";
@@ -126,44 +127,36 @@ export function TransferSelectModal({
     };
   }, [open, onOpenChange]);
 
-  if (!open) return null;
-
-  return (
+  const modalContent = (
     <div
       role="dialog"
       aria-modal="true"
       aria-labelledby="transfer-select-modal-title"
-      // className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center p-4"
-      className={cn(
-        "fixed inset-0 z-[var(--z-modal)] flex p-4 flex-col w-full max-h[100vh]",
-        " bg-background/55 backdrop-blur-sm",
-        "animate-in fade-in-0 zoom-in-95 duration-200 ease-out"
-      )}
+      className="fixed inset-0 z-[--z-modal] flex justify-center pt-20 p-4 bg-background/85 backdrop-blur-sm"
     >
-      {/* Overlay: backdrop with blur and dim */}
+      {/* Overlay: opaque so Safari/Chrome/Brave match (no alpha) */}
       <button
         type="button"
         tabIndex={-1}
         aria-hidden="true"
         onClick={handleOverlayClick}
-        className={cn(
-          "absolute inset-0 bg-black/40 backdrop-blur-sm",
-          "animate-in fade-in-0 duration-200 ease-out",
-          "focus:outline-none focus:ring-0"
-        )}
+      // className={cn(
+      //   "absolute inset-0 bg-[oklch(0.15_0_0)] dark:bg-[oklch(0.08_0_0)]",
+      //   "focus:outline-none focus:ring-0"
+      // )}"
       />
 
-      {/* Modal panel */}
+      {/* Modal panel: opaque card background */}
       <div
         onClick={handlePanelClick}
-        className={cn(
-          "relative flex flex-col w-full m-auto max-w-5xl max-h[100vh] gap-4 justify-center items-center",
-          // "rounded-2xl border border-border bg-card shadow-2xl",
-          "bg-card/0 backdrop-blur-md",
-          "animate-in fade-in-0 zoom-in-95 duration-200 ease-out"
-        )}
+        // className={cn(
+        //   "relative flex flex-col w-full max-w-[var(--modal-width)] max-h-[85vh]",
+        //   "rounded-2xl border border-border bg-card shadow-2xl",
+        //   "animate-in fade-in-0 zoom-in-95 duration-200 ease-out"
+        // )}
+        className="w-full lg:w-[80vw] md:w-[90vw] sm:w-[95vw] max-h-[85vh] animate-in fade-in-0 zoom-in-95 duration-200 ease-out"
       >
-        <header className="flex flex-row items-center justify-between shrink-0 px-4 py-3 ">
+        <header className="flex flex-row items-center justify-between shrink-0 px-4 py-3 rounded-t-2xl">
           <h2
             id="transfer-select-modal-title"
             className="text-lg font-semibold text-foreground"
@@ -195,9 +188,7 @@ export function TransferSelectModal({
           className="px-3 pb-2 shrink-0 w-full text-center"
           aria-label="Favorites and recent chains"
         >
-          <p className="text-xs font-medium text-muted-foreground mb-2">
-            Favorites / Recent
-          </p>
+
           <ul className="flex flex-wrap gap-2">
             {favoriteOrRecentChainIds.map((chainId) => {
               const chain = getChainById(chainId);
@@ -227,7 +218,7 @@ export function TransferSelectModal({
 
         <div className="flex flex-1 min-h-0 overflow-hidden rounded-b-2xl w-full p-4">
           <aside
-            className="w-36 shrink-0 overflow-y-auto py-2 bg-muted/5"
+            className="w-36 lg:w-64 md:w-48 sm:w-36 shrink-0 overflow-y-auto py-2 bg-muted/5 rounded-bl-2xl"
             aria-label="All chains"
           >
             <p className="text-xs font-medium text-muted-foreground px-3 mb-2">
@@ -276,7 +267,7 @@ export function TransferSelectModal({
             className="flex-1 min-w-0 overflow-y-auto p-4"
             aria-label="Token grid"
           >
-            <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
               {filteredTokens.length === 0 ? (
                 <p className="col-span-full py-8 text-center text-sm text-muted-foreground">
                   No tokens found
@@ -289,7 +280,7 @@ export function TransferSelectModal({
                       key={token.id}
                       type="button"
                       onClick={() => handleSelectToken(token)}
-                      className="flex flex-col items-center gap-2 rounded-xl border border-border bg-muted/10 p-4 hover:bg-muted/30 hover:border-muted-foreground/20 transition-colors"
+                      className="flex flex-col items-center gap-2 rounded-xl border border-border bg-yellow-500 p-4 hover:bg-muted/30 hover:border-muted-foreground/20 transition-colors cursor-pointer"
                     >
                       {token.logoURI != null && token.logoURI !== "" ? (
                         <span className="relative flex size-12 shrink-0 overflow-hidden rounded-full bg-muted ring-1 ring-border/50">
@@ -325,4 +316,9 @@ export function TransferSelectModal({
       </div>
     </div>
   );
+
+  if (!open) return null;
+  if (typeof document === "undefined") return null;
+
+  return createPortal(modalContent, document.body);
 }
