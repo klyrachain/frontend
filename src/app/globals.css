@@ -117,7 +117,8 @@
   --font-mono-active: var(--font-geist-mono);
   /* --background: oklch(1 0 0); */
   /* --background: oklch(0.5707 0.2353 263.31); */
-  --background: oklch(0.4334 0.233 275.7);
+  /* --background: oklch(0.4334 0.233 275.7); */
+  --background: oklch(0.2732 0.1702 271.71);
   /* --foreground: oklch(0.141 0.005 285.823); */
   --foreground: oklch(0.9612 0 0);
   --card: oklch(1 0 0);

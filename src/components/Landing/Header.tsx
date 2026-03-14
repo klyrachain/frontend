@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRef, useCallback, useState } from "react";
+import { useRef, useCallback, useState, useEffect } from "react";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -28,6 +28,12 @@ const EASE_NAV = "power2.out";
 const DURATION_HEADER = 0.5;
 const DURATION_LOGO = 0.45;
 const NAV_STAGGER = 0.04;
+const DESKTOP_BREAKPOINT_PX = 768;
+
+const COMPACT_HEIGHT = 52;
+const WIDE_HEIGHT = 72;
+const COMPACT_TOP = 16;
+const WIDE_TOP = 24;
 
 function resetInactivityTimer(
   timerRef: React.MutableRefObject<ReturnType<typeof setTimeout> | null>,
@@ -97,16 +103,27 @@ const menuBarVariants: Variants = {
 
 export function Header() {
   const headerRef = useRef<HTMLElement>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
   const logoRef = useRef<HTMLAnchorElement>(null);
   const navRef = useRef<HTMLElement>(null);
   const navLinksRef = useRef<HTMLAnchorElement[]>([]);
   const inactivityTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isCompact, setIsCompact] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(true);
   const setCompactRef = useRef(setIsCompact);
   setCompactRef.current = setIsCompact;
 
+  useEffect(() => {
+    const mq = window.matchMedia(`(min-width: ${DESKTOP_BREAKPOINT_PX}px)`);
+    const onChange = () => setIsDesktop(mq.matches);
+    onChange();
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+
   const expandToWide = useCallback(() => {
     const header = headerRef.current;
+    const wrapper = wrapperRef.current;
     const logo = logoRef.current;
     const nav = navRef.current;
     const links = navLinksRef.current;
@@ -114,13 +131,22 @@ export function Header() {
     if (!header || !logo || !nav) return;
 
     gsap.to(header, {
-      height: 72,
-      backgroundColor: "rgba(255, 255, 255, 0)",
+      height: WIDE_HEIGHT,
+      width: "100%",
+      backgroundColor: "rgba(10, 10, 10, 0.92)",
       backdropFilter: "blur(0px)",
+      boxShadow: "none",
+      borderRadius: "1rem",
+      // color: "white",
+      color: "inherit",
       duration: DURATION_HEADER,
       ease: EASE_HEADER,
       overwrite: true,
     });
+
+    if (wrapper) {
+      gsap.to(wrapper, { top: WIDE_TOP, duration: DURATION_HEADER, ease: EASE_HEADER, overwrite: true });
+    }
 
     gsap.to(logo, {
       scale: 1,
@@ -152,53 +178,114 @@ export function Header() {
 
   const collapseToCompact = useCallback(() => {
     const header = headerRef.current;
+    const wrapper = wrapperRef.current;
     const logo = logoRef.current;
     const nav = navRef.current;
     const links = navLinksRef.current;
 
     if (!header || !logo || !nav) return;
 
-    const staggerDelay = links.length * NAV_STAGGER + 0.05;
+    const desktop = typeof window !== "undefined" && window.innerWidth >= DESKTOP_BREAKPOINT_PX;
 
-    links.forEach((link, i) => {
-      gsap.to(link, {
-        opacity: 0,
-        y: -6,
-        duration: 0.25,
-        delay: i * NAV_STAGGER,
-        ease: EASE_NAV,
+    if (desktop) {
+      gsap.to(header, {
+        height: WIDE_HEIGHT,
+        width: "100%",
+        maxWidth: "min(90vw, 960px)",
+        backgroundColor: "rgba(10, 10, 10, 0.92)",
+        borderRadius: "1rem",
+        backdropFilter: "blur(12px)",
+        color: "white",
+        boxShadow: "0 4px 24px rgba(5, 5, 5, 0.2)",
+        duration: DURATION_HEADER,
+        ease: EASE_HEADER,
         overwrite: true,
       });
-    });
 
-    gsap.to(nav, {
-      opacity: 0,
-      duration: 0.2,
-      delay: staggerDelay,
-      onComplete: () => {
-        gsap.set(nav, { pointerEvents: "none", visibility: "hidden" });
-      },
-    });
+      if (wrapper) {
+        gsap.to(wrapper, { top: COMPACT_TOP, duration: DURATION_HEADER, ease: EASE_HEADER, overwrite: true });
+      }
 
-    gsap.to(header, {
-      height: 72,
-      width: "60%",
-      backgroundColor: "rgba(255, 255, 255, 0)",
-      backdropFilter: "blur(0px)",
-      duration: DURATION_HEADER,
-      delay: staggerDelay * 0.5,
-      ease: EASE_HEADER,
-      overwrite: true,
-    });
+      gsap.to(logo, {
+        scale: 0.8,
+        x: 0,
+        duration: DURATION_LOGO,
+        ease: EASE_HEADER,
+        overwrite: true,
+      });
 
-    gsap.to(logo, {
-      scale: 0.75,
-      x: 0,
-      duration: DURATION_LOGO,
-      delay: staggerDelay * 0.4,
-      ease: EASE_HEADER,
-      overwrite: true,
-    });
+      gsap.set(nav, { pointerEvents: "auto", visibility: "visible" });
+      links.forEach((link, i) => {
+        gsap.fromTo(
+          link,
+          { opacity: 0, y: 2 },
+          {
+            opacity: 1,
+            y: 0,
+            duration: 0.3,
+            delay: 0.08 + i * NAV_STAGGER,
+            ease: EASE_NAV,
+            overwrite: true,
+          }
+        );
+      });
+    } else {
+      const staggerDelay = links.length * NAV_STAGGER + 0.05;
+
+      links.forEach((link, i) => {
+        gsap.to(link, {
+          opacity: 0,
+          y: -6,
+          duration: 0.25,
+          delay: i * NAV_STAGGER,
+          ease: EASE_NAV,
+          overwrite: true,
+        });
+      });
+
+      gsap.to(nav, {
+        opacity: 0,
+        duration: 0.2,
+        delay: staggerDelay,
+        onComplete: () => {
+          gsap.set(nav, { pointerEvents: "none", visibility: "hidden" });
+        },
+      });
+
+      gsap.to(header, {
+        height: COMPACT_HEIGHT,
+        width: "auto",
+        maxWidth: "min(90vw, 320px)",
+        borderRadius: 9999,
+        backgroundColor: "rgba(0, 0, 0, 0.92)",
+        backdropFilter: "blur(12px)",
+        boxShadow: "0 4px 24px rgba(0,0,0,0.2)",
+        color: "white",
+        duration: DURATION_HEADER,
+        delay: staggerDelay * 0.5,
+        ease: EASE_HEADER,
+        overwrite: true,
+      });
+
+      if (wrapper) {
+        gsap.to(wrapper, {
+          top: COMPACT_TOP,
+          duration: DURATION_HEADER,
+          delay: staggerDelay * 0.3,
+          ease: EASE_HEADER,
+          overwrite: true,
+        });
+      }
+
+      gsap.to(logo, {
+        scale: 0.8,
+        x: 0,
+        duration: DURATION_LOGO,
+        delay: staggerDelay * 0.4,
+        ease: EASE_HEADER,
+        overwrite: true,
+      });
+    }
     setCompactRef.current?.(true);
   }, []);
 
@@ -255,17 +342,33 @@ export function Header() {
     const y = window.scrollY;
     if (y > SCROLL_THRESHOLD_PX) {
       const header = headerRef.current;
+      const wrapper = wrapperRef.current;
       const logo = logoRef.current;
       const nav = navRef.current;
+      const links = navLinksRef.current;
+      const desktop = window.innerWidth >= DESKTOP_BREAKPOINT_PX;
+
       if (header) {
         gsap.set(header, {
-          height: 56,
-          backgroundColor: "rgba(255, 255, 255, 0.72)",
+          height: desktop ? WIDE_HEIGHT : COMPACT_HEIGHT,
+          width: desktop ? "100%" : "auto",
+          maxWidth: desktop ? "min(90vw, 960px)" : "min(90vw, 320px)",
+          borderRadius: desktop ? "1rem" : 9999,
+          backgroundColor: "rgba(0, 0, 0, 0.92)",
           backdropFilter: "blur(12px)",
+          color: "white",
+          boxShadow: "0 4px 24px rgba(0,0,0,0.2)",
         });
       }
-      if (logo) gsap.set(logo, { scale: 0.75, x: -8 });
-      if (nav) gsap.set(nav, { opacity: 0, pointerEvents: "none", visibility: "hidden" });
+      if (wrapper) gsap.set(wrapper, { top: COMPACT_TOP });
+      if (logo) gsap.set(logo, { scale: 0.8, x: 0 });
+
+      if (desktop) {
+        if (nav) gsap.set(nav, { opacity: 1, pointerEvents: "auto", visibility: "visible" });
+        links.forEach((l) => l && gsap.set(l, { opacity: 1, y: 0 }));
+      } else {
+        if (nav) gsap.set(nav, { opacity: 0, pointerEvents: "none", visibility: "hidden" });
+      }
       setCompactRef.current?.(true);
     }
   }, []);
@@ -279,17 +382,22 @@ export function Header() {
 
   const [menuOpen, setMenuOpen] = useState(false);
 
-  return (
-    <div className="mx-auto flex justify-center fixed w-full">
+  const showMenuIcon = isCompact && !isDesktop;
 
-    <header
-      ref={headerRef}
-      className="sticky top-20 z-50 w-full overflow-hidden rounded-b-2xl 0 transition-[backdrop-filter] self-center"
-      style={{ height: 72 }}
-      role="banner"
-      aria-label="Site header"
+  return (
+    <div
+      ref={wrapperRef}
+      className="fixed left-0 right-0 z-[100] flex justify-center px-4 pt-0"
+      style={{ top: WIDE_TOP }}
     >
-      <div className="mx-auto flex h-full max-w-7xl items-center justify-between gap-6 px-6 md:px-8">
+      <header
+        ref={headerRef}
+        className="w-full overflow-hidden rounded-2xl transition-[backdrop-filter] self-center md:rounded-b-2xl px-4"
+        style={{ height: WIDE_HEIGHT }}
+        role="banner"
+        aria-label="Site header"
+      >
+      <div className="mx-auto flex h-full max-w-7xl items-center justify-between gap-6">
         <Link
           ref={logoRef}
           href="/"
@@ -339,14 +447,14 @@ export function Header() {
           <motion.button
             type="button"
             className={cn(
-              "flex size-10 shrink-0 items-center justify-center rounded-lg text-foreground hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-              !isCompact && "absolute right-0 size-0 overflow-hidden"
+              "flex size-10 shrink-0 items-center justify-center rounded-lg text-foreground hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:hidden",
+              !showMenuIcon && "absolute right-0 size-0 overflow-hidden"
             )}
             aria-label="Toggle menu"
             aria-expanded={menuOpen}
             variants={menuIconVariants}
             initial="hidden"
-            animate={isCompact ? "visible" : "hidden"}
+            animate={showMenuIcon ? "visible" : "hidden"}
             onClick={() => setMenuOpen((o) => !o)}
           >
             <svg

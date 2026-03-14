@@ -26,13 +26,15 @@ export default function LandingPage() {
         <Header />
         <main id="main-content" role="main" tabIndex={-1}>
           <HeroSection />
-          <BuiltForBuildersSection />
-          <TailoredBusinessSection />
-          <PaymentEngineFeatures />
-          <CommerceStandardSection />
-          <PricingSection />
-          <InsightsSection />
-          <Footer />
+          <div className="relative z-10 bg-black">
+            <BuiltForBuildersSection />
+            <TailoredBusinessSection />
+            <PaymentEngineFeatures />
+            <CommerceStandardSection />
+            <PricingSection />
+            <InsightsSection />
+            <Footer />
+          </div>
         </main>
         <div className="bg-white/10 h-[var(--g4)] fixed bottom-0 left-0 right-0 blur-lg" aria-hidden />
       </div>

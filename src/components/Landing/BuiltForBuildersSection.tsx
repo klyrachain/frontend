@@ -22,35 +22,36 @@ const API_GALLERY = [
 export function BuiltForBuildersSection() {
   return (
     <section
-      className="mx-auto max-w-7xl px-[var(--g2)] py-[var(--g8)] md:px-[var(--g4)] md:py-[var(--g10)]"
+      className="mx-auto pt-[var(--g12)] max-w-7xl px-[var(--g2)] py-[var(--g8)] md:px-[var(--g4)] md:py-[var(--g10)]"
       aria-labelledby="built-for-builders-heading"
     >
       <h2
         id="built-for-builders-heading"
-        className="text-center text-2xl font-bold text-foreground md:text-3xl lg:text-4xl"
+        className="text-center text-2xl font-bold text-foreground md:text-3xl lg:text-4xl md:text-[64px] lg:text-[72px]"
         style={{ marginBottom: "var(--g2)" }}
       >
-        Built for Builders. Optimized for Users.
+        Built for Builders. 
+        <br/>Optimized for Users.
       </h2>
       <p
         className="mx-auto max-w-2xl text-center text-base text-muted-foreground md:text-lg"
         style={{ marginBottom: "var(--g6)", lineHeight: 1.6 }}
       >
-        Create powerful payment experiences with our API, SDKs, and no-code
-        tools.
+        The Klyra SDK abstracts the complexity of global payments.
+        Onramp, offramp, and settle in any currency with one unified integration.
       </p>
 
-      <div className="grid gap-[var(--g6)] lg:grid-cols-2 lg:gap-[var(--g8)]">
-        <article className="flex flex-col rounded-xl border border-border bg-card p-[var(--g4)] md:p-[var(--g5)]">
+      <div className="grid lg:grid-cols-2 gap-2 bg-gray-300 p-2 rounded-xl">
+        <article className="flex flex-col rounded-xl border border-border w-full bg-card p-[var(--g3)] md:p-[var(--g3)]">
           <h3
-            className="text-xl font-semibold text-foreground md:text-2xl"
-            style={{ marginBottom: "var(--g2)" }}
+            className="text-xl font-semibold text-black md:text-2xl"
+            style={{ marginBottom: "var(--g1)" }}
           >
             Build how you want
           </h3>
           <p
             className="text-muted-foreground"
-            style={{ marginBottom: "var(--g3)", lineHeight: 1.6 }}
+            style={{ marginBottom: "var(--g1)", lineHeight: 1.6 }}
           >
             Use our REST API, SDKs, or no-code tools to integrate payments your
             way. Start in sandbox and go live when ready.
@@ -65,35 +66,18 @@ export function BuiltForBuildersSection() {
               className="w-full rounded object-cover font-mono text-sm"
             />
           </figure>
-          <Link
-            href="#"
-            className="mb-[var(--g4)] inline-flex h-10 w-fit items-center justify-center rounded-lg bg-[#1A1A1A] px-6 text-sm font-semibold text-white hover:bg-[#2A2A2A] dark:bg-white dark:text-[#1A1A1A] dark:hover:bg-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-          >
-            View Documentation
-          </Link>
-          <ul
-            className="mt-auto list-none space-y-[var(--g1)] text-sm text-muted-foreground"
-            style={{ paddingLeft: 0 }}
-          >
-            {FEATURES.map((label) => (
-              <li key={label} className="flex items-center gap-[var(--g2)]">
-                <span aria-hidden>✓</span>
-                {label}
-              </li>
-            ))}
-          </ul>
         </article>
 
-        <article className="flex flex-col rounded-xl border border-border bg-card p-[var(--g4)] md:p-[var(--g5)]">
+        <article className="flex flex-col rounded-xl border border-border w-full bg-card p-[var(--g3)] md:p-[var(--g3)]">
           <h3
-            className="text-xl font-semibold text-foreground md:text-2xl"
-            style={{ marginBottom: "var(--g2)" }}
+            className="text-xl font-semibold text-black md:text-2xl"
+            style={{ marginBottom: "var(--g1)" }}
           >
             About the API
           </h3>
           <p
             className="text-muted-foreground"
-            style={{ marginBottom: "var(--g4)", lineHeight: 1.6 }}
+            style={{ marginBottom: "var(--g1)", lineHeight: 1.6 }}
           >
             A unified API that handles acceptance, routing, and settlement.
             Configurable flows, reporting, and compliance in one place.

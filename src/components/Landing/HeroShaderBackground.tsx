@@ -35,7 +35,7 @@ export function HeroShaderBackground() {
       <ShaderGradient
   animate="on"
   axesHelper="off"
-  brightness={1}
+  brightness={1.2}
   cAzimuthAngle={0}
   cDistance={3.6}
   cPolarAngle={90}
@@ -54,7 +54,7 @@ export function HeroShaderBackground() {
   gizmoHelper="hide"
   grain="on"
   lightType="env"
-  pixelDensity={3}
+  pixelDensity={1}
   positionX={-1.4}
   positionY={0}
   positionZ={0}
@@ -70,7 +70,7 @@ export function HeroShaderBackground() {
   uAmplitude={1}
   uDensity={1.8}
   uFrequency={5.5}
-  uSpeed={0.1}
+  uSpeed={0.01}
   uStrength={0.2}
   uTime={0}
   wireframe={false}
