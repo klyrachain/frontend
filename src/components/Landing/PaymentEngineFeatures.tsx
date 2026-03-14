@@ -58,7 +58,7 @@ export function PaymentEngineFeatures() {
         />
         <h2
           id="payment-engine-heading"
-          className="text-2xl font-bold text-foreground md:text-3xl lg:text-4xl"
+          className="text-2xl font-bold text-foreground md:text-3xl lg:text-4xl md:text-[48px] lg:text-[48px]"
           style={{ marginBottom: "var(--g2)" }}
         >
           A Full-Stack Payment Engine
@@ -71,11 +71,11 @@ export function PaymentEngineFeatures() {
         </p>
       </div>
 
-      <div className="mb-[var(--g8)] grid gap-[var(--g4)] sm:grid-cols-2 lg:gap-[var(--g6)]">
+      <div className="mb-[var(--g8)] grid lg:grid-cols-2 gap-2 bg-gray-300 p-2 rounded-xl">
         {FEATURES.map((feature) => (
           <article
             key={feature.title}
-            className="flex flex-col rounded-xl border border-border bg-card p-[var(--g4)] md:p-[var(--g5)]"
+            className="flex flex-col rounded-xl border border-border w-full bg-card p-[var(--g3)] md:p-[var(--g3)]"
           >
             <img
               src={feature.imagePath}
@@ -83,7 +83,7 @@ export function PaymentEngineFeatures() {
               className="mb-[var(--g2)] h-12 w-12 shrink-0 object-contain md:h-14 md:w-14"
             />
             <h3
-              className="text-lg font-semibold text-foreground"
+              className="text-xl font-semibold text-black md:text-2xl"
               style={{ marginBottom: "var(--g1)" }}
             >
               {feature.title}
@@ -97,8 +97,8 @@ export function PaymentEngineFeatures() {
               </p>
             )}
             <p
-              className="text-sm text-muted-foreground"
-              style={{ lineHeight: 1.5 }}
+              className="text-muted-foreground"
+              style={{ marginBottom: "var(--g1)", lineHeight: 1.6 }}
             >
               {feature.description}
             </p>

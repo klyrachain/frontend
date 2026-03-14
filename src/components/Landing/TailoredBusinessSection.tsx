@@ -5,10 +5,10 @@ const WORKFLOW_IMAGE_PATH = "/images/workflow-screenshot.png";
 export function TailoredBusinessSection() {
   return (
     <section
-      className="mx-auto max-w-7xl px-[var(--g2)] py-[var(--g8)] md:px-[var(--g4)] md:py-[var(--g10)]"
+      className="mx-auto px-[var(--g2)] py-[var(--g8)] md:px-[var(--g4)] md:py-[var(--g10)] bg-gray-600 flex items-center justify-center rounded-xl w-[calc(100vw-2rem)]"
       aria-labelledby="tailored-heading"
     >
-      <div className="grid items-center gap-[var(--g6)] lg:grid-cols-2 lg:gap-[var(--g8)]">
+      <div className="grid max-w-7xl items-center gap-[var(--g6)] lg:grid-cols-2 lg:gap-[var(--g8)]">
         <div>
           <h2
             id="tailored-heading"
@@ -18,7 +18,7 @@ export function TailoredBusinessSection() {
             Tailored to Your Business. Built for Your Flow.
           </h2>
           <p
-            className="text-base text-muted-foreground md:text-lg"
+            className="text-base text-foreground md:text-lg"
             style={{ marginBottom: "var(--g4)", lineHeight: 1.6 }}
           >
             Accelerate growth and simplify operations across use cases,

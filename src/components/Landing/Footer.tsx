@@ -40,10 +40,10 @@ const FOOTER_SECTIONS = [
 export function Footer() {
   return (
     <footer
-      className="bg-[#1A1A1A] text-white dark:bg-foreground"
+      className="bg-[#1A1A1A] text-white dark:bg-foreground w-[calc(100vw-2rem)] rounded-xl flex justify-center items-center m-auto"
       role="contentinfo"
     >
-      <div className="mx-auto max-w-7xl px-[var(--g2)] py-[var(--g8)] md:px-[var(--g4)] md:py-[var(--g10)]">
+      <div className="mx-auto w-full px-[var(--g2)] py-[var(--g8)] md:px-[var(--g4)] md:py-[var(--g10)]">
         <div
           className="flex flex-col items-center text-center"
           style={{ marginBottom: "var(--g8)" }}

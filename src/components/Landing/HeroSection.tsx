@@ -81,7 +81,7 @@ export function HeroSection() {
         <LaunchAppButton>Launch App</LaunchAppButton>
       </div>
       <div className="h-[var(--g12)] bg-red-500"/>
-      <div className="h-[var(--g12)] bg-red-500"/>
+      {/* <div className="h-[var(--g12)] bg-red-500"/> */}
       <div
         ref={videoWrapRef}
         className="relative w-full max-w-7xl z-[1] will-change-transform"

@@ -8,17 +8,21 @@ export function InsightsSection() {
     >
       <h2
         id="insights-heading"
-        className="text-center text-2xl font-bold text-foreground md:text-3xl lg:text-4xl"
+        className="text-center font-bold text-foreground text-3xl md:text-3xl lg:text-4xl md:text-[48px] lg:text-[48px]"
         style={{ marginBottom: "var(--g2)" }}
       >
-        Insights That Drive Conversion.
+        Insights That Drive <br/>Conversion.
       </h2>
-      <p
-        className="mx-auto max-w-2xl text-center text-base text-muted-foreground md:text-lg"
+      {/* <p
+        className="mx-auto max-w-lg text-center text-muted-foreground text-base md:text-lg"
         style={{ marginBottom: "var(--g8)", lineHeight: 1.6 }}
-      >
-        Use data to make informed decisions and optimize your business for
-        growth.
+      > */}
+      <p
+          className="mx-auto max-w-xl text-muted-foreground text-base md:text-lg"
+          style={{ marginBottom: "var(--g8)", lineHeight: 1.4 }}
+        >
+        Deep dive into your payment data. Understand drop-off points in your <br/>
+         onramp flow and optimize your checkout to maximize revenue. 
       </p>
       <figure>
         <img

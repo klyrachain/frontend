@@ -5,7 +5,7 @@ const LOGO_IMAGE_PATH = "/images/logo.png";
 export function CommerceStandardSection() {
   return (
     <section
-      className="mx-auto max-w-7xl px-[var(--g2)] py-[var(--g8)] md:px-[var(--g4)] md:py-[var(--g10)]"
+      className="mx-auto max-w-7xl px-[var(--g2)] py-[var(--g8)] md:px-[var(--g4)] md:py-[var(--g10)] "
       aria-labelledby="commerce-standard-heading"
     >
       <div className="flex flex-col items-center text-center">
@@ -19,17 +19,18 @@ export function CommerceStandardSection() {
         />
         <h2
           id="commerce-standard-heading"
-          className="text-2xl font-bold text-foreground md:text-3xl lg:text-4xl"
+          className="text-3xl md:text-3xl lg:text-4xl md:text-[48px] lg:text-[48px] font-bold text-foreground"
           style={{ marginBottom: "var(--g2)" }}
         >
-          Defining the New Standard for Commerce.
+          Defining the New Standard <br/>for Commerce.
         </h2>
         <p
-          className="mx-auto max-w-2xl text-muted-foreground"
-          style={{ marginBottom: "var(--g4)", lineHeight: 1.6 }}
+          className="mx-auto max-w-xl text-muted-foreground text-base md:text-lg"
+          style={{ marginBottom: "var(--g4)", lineHeight: 1.4 }}
         >
-          Accelerate growth and simplify operations across use cases,
-          industries, and business models.
+          Traditional paymment rails are slow. Cryto rails are complex. 
+          Klyra is the <br/> bridge. We've built a framework that treats digital assets and fiat as one
+          <br/>providing a high-speed lane for global value exchange.
         </p>
         <LaunchAppButton>Learn More</LaunchAppButton>
       </div>

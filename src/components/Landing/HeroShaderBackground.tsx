@@ -82,7 +82,7 @@ export function HeroShaderBackground() {
           mouseInteraction={true}
           density={0.05}
           glowIntensity={0.1}
-          saturation={0}
+          saturation={-4}
           hueShift={230}
           twinkleIntensity={0.3}
           rotationSpeed={0.1}
