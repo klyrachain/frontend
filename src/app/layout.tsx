@@ -3,6 +3,7 @@ import {
   Geist,
   Geist_Mono,
   Inter,
+  Inter_Tight,
   Plus_Jakarta_Sans,
   Outfit,
   DM_Sans,
@@ -58,10 +59,17 @@ const ibmPlexMono = IBM_Plex_Mono({
   subsets: ["latin"],
 });
 
+const interTight = Inter_Tight({
+  variable: "--font-inter-tight",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+});
+
 const fontClassNames = [
   geistSans,
   geistMono,
   inter,
+  interTight,
   plusJakarta,
   outfit,
   dmSans,

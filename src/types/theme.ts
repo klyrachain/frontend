@@ -22,7 +22,8 @@ export type GradientThemeId =
   | "forest"
   | "sunset"
   | "minimal"
-  | "vision";
+  | "vision"
+  | "landing";
 
 /**
  * Single gradient color set for ShaderGradient (color1, color2, color3).

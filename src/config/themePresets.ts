@@ -40,6 +40,12 @@ export const GRADIENT_THEME_PRESETS: Record<string, GradientColors> = {
     color2: "#A5B4FC",
     color3: "#E0E7FF",
   },
+  /** Softer, marketing-style gradient for landing hero (grain background). */
+  landing: {
+    color1: "#f0f4ff",
+    color2: "#e0e7ff",
+    color3: "#c7d2fe",
+  },
 };
 
 export const DEFAULT_GRADIENT_THEME_ID = "default";

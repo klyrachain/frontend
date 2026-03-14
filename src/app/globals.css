@@ -63,6 +63,19 @@
   --radius: 0.625rem;
   /* Modal / tab container width - use across Add, Transfer, Swap, Claim containers */
   --modal-width: 520px;
+  /* 8pt grid – landing page spacing/sizing (8, 16, 24, 32, 40, 48, 56, 64, 72, 80, 88, 96) */
+  --g1: 8px;
+  --g2: 16px;
+  --g3: 24px;
+  --g4: 32px;
+  --g5: 40px;
+  --g6: 48px;
+  --g7: 56px;
+  --g8: 64px;
+  --g9: 72px;
+  --g10: 80px;
+  --g11: 88px;
+  --g12: 96px;
   /* Design system tokens (md/product/design.system.md) - allow dynamic override for density/VisionOS */
   --space-1: 4px;
   --space-2: 8px;
@@ -102,8 +115,11 @@
   --z-toast: 100;
   --font-sans-active: var(--font-geist-sans);
   --font-mono-active: var(--font-geist-mono);
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.141 0.005 285.823);
+  /* --background: oklch(1 0 0); */
+  /* --background: oklch(0.5707 0.2353 263.31); */
+  --background: oklch(0.4334 0.233 275.7);
+  /* --foreground: oklch(0.141 0.005 285.823); */
+  --foreground: oklch(0.9612 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.141 0.005 285.823);
   --popover: oklch(1 0 0);
@@ -254,6 +270,11 @@ html[data-mono-font="ibmPlexMono"] {
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px); */
 }
+/* Landing page: Inter Tight and 8pt grid */
+.landing-page {
+  font-family: var(--font-inter-tight), ui-sans-serif, system-ui, sans-serif;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

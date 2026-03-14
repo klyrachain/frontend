@@ -1,89 +1,43 @@
-"use client";
+import {
+  Header,
+  HeroSection,
+  BuiltForBuildersSection,
+  TailoredBusinessSection,
+  PaymentEngineFeatures,
+  CommerceStandardSection,
+  PricingSection,
+  InsightsSection,
+  Footer,
+} from "@/components/Landing";
+import { HeroShaderBackground } from "@/components/Landing/HeroShaderBackground";
 
-import { useRef, useCallback, useState } from "react";
-import dynamic from "next/dynamic";
-import * as THREE from "three";
-import { Sidebar } from "@/components/Layout/Sidebar";
-import { BentoContent } from "@/components/Home/BentoContent";
-import { Button } from "@/components/ui/button";
-import { ThemeSelector } from "@/components/Theme/ThemeSelector";
-import { RightSidebar } from "@/components/Layout/RightSidebar";
-import { getInitialTokens } from "@/config/tokenPlayground";
-import type { PlaygroundTokenInstance } from "@/types/tokenPlayground";
-
-const ShaderGradientBackground = dynamic(
-  () =>
-    import("@/components/Background/ShaderGradientBackground").then((mod) => ({
-      default: mod.ShaderGradientBackground,
-    })),
-  { ssr: false }
-);
-
-const TokenCanvas = dynamic(
-  () =>
-    import("@/components/TokenPlayground/TokenCanvas").then((mod) => ({
-      default: mod.TokenCanvas,
-    })),
-  { ssr: false }
-);
-
-export default function Home() {
-  const tokenCanvasContainerRef = useRef<HTMLDivElement>(null);
-  const [tokens] = useState<PlaygroundTokenInstance[]>(() =>
-    getInitialTokens()
-  );
-  const [fxSwapPosition, setFxSwapPosition] = useState<THREE.Vector3 | null>(
-    null
-  );
-
-  const handleFxSwap = useCallback(
-    (
-      _tokenId: string,
-      _otherTokenId: string,
-      position: [number, number, number]
-    ) => {
-      setFxSwapPosition(new THREE.Vector3(...position));
-      setTimeout(() => setFxSwapPosition(null), 1500);
-    },
-    []
-  );
-
+export default function LandingPage() {
   return (
     <>
-      <ShaderGradientBackground />
-      <div
-        ref={tokenCanvasContainerRef}
-        className="fixed inset-0 z-[-1] h-full w-full pointer-events-none [&_canvas]:pointer-events-none"
-        aria-hidden
-      >
-        {/* <TokenCanvas
-          key="home-token-canvas"
-          eventSource={tokenCanvasContainerRef}
-          tokens={tokens}
-          onFxSwap={handleFxSwap}
-          fxSwapPosition={fxSwapPosition}
-          background
-          backgroundLayer
-        /> */}
+    <div className="landing-page relative min-h-screen bg-transparent text-foreground">
+      <HeroShaderBackground />
+      <div className="relative z-10">
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:absolute focus:left-[var(--g2)] focus:top-[var(--g2)] focus:z-[100] focus:rounded focus:bg-primary focus:px-4 focus:py-2 focus:text-primary-foreground focus:outline-none"
+        >
+          Skip to main content
+        </a>
+        <Header />
+        <main id="main-content" role="main" tabIndex={-1}>
+          <HeroSection />
+          <BuiltForBuildersSection />
+          <TailoredBusinessSection />
+          <PaymentEngineFeatures />
+          <CommerceStandardSection />
+          <PricingSection />
+          <InsightsSection />
+          <Footer />
+        </main>
+        <div className="bg-white/10 h-[var(--g4)] fixed bottom-0 left-0 right-0 blur-lg" aria-hidden />
       </div>
-      <main className="relative z-0 min-h-screen flex ">
-        <div className="glass-panel px-2 py-20 w-64 lg:block hidden">
-          <Sidebar />
-        </div>
-        <div className="flex flex-col flex-1 gap-5">
-          <header className="sticky top-0 z-10 flex items-center justify-between bg-transparent px-6 py-4">
-            <h1 className="text-xl font-semibold">Klyra</h1>
-            <Button size="sm" className="rounded-xl">
-              Connect wallet
-            </Button>
-          </header>
-          <div className="bg-green-00 flex flex-1">
-            <BentoContent />
-            <RightSidebar className="hidden md:block" />
-          </div>
-        </div>
-      </main>
-      <ThemeSelector />
+    </div>
+        {/* </HeroShaderBackground> */}
     </>
   );
 }
