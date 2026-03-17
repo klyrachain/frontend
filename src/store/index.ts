@@ -16,7 +16,7 @@ import { squidApi } from "./api/squidApi";
 import { getPersistStorage } from "./storage";
 
 const themePersistConfig = {
-  key: "klyra-theme",
+  key: "morapay-theme",
   storage: getPersistStorage(),
   whitelist: ["themeMode", "colorThemeId", "gradientThemeId", "density", "sansFontId", "monoFontId"],
 };

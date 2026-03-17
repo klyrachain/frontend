@@ -27,7 +27,7 @@ export function BuiltForBuildersSection() {
     >
       <h2
         id="built-for-builders-heading"
-        className="text-center text-2xl font-bold text-foreground md:text-3xl lg:text-4xl md:text-[64px] lg:text-[72px]"
+        className="font-shinier text-center text-2xl font-bold text-foreground md:text-3xl lg:text-4xl md:text-[64px] lg:text-[72px]"
         style={{ marginBottom: "var(--g2)" }}
       >
         Built for Builders. 
@@ -37,7 +37,7 @@ export function BuiltForBuildersSection() {
         className="mx-auto max-w-2xl text-center text-base text-muted-foreground md:text-lg"
         style={{ marginBottom: "var(--g6)", lineHeight: 1.6 }}
       >
-        The Klyra SDK abstracts the complexity of global payments.
+        The <span className="font-shinier">morapay</span> SDK abstracts the complexity of global payments.
         Onramp, offramp, and settle in any currency with one unified integration.
       </p>
 

@@ -90,14 +90,15 @@ vec3 StarLayer(vec2 uv) {
   vec2 gv = fract(uv) - 0.5; 
   vec2 id = floor(uv);
 
+  float maxStarSize = 0.35;
   for (int y = -1; y <= 1; y++) {
     for (int x = -1; x <= 1; x++) {
       vec2 offset = vec2(float(x), float(y));
       vec2 si = id + vec2(float(x), float(y));
       float seed = Hash21(si);
-      float size = fract(seed * 345.32);
+      float size = fract(seed * 345.32) * maxStarSize;
       float glossLocal = tri(uStarSpeed / (PERIOD * seed + 1.0));
-      float flareSize = smoothstep(0.9, 1.0, size) * glossLocal;
+      float flareSize = smoothstep(0.0, 0.25, size) * glossLocal * 0.4;
 
       float red = smoothstep(STAR_COLOR_CUTOFF, 1.0, Hash21(si + 1.0)) + STAR_COLOR_CUTOFF;
       float blu = smoothstep(STAR_COLOR_CUTOFF, 1.0, Hash21(si + 3.0)) + STAR_COLOR_CUTOFF;
@@ -197,18 +198,18 @@ export interface GalaxyProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 
 export default function Galaxy({
   focal = [0.5, 0.5],
   rotation = [1.0, 0.0],
-  starSpeed = 0.5,
+  starSpeed = 0.05,
   density = 1,
   hueShift = 140,
   disableAnimation = false,
-  speed = 1.0,
+  speed = 0.08,
   mouseInteraction = true,
-  glowIntensity = 0.3,
+  glowIntensity = 0.2,
   saturation = 0.0,
   mouseRepulsion = true,
   repulsionStrength = 2,
-  twinkleIntensity = 0.3,
-  rotationSpeed = 0.1,
+  twinkleIntensity = 0.2,
+  rotationSpeed = 0.02,
   autoCenterRepulsion = 0,
   transparent = true,
   starTint = [1, 1, 1],

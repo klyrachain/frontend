@@ -3,7 +3,7 @@
  * exceeding browser limits when storing only small values.
  */
 
-const TAB_COOKIE_NAME = "klyra-tab";
+const TAB_COOKIE_NAME = "morapay-tab";
 const COOKIE_MAX_AGE_DAYS = 365;
 
 function getCookie(name: string): string | null {

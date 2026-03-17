@@ -19,7 +19,7 @@ export function CommerceStandardSection() {
         />
         <h2
           id="commerce-standard-heading"
-          className="text-3xl md:text-3xl lg:text-4xl md:text-[48px] lg:text-[48px] font-bold text-foreground"
+          className="font-shinier text-3xl md:text-3xl lg:text-4xl md:text-[48px] lg:text-[48px] font-bold text-foreground"
           style={{ marginBottom: "var(--g2)" }}
         >
           Defining the New Standard <br/>for Commerce.
@@ -28,8 +28,8 @@ export function CommerceStandardSection() {
           className="mx-auto max-w-xl text-muted-foreground text-base md:text-lg"
           style={{ marginBottom: "var(--g4)", lineHeight: 1.4 }}
         >
-          Traditional paymment rails are slow. Cryto rails are complex. 
-          Klyra is the <br/> bridge. We've built a framework that treats digital assets and fiat as one
+          Traditional paymment rails are slow. Cryto rails are complex.{" "}
+          <span className="font-shinier">morapay</span> is the <br/> bridge. We've built a framework that treats digital assets and fiat as one
           <br/>providing a high-speed lane for global value exchange.
         </p>
         <LaunchAppButton>Learn More</LaunchAppButton>

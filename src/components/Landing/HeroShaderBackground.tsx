@@ -1,100 +1,286 @@
 "use client";
 
+import { useRef } from "react";
+import { useGSAP } from "@gsap/react";
+import gsap from "gsap";
 import { ShaderGradient, ShaderGradientCanvas } from "@shadergradient/react";
-import { GRADIENT_THEME_PRESETS } from "@/config/themePresets";
 import Galaxy from "./Galaxy";
 
-const LANDING_PRESET = GRADIENT_THEME_PRESETS.landing ?? GRADIENT_THEME_PRESETS.minimal;
+export type EmbeddedTextAnimation = "none" | "writing" | "pop" | "float";
+
+export interface EmbeddedImageItem {
+  src: string;
+  /** "small" | "medium" | "large" or pixel width (e.g. 120). Default "medium". */
+  size?: "small" | "medium" | "large" | number;
+}
+
+export interface HeroShaderBackgroundProps {
+  /** Full-bleed background image (fits screen width/height, cover). e.g. /africa.avif */
+  backgroundImage?: string;
+  /** Opacity of the full-bleed background image (0–1). Default 0.35. */
+  backgroundImageOpacity?: number;
+  /** Large text embedded in the background. Use \n or <br/> for line breaks. */
+  embeddedText?: string;
+  /** Animation for embedded text. */
+  embeddedTextAnimation?: EmbeddedTextAnimation;
+  /** Opacity of embedded text (0–1). Default 0.08. */
+  embeddedTextOpacity?: number;
+  /** Single image URL (legacy). Prefer embeddedImages for multiple. */
+  embeddedImage?: string;
+  /** Multiple images as collage. Use with or without embeddedImage. */
+  embeddedImages?: EmbeddedImageItem[];
+  /** Opacity of embedded image(s) (0–1). Default 0.12. */
+  embeddedImageOpacity?: number;
+  /** Global image size when using embeddedImages. Overridable per item. */
+  embeddedImageDefaultSize?: "small" | "medium" | "large";
+}
+
+const IMAGE_SIZE_MAP = {
+  small: "clamp(80px, 15vw, 120px)",
+  medium: "clamp(120px, 22vw, 200px)",
+  large: "clamp(180px, 32vw, 320px)",
+} as const;
+
+function getImageSize(size: "small" | "medium" | "large" | number | undefined): string {
+  if (size === undefined) return IMAGE_SIZE_MAP.medium;
+  if (typeof size === "number") return `${size}px`;
+  return IMAGE_SIZE_MAP[size];
+}
+
+/** Split by <br/> or \n for multi-line embedded text. */
+function splitEmbeddedText(text: string): string[] {
+  return text
+    .replace(/<br\s*\/?>/gi, "\n")
+    .split("\n")
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
 
 /**
- * Hero-only shader background with grain. Distinct from app ShaderGradientBackground:
- * softer palette, subtler motion, grain on — for a calm, marketing feel.
+ * Hero shader background with optional embedded text (GSAP-animated) and image collage.
  */
-export function HeroShaderBackground() {
+export function HeroShaderBackground({
+  backgroundImage,
+  backgroundImageOpacity = 0.35,
+  embeddedText = "",
+  embeddedTextAnimation = "pop",
+  embeddedTextOpacity = 0.08,
+  embeddedImage,
+  embeddedImages = [],
+  embeddedImageOpacity = 0.12,
+  embeddedImageDefaultSize = "medium",
+}: HeroShaderBackgroundProps) {
+  const textWrapRef = useRef<HTMLDivElement>(null);
+  const lineRefs = useRef<HTMLSpanElement[]>([]);
+
+  const lines = splitEmbeddedText(embeddedText);
+  const hasText = lines.length > 0;
+
+  useGSAP(
+    () => {
+      if (!hasText || embeddedTextAnimation === "none") return;
+      const wrap = textWrapRef.current;
+      if (!wrap) return;
+
+      lineRefs.current = lineRefs.current.slice(0, lines.length);
+      const lineEls = lineRefs.current.filter(Boolean);
+      if (lineEls.length === 0) return;
+
+      const duration = 0.6;
+      const stagger = 0.12;
+
+      if (embeddedTextAnimation === "writing") {
+        lineEls.forEach((el, i) => {
+          const chars = el.childNodes;
+          gsap.set(chars, { opacity: 0 });
+          gsap.to(chars, {
+            opacity: embeddedTextOpacity,
+            duration: 0.04,
+            stagger: 0.03,
+            delay: i * stagger,
+          });
+        });
+      } else if (embeddedTextAnimation === "pop") {
+        gsap.set(lineEls, { opacity: 0, scale: 0.6 });
+        gsap.to(lineEls, {
+          opacity: embeddedTextOpacity,
+          scale: 1,
+          duration,
+          stagger,
+          ease: "back.out(1.2)",
+        });
+      } else if (embeddedTextAnimation === "float") {
+        gsap.set(lineEls, { opacity: 0, y: 24 });
+        gsap.to(lineEls, {
+          opacity: embeddedTextOpacity,
+          y: 0,
+          duration,
+          stagger,
+          ease: "power2.out",
+        });
+      }
+    },
+    {
+      scope: textWrapRef,
+      dependencies: [embeddedText, embeddedTextAnimation, embeddedTextOpacity, hasText],
+    }
+  );
+
+  const imageList: EmbeddedImageItem[] = embeddedImage
+    ? [{ src: embeddedImage, size: embeddedImageDefaultSize }, ...embeddedImages]
+    : embeddedImages;
+  const hasImages = imageList.length > 0;
+
   return (
     <div
       className="fixed inset-0 z-0 size-full overflow-hidden pointer-events-none"
       aria-hidden
     >
-              {/* <Galaxy
-          mouseRepulsion={false}
-          mouseInteraction={false}
-          density={0.1}
-          glowIntensity={0.2}
-          saturation={0}
-          hueShift={230}
-          twinkleIntensity={0.3}
-          rotationSpeed={0.1}
-          repulsionStrength={2}
-          autoCenterRepulsion={0}
-          starSpeed={0.1}
-          speed={0.2}
-          transparent
-        /> */}
       <ShaderGradientCanvas className="!absolute !inset-0 !size-full">
-      <ShaderGradient
-  animate="on"
-  axesHelper="off"
-  brightness={1.2}
-  cAzimuthAngle={0}
-  cDistance={3.6}
-  cPolarAngle={90}
-  cameraZoom={1}
-  // color1="#3b28cc"
-  // color1="#1414e3"
-  color1="#150578"
-  color2="#0e0e52"
-  color3="#3f8efc"
-  destination="onCanvas"
-  embedMode="off"
-  envPreset="dawn"
-  // format="gif"
-  fov={45}
-  frameRate={10}
-  gizmoHelper="hide"
-  grain="on"
-  lightType="env"
-  pixelDensity={1}
-  positionX={-1.4}
-  positionY={0}
-  positionZ={0}
-  range="disabled"
-  rangeEnd={40}
-  rangeStart={0}
-  reflection={0}
-  rotationX={0}
-  rotationY={10}
-  rotationZ={50}
-  shader="defaults"
-  type="plane"
-  uAmplitude={1}
-  uDensity={1.8}
-  uFrequency={5.5}
-  uSpeed={0.01}
-  uStrength={0.2}
-  uTime={0}
-  wireframe={false}
-/>
+        <ShaderGradient
+          animate="on"
+          brightness={1.2}
+          cAzimuthAngle={0}
+          cDistance={3.6}
+          cPolarAngle={90}
+          cameraZoom={1}
+          color1="#023436"
+          color2="#037971"
+          color3="#037971"
+          destination="onCanvas"
+          embedMode="off"
+          envPreset="dawn"
+          fov={45}
+          frameRate={10}
+          gizmoHelper="hide"
+          grain="on"
+          lightType="env"
+          pixelDensity={1}
+          positionX={-1.4}
+          positionY={0}
+          positionZ={0}
+          range="disabled"
+          rangeEnd={40}
+          rangeStart={0}
+          reflection={0}
+          rotationX={0}
+          rotationY={10}
+          rotationZ={50}
+          shader="defaults"
+          type="plane"
+          uAmplitude={1}
+          uDensity={1.8}
+          uFrequency={5.5}
+          uSpeed={0.01}
+          uStrength={0.2}
+          uTime={0}
+          wireframe={false}
+        />
       </ShaderGradientCanvas>
-      <div className="absolute inset-0 overflow-hidden rounded-2xl pointer-events-none blur-lg" aria-hidden>
+
+      {backgroundImage ? (
+        <div
+          className="absolute inset-0 size-full pointer-events-none"
+          aria-hidden
+        >
+          <img
+            src={backgroundImage}
+            alt=""
+            className="absolute inset-0 size-full object-cover object-center"
+            style={{ opacity: backgroundImageOpacity }}
+          />
+        </div>
+      ) : null}
+
+      <div
+        className="absolute inset-0 overflow-hidden rounded-2xl pointer-events-none blur-lg"
+        aria-hidden
+      >
         <Galaxy
           mouseRepulsion={true}
           mouseInteraction={true}
-          density={0.05}
-          glowIntensity={0.1}
+          density={0.01}
+          glowIntensity={0.08}
           saturation={-4}
           hueShift={230}
-          twinkleIntensity={0.3}
-          rotationSpeed={0.1}
+          twinkleIntensity={0.2}
+          rotationSpeed={0.02}
           repulsionStrength={2}
           autoCenterRepulsion={0}
-          starSpeed={0.0001}
-          speed={0.2}
+          starSpeed={0.00002}
+          speed={0.04}
           transparent
           starTint={[1, 1, 1]}
         />
       </div>
+
+      {hasText ? (
+        <div
+          ref={textWrapRef}
+          className={`absolute inset-0 flex pointer-events-none select-none ${
+            lines.length === 1
+              ? "items-center justify-center"
+              : "flex-col items-center justify-center"
+          }`}
+          aria-hidden
+          style={
+            lines.length > 1
+              ? { gap: "0.06em" }
+              : undefined
+          }
+        >
+          {lines.map((line, i) => (
+            <span
+              key={i}
+              ref={(el) => {
+                if (el) lineRefs.current[i] = el;
+              }}
+              className={
+                lines.length === 1
+                  ? "font-shinier whitespace-nowrap text-center text-[clamp(6rem,20vw,18rem)] font-normal tracking-tight text-white"
+                  : "font-shinier text-center text-[clamp(5rem,18vw,16rem)] font-normal tracking-tight text-white leading-[1.15]"
+              }
+              style={{
+                opacity: embeddedTextAnimation === "none" ? embeddedTextOpacity : undefined,
+                textShadow: "0 0 80px rgba(255,255,255,0.03)",
+              }}
+            >
+              {embeddedTextAnimation === "writing"
+                ? line.split("").map((char, j) => (
+                    <span key={j} className="inline-block">
+                      {char}
+                    </span>
+                  ))
+                : line}
+            </span>
+          ))}
+        </div>
+      ) : null}
+
+      {hasImages ? (
+        <div
+          className="absolute inset-0 flex flex-wrap items-center justify-center gap-[clamp(12px,3vw,24px)] p-[clamp(16px,5vw,48px)] pointer-events-none"
+          aria-hidden
+        >
+          {imageList.map((item, i) => (
+            <div
+              key={`${item.src}-${i}`}
+              className="shrink-0 rounded-lg overflow-hidden border border-white/10 bg-white/5"
+              style={{
+                width: getImageSize(item.size ?? embeddedImageDefaultSize),
+                height: getImageSize(item.size ?? embeddedImageDefaultSize),
+                opacity: embeddedImageOpacity,
+              }}
+            >
+              <img
+                src={item.src}
+                alt=""
+                className="size-full object-cover"
+              />
+            </div>
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }
-

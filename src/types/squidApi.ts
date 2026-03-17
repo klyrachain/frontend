@@ -1,7 +1,7 @@
 /**
  * Response shapes for backend Squid proxy:
  * GET /api/squid/chains, GET /api/squid/tokens
- * See: https://github.com/klyrachain/backend/blob/main/API.md
+ * See: https://github.com/morapaychain/backend/blob/main/API.md
  */
 
 export interface SquidChainNativeCurrency {

@@ -108,7 +108,8 @@ export function Footer() {
           className="mt-[var(--g6)] text-center text-sm text-white/60"
           style={{ marginBottom: 0 }}
         >
-          © {new Date().getFullYear()} Klyra. All rights reserved.
+          © {new Date().getFullYear()}{" "}
+          <span className="font-shinier">morapay</span>. All rights reserved.
         </p>
       </div>
     </footer>

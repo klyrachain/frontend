@@ -402,7 +402,7 @@ export function Header() {
           ref={logoRef}
           href="/"
           className="flex shrink-0 origin-left items-center gap-3 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-          aria-label="Klyra home"
+          aria-label="morapay home"
         >
           <img
             src={LOGO_IMAGE_PATH}
@@ -411,7 +411,7 @@ export function Header() {
             height={40}
             className="h-10 w-10 shrink-0 object-contain md:h-11 md:w-11"
           />
-          <span className="text-xl font-semibold text-foreground md:text-2xl">Klyra</span>
+          <span className="font-shinier text-xl font-semibold text-foreground md:text-2xl">morapay</span>
         </Link>
 
         <nav

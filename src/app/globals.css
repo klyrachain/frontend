@@ -118,8 +118,9 @@
   /* --background: oklch(1 0 0); */
   /* --background: oklch(0.5707 0.2353 263.31); */
   /* --background: oklch(0.4334 0.233 275.7); */
-  --background: oklch(0.2732 0.1702 271.71);
+  --background: oklch(0.2958 0.049 199.08)
   /* --foreground: oklch(0.141 0.005 285.823); */
+  /* --foreground: oklch(0.9612 0 0); */
   --foreground: oklch(0.9612 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.141 0.005 285.823);
@@ -271,6 +272,23 @@ html[data-mono-font="ibmPlexMono"] {
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px); */
 }
+/* Shinier display font (platform name and key headings) */
+@font-face {
+  font-family: "Shinier";
+  src: url("/font/shinier-regular.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --font-shinier: "Shinier", var(--font-inter-tight), ui-sans-serif, system-ui, sans-serif;
+}
+
+.font-shinier {
+  font-family: var(--font-shinier);
+}
+
 /* Landing page: Inter Tight and 8pt grid */
 .landing-page {
   font-family: var(--font-inter-tight), ui-sans-serif, system-ui, sans-serif;
