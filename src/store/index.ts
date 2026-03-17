@@ -11,9 +11,11 @@ import {
 } from "redux-persist";
 import { themeReducer } from "./slices/themeSlice";
 import { navigationReducer } from "./slices/navigationSlice";
+import { usedTokensReducer } from "./slices/usedTokensSlice";
 import { baseApi } from "./api/baseApi";
 import { squidApi } from "./api/squidApi";
 import { getPersistStorage } from "./storage";
+import { getUsedTokensCookieStorage } from "@/lib/cookie";
 
 const themePersistConfig = {
   key: "morapay-theme",
@@ -21,13 +23,21 @@ const themePersistConfig = {
   whitelist: ["themeMode", "colorThemeId", "gradientThemeId", "density", "sansFontId", "monoFontId"],
 };
 
+const usedTokensPersistConfig = {
+  key: "morapay-used-tokens",
+  storage: getUsedTokensCookieStorage(),
+  whitelist: ["entries"],
+};
+
 const persistedThemeReducer = persistReducer(themePersistConfig, themeReducer);
+const persistedUsedTokensReducer = persistReducer(usedTokensPersistConfig, usedTokensReducer);
 
 export const makeStore = () =>
   configureStore({
     reducer: {
       theme: persistedThemeReducer,
       navigation: navigationReducer,
+      usedTokens: persistedUsedTokensReducer,
       [baseApi.reducerPath]: baseApi.reducer,
       [squidApi.reducerPath]: squidApi.reducer,
     },

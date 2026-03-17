@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useRef, useCallback } from "react";
+import { useState, useMemo, useRef, useCallback, useDeferredValue } from "react";
 import {
   Dialog,
   DialogContent,
@@ -10,16 +10,16 @@ import {
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { Search, X } from "lucide-react";
-import {
-  CHAINS,
-  TOKENS,
-  getChainById as getStaticChainById,
-} from "@/config/chainsAndTokens";
-import { useGetChainsQuery, useGetTokensQuery } from "@/store/api/squidApi";
+import { getChainById as getStaticChainById } from "@/config/chainsAndTokens";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { recordTokenUsed } from "@/store/slices/usedTokensSlice";
 import type { Chain, Token } from "@/types/token";
 import type { TokenSelection } from "../Exchange/TokenChainSelectModal";
 
 const MODAL_MAX_HEIGHT_CLASS = "max-h-[85vh]";
+/** Tab content min/max height so sheet height stays consistent when switching tabs (e.g. offramp has little content). */
+const TAB_CONTENT_MIN_H = "min-h-[50vh]";
+const TAB_CONTENT_MAX_H = "max-h-[60vh]";
 
 /** Mobile: bottom sheet width = viewport minus margin (inset-x-2, bottom-2). */
 const BOTTOM_SHEET_MOBILE_CLASSES =
@@ -30,11 +30,16 @@ const DRAG_CLOSE_THRESHOLD_PX = 80;
 const TAB_IDS = ["tokens", "offramp", "activities"] as const;
 type TabId = (typeof TAB_IDS)[number];
 
+/** Initial token list size to avoid DOM freeze; search still uses full filtered list. */
+const INITIAL_TOKEN_LIST_SIZE = 100;
+
 interface TransferSelectModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSelect: (selection: TokenSelection) => void;
   excludeSymbol?: string;
+  chains: Chain[];
+  tokens: Token[];
 }
 
 function getChainByIdFromList(chains: Chain[], chainId: string): Chain | undefined {
@@ -43,19 +48,32 @@ function getChainByIdFromList(chains: Chain[], chainId: string): Chain | undefin
 
 function TokenIconWithChainBadge({ token, chain }: { token: Token; chain: Chain | undefined }) {
   const chainInitials = chain?.shortName?.slice(0, 2) ?? chain?.name?.slice(0, 2) ?? "?";
+  const chainIcon = chain?.iconURI;
   return (
-    <span className="relative flex size-12 shrink-0 overflow-hidden rounded-full bg-muted ring-1 ring-border/50">
-      {token.logoURI != null && token.logoURI !== "" ? (
-        /* eslint-disable-next-line @next/next/no-img-element */
-        <img src={token.logoURI} alt="" width={48} height={48} className="size-12 object-cover" />
-      ) : (
-        <span className="flex size-12 items-center justify-center text-base font-semibold text-muted-foreground">
-          {token.symbol.slice(0, 2)}
-        </span>
-      )}
+    <span className="relative flex size-12 shrink-0">
+      <span className="flex size-12 overflow-hidden rounded-full bg-muted ring-1 ring-border/50">
+        {token.logoURI != null && token.logoURI !== "" ? (
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img src={token.logoURI} alt="" width={48} height={48} className="size-12 object-cover" />
+        ) : (
+          <span className="flex size-12 items-center justify-center text-base font-semibold text-muted-foreground">
+            {token.symbol.slice(0, 2)}
+          </span>
+        )}
+      </span>
       {chain != null && (
-        <span className="absolute bottom-0 right-0 flex size-5 items-center justify-center rounded-full border-2 border-background bg-muted text-[10px] font-medium text-muted-foreground ring-1 ring-border/50" aria-hidden>
-          {chainInitials}
+        <span
+          className="absolute -bottom-0.5 -right-0.5 z-10 flex size-5 overflow-hidden rounded-full border-0 border-background bg-muted ring-1 ring-border/50"
+          aria-hidden
+        >
+          {chainIcon ? (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img src={chainIcon} alt="" width={20} height={20} className="size-5 object-cover" />
+          ) : (
+            <span className="flex size-5 items-center justify-center text-[10px] font-medium text-muted-foreground">
+              {chainInitials}
+            </span>
+          )}
         </span>
       )}
     </span>
@@ -67,12 +85,17 @@ export function TransferSelectModal({
   onOpenChange,
   onSelect,
   excludeSymbol,
+  chains,
+  tokens,
 }: TransferSelectModalProps) {
+  const dispatch = useAppDispatch();
+  const usedTokensEntries = useAppSelector((s) => s.usedTokens.entries);
+  const deferredUsedEntries = useDeferredValue(usedTokensEntries);
+
   const [activeTab, setActiveTab] = useState<TabId>("tokens");
   const [search, setSearch] = useState("");
   const [selectedChainId, setSelectedChainId] = useState<string | null>(null);
-  const [recentChainIds, setRecentChainIds] = useState<string[]>([]);
-  
+
   const [dragOffset, setDragOffset] = useState(0);
   const dragStartY = useRef(0);
   const dragCaptureRef = useRef<HTMLElement | null>(null);
@@ -104,20 +127,15 @@ export function TransferSelectModal({
     });
   }, [onOpenChange]);
 
-  const { data: apiChains = [], isSuccess: chainsSuccess } = useGetChainsQuery(undefined, { skip: !open });
-  const { data: apiTokens = [], isSuccess: tokensSuccess } = useGetTokensQuery(undefined, { skip: !open });
-
-  const chains = chainsSuccess && apiChains.length > 0 ? apiChains : CHAINS;
-  const tokens = tokensSuccess && apiTokens.length > 0 ? apiTokens : TOKENS;
   const getChainById = (chainId: string) => getChainByIdFromList(chains, chainId) ?? getStaticChainById(chainId);
 
-  const favoriteOrRecentChainIds = useMemo(() => {
+  const suggestedChainIds = useMemo(() => {
     const seen = new Set<string>();
     const out: string[] = [];
-    for (const id of recentChainIds) {
-      if (chains.some((c) => c.id === id) && !seen.has(id)) {
-        seen.add(id);
-        out.push(id);
+    for (const e of deferredUsedEntries) {
+      if (chains.some((c) => c.id === e.chainId) && !seen.has(e.chainId)) {
+        seen.add(e.chainId);
+        out.push(e.chainId);
       }
     }
     for (const c of chains) {
@@ -128,7 +146,13 @@ export function TransferSelectModal({
       }
     }
     return out;
-  }, [chains, recentChainIds]);
+  }, [chains, deferredUsedEntries]);
+
+  const usedTokenIdOrder = useMemo(() => {
+    const order = new Map<string, number>();
+    deferredUsedEntries.forEach((e, i) => order.set(e.tokenId, i));
+    return order;
+  }, [deferredUsedEntries]);
 
   const filteredTokens = useMemo(() => {
     let list = tokens;
@@ -138,13 +162,18 @@ export function TransferSelectModal({
       const q = search.trim().toLowerCase();
       list = list.filter((t) => t.symbol.toLowerCase().includes(q) || t.name.toLowerCase().includes(q));
     }
+    list = [...list].sort((a, b) => {
+      const aIdx = usedTokenIdOrder.get(a.id) ?? 1e9;
+      const bIdx = usedTokenIdOrder.get(b.id) ?? 1e9;
+      return aIdx - bIdx;
+    });
     return list;
-  }, [tokens, search, selectedChainId, excludeSymbol]);
+  }, [tokens, search, selectedChainId, excludeSymbol, usedTokenIdOrder]);
 
   const handleSelectToken = (token: Token) => {
     const chain = getChainById(token.chainId);
     if (chain) {
-      setRecentChainIds((prev) => [chain.id, ...prev.filter((id) => id !== chain.id)].slice(0, 5));
+      dispatch(recordTokenUsed({ tokenId: token.id, chainId: token.chainId }));
       onSelect({ chain, token });
       onOpenChange(false);
     }
@@ -221,6 +250,8 @@ export function TransferSelectModal({
             ))}
           </nav>
 
+          {/* Tab content: min/max height keeps sheet height consistent when switching tabs. */}
+          <div className={cn("flex flex-1 flex-col overflow-hidden", TAB_CONTENT_MIN_H, TAB_CONTENT_MAX_H)}>
           {activeTab === "tokens" && (
             <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
               <div className="shrink-0 px-4 pt-3 pb-2">
@@ -231,14 +262,14 @@ export function TransferSelectModal({
                     placeholder="Search token or paste address"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    className="border-none pl-9 rounded-xl"
+                    className="border-none pl-9 rounded-xl shadow-none"
                   />
                 </div>
               </div>
 
               <section className="shrink-0 px-4 pb-2" aria-label="Chains">
                 <ul className="flex flex-wrap gap-2">
-                  {favoriteOrRecentChainIds.map((chainId) => {
+                  {suggestedChainIds.map((chainId) => {
                     const chain = getChainById(chainId);
                     if (chain == null) return null;
                     const isActive = selectedChainId === chain.id;
@@ -248,11 +279,15 @@ export function TransferSelectModal({
                           type="button"
                           onClick={() => setSelectedChainId(isActive ? null : chain.id)}
                           className={cn(
-                            "cursor-pointer rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+                            "flex cursor-pointer items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
                             isActive ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-card-foreground"
                           )}
                         >
-                          {chain.shortName ?? chain.name}
+                          {chain.iconURI ? (
+                            /* eslint-disable-next-line @next/next/no-img-element */
+                            <img src={chain.iconURI} alt="" width={18} height={18} className="size-[18px] shrink-0 rounded-full object-cover" />
+                          ) : null}
+                          <span>{chain.shortName ?? chain.name}</span>
                         </button>
                       </li>
                     );
@@ -265,7 +300,7 @@ export function TransferSelectModal({
                   <p className="py-8 text-center text-sm text-muted-foreground">No tokens found</p>
                 ) : (
                   <ul className="space-y-0">
-                    {filteredTokens.map((token) => {
+                    {filteredTokens.slice(0, INITIAL_TOKEN_LIST_SIZE).map((token) => {
                       const chain = getChainById(token.chainId);
                       return (
                         <li key={token.id}>
@@ -277,7 +312,9 @@ export function TransferSelectModal({
                             <TokenIconWithChainBadge token={token} chain={chain ?? undefined} />
                             <span className="min-w-0 flex-1">
                               <span className="block truncate text-sm font-medium text-primary">{token.name}</span>
-                              <span className="block truncate text-xs text-muted-foreground">{chain?.shortName ?? chain?.name ?? token.chainId}</span>
+                              <span className="flex items-center gap-1.5 truncate text-xs text-muted-foreground">
+                                <span className="truncate">{chain?.shortName ?? chain?.name ?? token.chainId}</span>
+                              </span>
                             </span>
                             <span className="modal-balance tabular-nums text-sm font-semibold text-primary">0.00 {token.symbol}</span>
                           </button>
@@ -301,6 +338,7 @@ export function TransferSelectModal({
               <p className="text-sm text-muted-foreground">Recent transfer and swap activity will appear here.</p>
             </section>
           )}
+          </div>
         </div>
       </DialogContent>
     </Dialog>

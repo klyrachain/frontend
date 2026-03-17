@@ -16,6 +16,7 @@ export interface SquidChain {
   chainName?: string;
   networkName?: string;
   shortName?: string;
+  chainIconURI?: string;
   nativeCurrency?: SquidChainNativeCurrency;
 }
 
@@ -23,6 +24,9 @@ export interface SquidChainsResponse {
   chains?: SquidChain[];
   data?: { chains?: SquidChain[] };
 }
+
+/** Backend may return a direct array (see backend-api.md GET /api/squid/chains). */
+export type SquidChainsPayload = SquidChainsResponse | SquidChain[];
 
 export interface SquidToken {
   chainId?: number | string;
@@ -38,3 +42,6 @@ export interface SquidTokensResponse {
   tokens?: SquidToken[];
   data?: { tokens?: SquidToken[] };
 }
+
+/** Backend may return a direct array (see backend-api.md GET /api/squid/tokens). */
+export type SquidTokensPayload = SquidTokensResponse | SquidToken[];

@@ -10,6 +10,8 @@ import {
   getChainById as getStaticChainById,
 } from "@/config/chainsAndTokens";
 import { useGetChainsQuery, useGetTokensQuery } from "@/store/api/squidApi";
+import { useAppDispatch } from "@/store/hooks";
+import { recordTokenUsed } from "@/store/slices/usedTokensSlice";
 import type { Chain, Token } from "@/types/token";
 import type { TokenSelection } from "../Exchange/TokenChainSelectModal";
 
@@ -73,6 +75,7 @@ export function TransferSelectPanel({
   onSelect,
   excludeSymbol,
 }: TransferSelectPanelProps) {
+  const dispatch = useAppDispatch();
   const [activeTab, setActiveTab] = useState<TabId>("tokens");
   const [search, setSearch] = useState("");
   const [selectedChainId, setSelectedChainId] = useState<string | null>(null);
@@ -133,6 +136,7 @@ export function TransferSelectPanel({
   const handleSelectToken = (token: Token) => {
     const chain = getChainById(token.chainId);
     if (chain) {
+      dispatch(recordTokenUsed({ tokenId: token.id, chainId: token.chainId }));
       setRecentChainIds((prev) => {
         const next = [chain.id, ...prev.filter((id) => id !== chain.id)].slice(
           0,

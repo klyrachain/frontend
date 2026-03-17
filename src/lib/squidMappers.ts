@@ -35,7 +35,14 @@ export function mapSquidChainsToChains(
         (c.chainName ?? c.networkName ?? c.nativeCurrency?.name ?? id) || "Unknown";
       const shortName =
         c.shortName ?? c.nativeCurrency?.symbol ?? name.slice(0, 8);
-      return { id, name, shortName };
+      const chainIconURI =
+        c.chainIconURI ?? (c as { chainIconUri?: string }).chainIconUri ?? "";
+      return {
+        id,
+        name,
+        shortName,
+        ...(chainIconURI !== "" ? { iconURI: chainIconURI } : {}),
+      };
     });
 }
 

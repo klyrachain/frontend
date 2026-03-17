@@ -12,6 +12,8 @@ import { cn } from "@/lib/utils";
 import { Search, X } from "lucide-react";
 import { CHAINS, TOKENS, getChainById as getStaticChainById } from "@/config/chainsAndTokens";
 import { useGetChainsQuery, useGetTokensQuery } from "@/store/api/squidApi";
+import { useAppDispatch } from "@/store/hooks";
+import { recordTokenUsed } from "@/store/slices/usedTokensSlice";
 import type { Chain, Token } from "@/types/token";
 
 export interface TokenSelection {
@@ -37,6 +39,7 @@ export function TokenChainSelectModal({
   onSelect,
   excludeSymbol,
 }: TokenChainSelectModalProps) {
+  const dispatch = useAppDispatch();
   const [search, setSearch] = useState("");
   const [selectedChainId, setSelectedChainId] = useState<string | null>(null);
 
@@ -74,6 +77,7 @@ export function TokenChainSelectModal({
   const handleSelectToken = (token: Token) => {
     const chain = getChainById(token.chainId);
     if (chain) {
+      dispatch(recordTokenUsed({ tokenId: token.id, chainId: token.chainId }));
       onSelect({ chain, token });
       onOpenChange(false);
     }

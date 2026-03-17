@@ -1,12 +1,13 @@
 /**
- * Cookie helpers for tab persistence. Uses a single cookie to avoid
- * exceeding browser limits when storing only small values.
+ * Cookie helpers for tab persistence and used-tokens persistence.
+ * Uses a single cookie per feature to avoid exceeding browser limits.
  */
 
 const TAB_COOKIE_NAME = "morapay-tab";
+const USED_TOKENS_COOKIE_NAME = "morapay-used-tokens";
 const COOKIE_MAX_AGE_DAYS = 365;
 
-function getCookie(name: string): string | null {
+export function getCookie(name: string): string | null {
   if (typeof document === "undefined") return null;
   const match = document.cookie.match(
     new RegExp("(?:^|; )" + name.replace(/([.$?*|{}()[\]\\/+^])/g, "\\$1") + "=([^;]*)")
@@ -14,7 +15,7 @@ function getCookie(name: string): string | null {
   return match != null ? decodeURIComponent(match[1]) : null;
 }
 
-function setCookie(name: string, value: string, maxAgeDays: number): void {
+export function setCookie(name: string, value: string, maxAgeDays: number): void {
   if (typeof document === "undefined") return;
   const maxAge = maxAgeDays * 24 * 60 * 60;
   document.cookie =
@@ -24,6 +25,25 @@ function setCookie(name: string, value: string, maxAgeDays: number): void {
     "; path=/; max-age=" +
     String(maxAge) +
     "; SameSite=Lax";
+}
+
+/**
+ * Returns a redux-persist Storage that persists to the used-tokens cookie.
+ * Used so most-used tokens survive refresh and are available for default suggestions.
+ */
+export function getUsedTokensCookieStorage(): { getItem: (key: string) => Promise<string | null>; setItem: (key: string, value: string) => Promise<void>; removeItem: (key: string) => Promise<void> } {
+  return {
+    getItem: (key: string) =>
+      Promise.resolve(getCookie(USED_TOKENS_COOKIE_NAME)),
+    setItem: (_key: string, value: string) => {
+      setCookie(USED_TOKENS_COOKIE_NAME, value, COOKIE_MAX_AGE_DAYS);
+      return Promise.resolve();
+    },
+    removeItem: () => {
+      setCookie(USED_TOKENS_COOKIE_NAME, "", 0);
+      return Promise.resolve();
+    },
+  };
 }
 
 import type { TabId } from "@/types/navigation";

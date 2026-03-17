@@ -270,7 +270,8 @@ html[data-mono-font="ibmPlexMono"] {
   font-size: 2.5rem;
   font-weight: var(--font-weight-medium);
   border: var(--border-0);
-  background: var(--bg-transparent);
+  /* background: var(--primary); */
+  color: black;
   padding: var(--p-0);
   margin: var(--m-0);
 }

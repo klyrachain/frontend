@@ -2,6 +2,8 @@ export interface Chain {
   id: string;
   name: string;
   shortName?: string;
+  /** Optional chain icon URL from backend (e.g. chainIconURI from Squid chains API). */
+  iconURI?: string;
 }
 
 export interface Token {

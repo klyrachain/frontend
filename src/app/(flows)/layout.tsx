@@ -1,26 +1,22 @@
-import { ExchangeContainer } from "@/components/Exchange/ExchangeContainer";
-import { ExchangeModal } from "@/components/Exchange/ExchangeModal";
+import Link from "next/link";
 import { Header } from "@/components/Landing";
 import { HeroShaderBackground } from "@/components/Landing/HeroShaderBackground";
-import { TransferContainer } from "@/components/Transfer/TransferContainer";
-// import { HeroDeviceCollage } from "@/components/Landing/HeroDeviceCollage";
 import { HERO_CONFIG } from "@/config/hero";
+import { FlowsNav } from "@/app/(flows)/FlowsNav";
 
-/**
- * Hero-only page: background + device collage. No title, subtitle, or video.
- */
-export default function HeroPage() {
+export default function FlowsLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <div className="landing-page relative min-h-screen bg-transparent text-foreground">
       <HeroShaderBackground
-        // backgroundImage={HERO_CONFIG.backgroundImage}
-        // backgroundImageOpacity={HERO_CONFIG.backgroundImageOpacity}
         embeddedText={HERO_CONFIG.embeddedText}
         embeddedTextAnimation="pop"
         embeddedTextPosition="bottom"
         embeddedTextOpacity={0.12}
         embeddedImages={[...HERO_CONFIG.embeddedImages]}
-
         embeddedImageDefaultSize={HERO_CONFIG.embeddedImageDefaultSize}
       />
       <div className="relative z-20">
@@ -34,13 +30,12 @@ export default function HeroPage() {
         <main id="main-content" role="main" tabIndex={-1}>
           <section
             className="relative z-10 flex flex-col items-center justify-center min-h-screen pb-[var(--g10)] bg-transparent"
-            aria-label="Hero"
+            aria-label="App flows"
           >
-            {/* <div className="h-[var(--g8)] bg-white"/> */}
-            <div className="relative z-[1] w-full max-w-6xl mx-auto px-2 sm:px-4 bg-transparent">
-              <TransferContainer />
+            <div className="relative z-[1] w-full max-w-6xl mx-auto px-2 sm:px-4 bg-transparent flex flex-col items-center gap-6">
+              <FlowsNav />
+              {children}
             </div>
-
           </section>
         </main>
       </div>
