@@ -81,11 +81,9 @@ export function TokenChainSelectModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange} >
-      <DialogContent className="p-5 overflow-hidden w-[--width-modal] flex flex-col
-   items-center border-b border-white/10 bg-background/70 py-4 backdrop-blur-sm
-      ">
-        <DialogHeader className="flex flex-row items-center justify-between space-y-0 py-3 w-full">
-          <DialogTitle className="text-lg font-semibold">
+      <DialogContent className="max-h-[85vh] w-[var(--modal-width)] flex flex-col overflow-hidden p-0 bg-card text-card-foreground">
+        <DialogHeader className="flex flex-row items-center justify-between space-y-0 border-b border-border py-3 px-4 w-full">
+          <DialogTitle className="text-lg font-semibold text-card-foreground">
             Select token
           </DialogTitle>
           <button
@@ -98,7 +96,7 @@ export function TokenChainSelectModal({
           </button>
         </DialogHeader>
 
-        <div className="space-y-4 flex flex-col min-h-0 flex-1 w-full">
+        <div className="space-y-4 flex flex-col min-h-0 flex-1 w-full p-4 pt-0">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
             <Input
@@ -110,8 +108,8 @@ export function TokenChainSelectModal({
             />
           </div>
 
-          <section aria-label="Chains">
-            <p className="text-xs font-medium text-muted-foreground mb-2">
+          <section aria-label="Chains" className="px-4">
+            <p className="modal-subtitle text-xs font-medium text-muted-foreground mb-2">
               Chain
             </p>
             <ul className="flex flex-wrap gap-2">
@@ -123,7 +121,7 @@ export function TokenChainSelectModal({
                     "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
                     selectedChainId === null
                       ? "bg-primary text-primary-foreground"
-                      : "bg-muted/50 hover:bg-muted text-foreground"
+                      : "bg-muted/50 hover:bg-muted text-card-foreground"
                   )}
                 >
                   All
@@ -142,7 +140,7 @@ export function TokenChainSelectModal({
                       "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
                       selectedChainId === chain.id
                         ? "bg-primary text-primary-foreground"
-                        : "bg-muted/50 hover:bg-muted text-foreground"
+                        : "bg-muted/50 hover:bg-muted text-card-foreground"
                     )}
                   >
                     {chain.shortName ?? chain.name}
@@ -187,10 +185,10 @@ export function TokenChainSelectModal({
                           </span>
                         )}
                         <span className="flex-1 min-w-0">
-                          <span className="block font-medium truncate">
+                          <span className="modal-balance block font-semibold truncate text-card-foreground">
                             {token.symbol}
                           </span>
-                          <span className="block text-xs text-muted-foreground truncate">
+                          <span className="modal-subtitle block text-xs text-muted-foreground truncate">
                             {token.name}
                           </span>
                         </span>

@@ -36,7 +36,6 @@ export default function LandingPage() {
           <HeroSection />
           
           <div className="relative z-10 bg-[#023436] pb-2">
-            
             <BuiltForBuildersSection />
             <TailoredBusinessSection />
             <PaymentEngineFeatures />
@@ -44,7 +43,6 @@ export default function LandingPage() {
             {/* <PricingSection /> */}
             <InsightsSection />
             <Footer />
-            
           </div>
         </main>
         <div className="bg-white/10 h-[var(--g4)] fixed bottom-0 left-0 right-0 blur-lg" aria-hidden />

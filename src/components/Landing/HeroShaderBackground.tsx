@@ -6,7 +6,7 @@ import gsap from "gsap";
 import { ShaderGradient, ShaderGradientCanvas } from "@shadergradient/react";
 import Galaxy from "./Galaxy";
 
-export type EmbeddedTextAnimation = "none" | "writing" | "pop" | "float";
+export type EmbeddedTextAnimation = "none" | "writing" | "pop" | "float" | "led";
 
 export interface EmbeddedImageItem {
   src: string;
@@ -21,8 +21,10 @@ export interface HeroShaderBackgroundProps {
   backgroundImageOpacity?: number;
   /** Large text embedded in the background. Use \n or <br/> for line breaks. */
   embeddedText?: string;
-  /** Animation for embedded text. */
+  /** Animation for embedded text. "led" = words one by one (LED screen style). */
   embeddedTextAnimation?: EmbeddedTextAnimation;
+  /** Vertical position of embedded text. "bottom" for /app page ticker. */
+  embeddedTextPosition?: "center" | "bottom";
   /** Opacity of embedded text (0–1). Default 0.08. */
   embeddedTextOpacity?: number;
   /** Single image URL (legacy). Prefer embeddedImages for multiple. */
@@ -56,6 +58,16 @@ function splitEmbeddedText(text: string): string[] {
     .filter(Boolean);
 }
 
+/** Split into words for LED-style animation. */
+function splitIntoWords(text: string): string[] {
+  return text
+    .replace(/<br\s*\/?>/gi, " ")
+    .replace(/\n/g, " ")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+}
+
 /**
  * Hero shader background with optional embedded text (GSAP-animated) and image collage.
  */
@@ -64,6 +76,7 @@ export function HeroShaderBackground({
   backgroundImageOpacity = 0.35,
   embeddedText = "",
   embeddedTextAnimation = "pop",
+  embeddedTextPosition = "center",
   embeddedTextOpacity = 0.08,
   embeddedImage,
   embeddedImages = [],
@@ -72,15 +85,34 @@ export function HeroShaderBackground({
 }: HeroShaderBackgroundProps) {
   const textWrapRef = useRef<HTMLDivElement>(null);
   const lineRefs = useRef<HTMLSpanElement[]>([]);
+  const wordRefs = useRef<HTMLSpanElement[]>([]);
 
   const lines = splitEmbeddedText(embeddedText);
-  const hasText = lines.length > 0;
+  const words = splitIntoWords(embeddedText);
+  const hasText = lines.length > 0 || words.length > 0;
+  const isLed = embeddedTextAnimation === "led";
 
   useGSAP(
     () => {
       if (!hasText || embeddedTextAnimation === "none") return;
+
+      if (isLed && words.length > 0) {
+        wordRefs.current = wordRefs.current.slice(0, words.length);
+        const wordEls = wordRefs.current.filter(Boolean);
+        if (wordEls.length === 0) return;
+        const tl = gsap.timeline({ repeat: -1, repeatDelay: 2 });
+        tl.set(wordEls, { opacity: 0 });
+        tl.to(wordEls, {
+          opacity: embeddedTextOpacity,
+          duration: 0.22,
+          stagger: 0.12,
+          ease: "power2.out",
+        });
+        return () => tl.kill();
+      }
+
       const wrap = textWrapRef.current;
-      if (!wrap) return;
+      if (!wrap || lines.length === 0) return;
 
       lineRefs.current = lineRefs.current.slice(0, lines.length);
       const lineEls = lineRefs.current.filter(Boolean);
@@ -122,7 +154,7 @@ export function HeroShaderBackground({
     },
     {
       scope: textWrapRef,
-      dependencies: [embeddedText, embeddedTextAnimation, embeddedTextOpacity, hasText],
+      dependencies: [embeddedText, embeddedTextAnimation, embeddedTextOpacity, hasText, isLed, words.length],
     }
   );
 
@@ -218,42 +250,65 @@ export function HeroShaderBackground({
         <div
           ref={textWrapRef}
           className={`absolute inset-0 flex pointer-events-none select-none ${
-            lines.length === 1
-              ? "items-center justify-center"
-              : "flex-col items-center justify-center"
-          }`}
+            isLed
+              ? "flex-row flex-wrap items-end justify-center gap-x-[0.35em] gap-y-0 pb-[clamp(1.5rem,6vh,3rem)] px-4"
+              : embeddedTextPosition === "bottom"
+                ? "flex-col items-center justify-end pb-[clamp(2rem,8vh,4rem)]"
+                : lines.length === 1
+                  ? "items-center justify-center"
+                  : "flex-col items-center justify-center"
+          } ${!isLed && lines.length > 1 ? "flex-col items-center justify-center" : ""}`}
           aria-hidden
           style={
-            lines.length > 1
+            !isLed && lines.length > 1
               ? { gap: "0.06em" }
               : undefined
           }
         >
-          {lines.map((line, i) => (
+          {isLed ? (
             <span
-              key={i}
-              ref={(el) => {
-                if (el) lineRefs.current[i] = el;
-              }}
-              className={
-                lines.length === 1
-                  ? "font-shinier whitespace-nowrap text-center text-[clamp(6rem,20vw,18rem)] font-normal tracking-tight text-white"
-                  : "font-shinier text-center text-[clamp(5rem,18vw,16rem)] font-normal tracking-tight text-white leading-[1.15]"
-              }
-              style={{
-                opacity: embeddedTextAnimation === "none" ? embeddedTextOpacity : undefined,
-                textShadow: "0 0 80px rgba(255,255,255,0.03)",
-              }}
+              className="font-shinier text-center text-[clamp(1.25rem,3.5vw,2rem)] font-normal tracking-wide text-white"
+              style={{ textShadow: "0 0 40px rgba(255,255,255,0.06)" }}
             >
-              {embeddedTextAnimation === "writing"
-                ? line.split("").map((char, j) => (
-                    <span key={j} className="inline-block">
-                      {char}
-                    </span>
-                  ))
-                : line}
+              {words.map((word, i) => (
+                <span
+                  key={i}
+                  ref={(el) => {
+                    if (el) wordRefs.current[i] = el;
+                  }}
+                  className="inline-block mr-[0.35em]"
+                >
+                  {word}
+                </span>
+              ))}
             </span>
-          ))}
+          ) : (
+            lines.map((line, i) => (
+              <span
+                key={i}
+                ref={(el) => {
+                  if (el) lineRefs.current[i] = el;
+                }}
+                className={
+                  lines.length === 1
+                    ? "font-shinier whitespace-nowrap text-center text-[clamp(6rem,20vw,18rem)] font-normal tracking-tight text-white"
+                    : "font-shinier text-center text-[clamp(5rem,18vw,16rem)] font-normal tracking-tight text-white leading-[1.15]"
+                }
+                style={{
+                  opacity: embeddedTextAnimation === "none" ? embeddedTextOpacity : undefined,
+                  textShadow: "0 0 80px rgba(255,255,255,0.03)",
+                }}
+              >
+                {embeddedTextAnimation === "writing"
+                  ? line.split("").map((char, j) => (
+                      <span key={j} className="inline-block">
+                        {char}
+                      </span>
+                    ))
+                  : line}
+              </span>
+            ))
+          )}
         </div>
       ) : null}
 

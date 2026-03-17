@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Settings, ArrowRight, ChevronDown } from "lucide-react";
-import { TransferSelectPanel } from "./TransferSelectPanel";
+import { TransferSelectModal } from "./TransferSelectModal";
 import type { TokenSelection } from "../Exchange/TokenChainSelectModal";
 import type { Token } from "@/types/token";
 import Image from "next/image";
@@ -115,10 +115,28 @@ function SelectMode({
           }
           onClick={onSelectClick}
         /> */}
-        <div className="flex items-center justify-between gap-2" >
-          <Image src={selection?.token.logoURI as string} alt="ETH" width={34} height={34} />
-          <span className="font-medium">{selection?.token.name}</span>
-          <span className="text-xs text-muted-foreground">{selection?.chain.name}</span>
+        <div className="flex items-center justify-between gap-2">
+          {selection ? (
+            <>
+              {selection.token.logoURI ? (
+                <Image
+                  src={selection.token.logoURI}
+                  alt=""
+                  width={34}
+                  height={34}
+                  className="size-8 rounded-full object-cover"
+                />
+              ) : (
+                <span className="flex size-8 items-center justify-center rounded-full bg-muted text-xs font-semibold">
+                  {selection.token.symbol.slice(0, 2)}
+                </span>
+              )}
+              <span className="font-medium">{selection.token.name}</span>
+              <span className="text-xs text-muted-foreground">{selection.chain.name}</span>
+            </>
+          ) : (
+            <span className="text-muted-foreground">Select token</span>
+          )}
         </div>
       </div>
     </div>
@@ -156,10 +174,10 @@ export function TransferContainer() {
   };
 
   return (
-    <div className="flex duration-300 ease-out bg-red-00 relative w-full justify-center">
-      {!selectModalOpen && <article className="glass-card tab-modal overflow-hidden p-2 shadow-xl shrink-0 min-w-0 transition-all duration-300 ease-out h-fit w-[--modal-width]">
+    <div className="flex flex-col duration-300 ease-out relative w-full items-center justify-center">
+      <article className="glass-card overflow-hidden p-2 shadow-xl shrink-0 min-w-0 transition-all duration-300 ease-out h-fit">
         <header className="mb-6 flex flex-row items-center justify-between pl-2">
-          <h3 className="text-xl font-semibold">Transfer</h3>
+          <h3 className="text-xl text-primary font-semibold">Transfer</h3>
           <Button
             type="button"
             variant="ghost"
@@ -213,15 +231,14 @@ export function TransferContainer() {
 
           <Button
             size="lg"
-            className="w-full rounded-xl py-6 text-base font-semibold"
+            className="w-full rounded-xl py-6 text-base font-semibold bg-black"
           >
             Confirm
           </Button>
         </section>
       </article>
-      }
 
-      <TransferSelectPanel
+      <TransferSelectModal
         open={selectModalOpen}
         onOpenChange={setSelectModalOpen}
         onSelect={handleSelect}
