@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useId, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -19,6 +19,8 @@ import {
 } from "@/types/businessSignup";
 import {
   BusinessAuthApiError,
+  type BusinessEmailCheckResult,
+  checkBusinessEmail,
   completeBusinessOnboarding,
   consumePortalOrMagicTokenOnce,
   fetchBusinessAuthConfig,
@@ -30,6 +32,7 @@ import {
   submitOnboardingEntity,
 } from "@/lib/businessAuthApi";
 import { pathFromLandingHint } from "@/lib/businessLandingRoutes";
+import { cn } from "@/lib/utils";
 import {
   clearBusinessAccessToken,
   getBusinessAccessToken,
@@ -40,6 +43,7 @@ const STEP_COUNT = 4;
 const PASSWORD_MIN_LENGTH = 10;
 const DISPLAY_NAME_MIN_LENGTH = 2;
 const MAGIC_LINK_COOLDOWN_SECONDS = 30;
+const EMAIL_CHECK_DEBOUNCE_MS = 450;
 
 function isValidEmail(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
@@ -117,6 +121,12 @@ export function BusinessSignupFlow() {
   );
   const [passkeyHint, setPasskeyHint] = useState<string | null>(null);
   const [magicLinkCooldownSeconds, setMagicLinkCooldownSeconds] = useState(0);
+  const [emailAvailability, setEmailAvailability] = useState<{
+    email: string;
+    result: BusinessEmailCheckResult;
+  } | null>(null);
+  const [emailCheckLoading, setEmailCheckLoading] = useState(false);
+  const emailCheckSeqRef = useRef(0);
 
   const magicTokenFromEmail = searchParams.get("magic")?.trim() ?? "";
 
@@ -170,6 +180,52 @@ export function BusinessSignupFlow() {
     };
   }, [searchParams, router, magicTokenFromEmail]);
 
+  /** Debounced email check while user types (step 1). */
+  useEffect(() => {
+    const normalized = email.trim().toLowerCase();
+    if (!isValidEmail(email)) {
+      emailCheckSeqRef.current += 1;
+      setEmailAvailability(null);
+      setEmailCheckLoading(false);
+      return;
+    }
+
+    const seq = ++emailCheckSeqRef.current;
+    setEmailCheckLoading(true);
+
+    const timerId = window.setTimeout(() => {
+      void checkBusinessEmail(normalized)
+        .then((result) => {
+          if (seq !== emailCheckSeqRef.current) return;
+          setEmailAvailability({ email: normalized, result });
+        })
+        .catch(() => {
+          if (seq !== emailCheckSeqRef.current) return;
+          setEmailAvailability(null);
+        })
+        .finally(() => {
+          if (seq === emailCheckSeqRef.current) {
+            setEmailCheckLoading(false);
+          }
+        });
+    }, EMAIL_CHECK_DEBOUNCE_MS);
+
+    return () => {
+      window.clearTimeout(timerId);
+    };
+  }, [email]);
+
+  const normalizedStep1Email = email.trim().toLowerCase();
+  const emailCheckAppliesToInput =
+    emailAvailability !== null &&
+    emailAvailability.email === normalizedStep1Email;
+  const emailNotAvailable =
+    emailCheckAppliesToInput && !emailAvailability.result.available;
+  const suggestPasswordLogin =
+    emailCheckAppliesToInput &&
+    emailAvailability.result.registered &&
+    emailAvailability.result.hasPassword;
+
   const handleConfirmMagicLinkSignIn = useCallback(() => {
     if (!magicTokenFromEmail) return;
     setMagicLinkError(null);
@@ -205,13 +261,31 @@ export function BusinessSignupFlow() {
       setStepError("Enter your email to receive a sign-in link.");
       return;
     }
+    if (emailNotAvailable) {
+      setStepError(
+        suggestPasswordLogin
+          ? "Welcome back. Sign in instead."
+          : "Welcome back. Sign in or use a different address."
+      );
+      return;
+    }
     setIsSubmitting(true);
     try {
+      const result = await checkBusinessEmail(email);
+      setEmailAvailability({
+        email: email.trim().toLowerCase(),
+        result,
+      });
+      if (!result.available) {
+        setStepError(
+          result.registered && result.hasPassword
+            ? "Welcome back. Sign in instead."
+            : "Welcome back. Sign in or use a different address."
+        );
+        return;
+      }
       await requestBusinessMagicLink(email);
       setMagicLinkCooldownSeconds(MAGIC_LINK_COOLDOWN_SECONDS);
-//       setOauthMessage(
-// // "Check your email <br/> We just sent a secure sign-in link to your inbox. Click the link to jump right into your account."
-//       );
     } catch (err: unknown) {
       setStepError(formatApiError(err));
     } finally {
@@ -219,8 +293,42 @@ export function BusinessSignupFlow() {
     }
   };
 
-  const handleGoogleStart = () => {
-    window.location.href = getGoogleOAuthStartUrl();
+  const handleGoogleStart = async () => {
+    clearError();
+    setOauthMessage(null);
+    if (!isValidEmail(email)) {
+      setStepError("Enter your work email first, then continue with Google.");
+      return;
+    }
+    if (emailNotAvailable) {
+      setStepError(
+        suggestPasswordLogin
+          ? "This email already uses a password. Sign in with your password, or use another email for Google."
+          : "Welcome back. Sign in or use a different address."
+      );
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      const result = await checkBusinessEmail(email);
+      setEmailAvailability({
+        email: email.trim().toLowerCase(),
+        result,
+      });
+      if (!result.available) {
+        setStepError(
+          result.registered && result.hasPassword
+            ? "This email already uses a password. Sign in with your password, or use another email for Google."
+            : "Welcome back. Sign in or use a different address."
+        );
+        return;
+      }
+      window.location.href = getGoogleOAuthStartUrl();
+    } catch (err: unknown) {
+      setStepError(formatApiError(err));
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleStep2 = async (e: React.FormEvent) => {
@@ -573,23 +681,77 @@ export function BusinessSignupFlow() {
               <div className="mt-10 space-y-6">
                 <div className="space-y-2">
                   <Label htmlFor={`${formId}-email`}>Email</Label>
-                  <Input
-                    id={`${formId}-email`}
-                    name="email"
-                    type="email"
-                    autoComplete="email"
-                    inputMode="email"
-                    placeholder="you@example.com"
-                    value={email}
-                    onChange={(e) => {
-                      setEmail(e.target.value);
-                      clearError();
-                    }}
-                    className="h-11 text-base md:text-sm"
-                    disabled={isSubmitting}
-                    aria-invalid={!!stepError && step === 1}
-                  />
+                  <div className="relative">
+                    <Input
+                      id={`${formId}-email`}
+                      name="email"
+                      type="email"
+                      autoComplete="email"
+                      inputMode="email"
+                      placeholder="you@example.com"
+                      value={email}
+                      onChange={(e) => {
+                        setEmail(e.target.value);
+                        clearError();
+                      }}
+                      className={cn(
+                        "h-11 text-base md:text-sm",
+                        isValidEmail(email) &&
+                          emailCheckLoading &&
+                          "pr-10",
+                        emailNotAvailable &&
+                          "border-destructive focus-visible:border-destructive focus-visible:ring-destructive/20"
+                      )}
+                      disabled={isSubmitting}
+                      aria-busy={
+                        isValidEmail(email) && emailCheckLoading
+                      }
+                      aria-invalid={
+                        emailNotAvailable || (!!stepError && step === 1)
+                      }
+                      aria-describedby={
+                        emailNotAvailable
+                          ? `${formId}-email-unavailable`
+                          : undefined
+                      }
+                    />
+                    {isValidEmail(email) && emailCheckLoading ? (
+                      <>
+                        <span
+                          className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500"
+                          aria-hidden
+                        >
+                          <Loader2 className="size-4 shrink-0 animate-spin" />
+                        </span>
+                        <span
+                          className="sr-only"
+                          role="status"
+                          aria-live="polite"
+                        >
+                          Checking email
+                        </span>
+                      </>
+                    ) : null}
+                  </div>
                 </div>
+
+                {emailNotAvailable ? (
+                  <>
+                    {suggestPasswordLogin ? (
+                      <>
+                        <p className="text-sm text-zinc-600 p-0 m-2">
+                          Welcome back. Sign in instead.
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-sm text-zinc-600 p-0 m-0">
+                          Welcome back. Sign in or use a different address.
+                        </p>
+                      </>
+                    )}
+                  </>
+                ) : null}
 
                 {stepError && step === 1 ? (
                   <p className="text-sm text-destructive" role="alert">
@@ -602,7 +764,9 @@ export function BusinessSignupFlow() {
                   size="lg"
                   className="h-12 w-full"
                   disabled={
-                    isSubmitting || magicLinkCooldownSeconds > 0
+                    isSubmitting ||
+                    magicLinkCooldownSeconds > 0 ||
+                    emailNotAvailable
                   }
                   onClick={() => void handleMagicLinkRequest()}
                   aria-describedby={
@@ -650,8 +814,8 @@ export function BusinessSignupFlow() {
                     type="button"
                     variant="outline"
                     className="h-12 w-full text-foreground"
-                    onClick={handleGoogleStart}
-                    disabled={isSubmitting}
+                    onClick={() => void handleGoogleStart()}
+                    disabled={isSubmitting || emailNotAvailable}
                   >
                     Continue with Google
                   </Button>

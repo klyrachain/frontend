@@ -185,6 +185,49 @@ export async function requestBusinessMagicLink(email: string): Promise<void> {
   });
 }
 
+export interface BusinessEmailCheckResult {
+  available: boolean;
+  registered: boolean;
+  hasPassword: boolean;
+}
+
+function parseEmailCheckBody(body: unknown): BusinessEmailCheckResult | null {
+  let o: Record<string, unknown> | null = null;
+  if (body && typeof body === "object" && !Array.isArray(body)) {
+    o = body as Record<string, unknown>;
+    const data = o.data;
+    if (data && typeof data === "object" && !Array.isArray(data)) {
+      o = data as Record<string, unknown>;
+    }
+  }
+  if (!o) return null;
+  return {
+    available: o.available === true,
+    registered: o.registered === true,
+    hasPassword: o.hasPassword === true,
+  };
+}
+
+/**
+ * Public: whether email is free for new signup or already registered (and if password login applies).
+ */
+export async function checkBusinessEmail(
+  email: string
+): Promise<BusinessEmailCheckResult> {
+  const normalized = email.trim().toLowerCase();
+  const path = `/api/business-auth/email/check?email=${encodeURIComponent(normalized)}`;
+  const body = await requestJson(path, { method: "GET" });
+  const parsed = parseEmailCheckBody(body);
+  if (!parsed) {
+    throw new BusinessAuthApiError(
+      "Invalid response from email check",
+      500,
+      body
+    );
+  }
+  return parsed;
+}
+
 function isLikelyJwt(value: string): boolean {
   const parts = value.split(".");
   return (
