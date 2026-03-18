@@ -342,7 +342,7 @@ export function Header({ initialCompact = false }: HeaderProps) {
             >
               Sign in
             </Link>
-            <LaunchAppButton>Sign up</LaunchAppButton>
+            <LaunchAppButton href="/business/signup">Sign up</LaunchAppButton>
           </div>
 
           <motion.button
