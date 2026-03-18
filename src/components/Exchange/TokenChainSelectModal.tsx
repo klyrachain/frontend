@@ -85,7 +85,10 @@ export function TokenChainSelectModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange} >
-      <DialogContent className="max-h-[85vh] w-[var(--modal-width)] flex flex-col overflow-hidden p-0 bg-card text-card-foreground">
+      <DialogContent
+        contentAnimation="gsap-pop"
+        className="max-h-[85vh] w-[var(--modal-width)] flex flex-col overflow-hidden p-0 bg-card text-card-foreground"
+      >
         <DialogHeader className="flex flex-row items-center justify-between space-y-0 border-b border-border py-3 px-4 w-full">
           <DialogTitle className="text-lg font-semibold text-card-foreground">
             Select token

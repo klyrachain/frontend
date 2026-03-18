@@ -100,15 +100,14 @@ export function HeroShaderBackground({
         wordRefs.current = wordRefs.current.slice(0, words.length);
         const wordEls = wordRefs.current.filter(Boolean);
         if (wordEls.length === 0) return;
-        const tl = gsap.timeline({ repeat: -1, repeatDelay: 2 });
-        tl.set(wordEls, { opacity: 0 });
-        tl.to(wordEls, {
+        gsap.set(wordEls, { opacity: 0 });
+        gsap.to(wordEls, {
           opacity: embeddedTextOpacity,
-          duration: 0.22,
-          stagger: 0.12,
+          duration: 0.2,
+          stagger: 0.14,
           ease: "power2.out",
         });
-        return () => tl.kill();
+        return;
       }
 
       const wrap = textWrapRef.current;
@@ -250,65 +249,42 @@ export function HeroShaderBackground({
         <div
           ref={textWrapRef}
           className={`absolute inset-0 flex pointer-events-none select-none ${
-            isLed
-              ? "flex-row flex-wrap items-end justify-center gap-x-[0.35em] gap-y-0 pb-[clamp(1.5rem,6vh,3rem)] px-4"
-              : embeddedTextPosition === "bottom"
-                ? "flex-col items-center justify-end pb-[clamp(2rem,8vh,4rem)]"
-                : lines.length === 1
-                  ? "items-center justify-center"
-                  : "flex-col items-center justify-center"
-          } ${!isLed && lines.length > 1 ? "flex-col items-center justify-center" : ""}`}
+            lines.length === 1
+              ? "items-center justify-center"
+              : "flex-col items-center justify-center"
+          }`}
           aria-hidden
           style={
-            !isLed && lines.length > 1
+            lines.length > 1
               ? { gap: "0.06em" }
               : undefined
           }
         >
-          {isLed ? (
+          {lines.map((line, i) => (
             <span
-              className="font-shinier text-center text-[clamp(1.25rem,3.5vw,2rem)] font-normal tracking-wide text-white"
-              style={{ textShadow: "0 0 40px rgba(255,255,255,0.06)" }}
+              key={i}
+              ref={(el) => {
+                if (el) lineRefs.current[i] = el;
+              }}
+              className={
+                lines.length === 1
+                  ? "font-shinier whitespace-nowrap text-center text-[clamp(6rem,20vw,18rem)] font-normal tracking-tight text-white"
+                  : "font-shinier text-center text-[clamp(5rem,18vw,16rem)] font-normal tracking-tight text-white leading-[1.15]"
+              }
+              style={{
+                opacity: embeddedTextAnimation === "none" ? embeddedTextOpacity : undefined,
+                textShadow: "0 0 80px rgba(255,255,255,0.03)",
+              }}
             >
-              {words.map((word, i) => (
-                <span
-                  key={i}
-                  ref={(el) => {
-                    if (el) wordRefs.current[i] = el;
-                  }}
-                  className="inline-block mr-[0.35em]"
-                >
-                  {word}
-                </span>
-              ))}
+              {embeddedTextAnimation === "writing"
+                ? line.split("").map((char, j) => (
+                    <span key={j} className="inline-block">
+                      {char}
+                    </span>
+                  ))
+                : line}
             </span>
-          ) : (
-            lines.map((line, i) => (
-              <span
-                key={i}
-                ref={(el) => {
-                  if (el) lineRefs.current[i] = el;
-                }}
-                className={
-                  lines.length === 1
-                    ? "font-shinier whitespace-nowrap text-center text-[clamp(6rem,20vw,18rem)] font-normal tracking-tight text-white"
-                    : "font-shinier text-center text-[clamp(5rem,18vw,16rem)] font-normal tracking-tight text-white leading-[1.15]"
-                }
-                style={{
-                  opacity: embeddedTextAnimation === "none" ? embeddedTextOpacity : undefined,
-                  textShadow: "0 0 80px rgba(255,255,255,0.03)",
-                }}
-              >
-                {embeddedTextAnimation === "writing"
-                  ? line.split("").map((char, j) => (
-                      <span key={j} className="inline-block">
-                        {char}
-                      </span>
-                    ))
-                  : line}
-              </span>
-            ))
-          )}
+          ))}
         </div>
       ) : null}
 

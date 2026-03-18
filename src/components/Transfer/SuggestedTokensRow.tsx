@@ -51,7 +51,7 @@ export function SuggestedTokensRow({
     <div
       ref={containerRef}
       className={cn(
-        "flex flex-wrap gap-1 px-2 bg-red-500",
+        "flex flex-wrap gap-1 px-2",
         side === "left" ? "justify-start" : "justify-end"
       )}
       role="group"

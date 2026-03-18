@@ -130,7 +130,10 @@ export function ExchangeModal() {
   return (
     <>
       <Dialog open={open} onOpenChange={handleOpenChange}>
-        <DialogContent className="glass-card border-border/50 p-0 overflow-hidden sm:max-w-md">
+        <DialogContent
+          contentAnimation="gsap-pop"
+          className="glass-card border-border/50 p-0 overflow-hidden sm:max-w-md"
+        >
           <DialogHeader className="flex flex-row items-center justify-between space-y-0 border-b border-border px-6 py-4">
             <DialogTitle className="text-xl font-semibold">Swap</DialogTitle>
             <Button

@@ -1,29 +1,40 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import {
+  useCallback,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { Search, ChevronLeft } from "lucide-react";
-import {
-  CHAINS,
-  TOKENS,
-  getChainById as getStaticChainById,
-} from "@/config/chainsAndTokens";
-import { useGetChainsQuery, useGetTokensQuery } from "@/store/api/squidApi";
-import { useAppDispatch } from "@/store/hooks";
+import { Search } from "lucide-react";
+import { getChainById as getStaticChainById } from "@/config/chainsAndTokens";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { recordTokenUsed } from "@/store/slices/usedTokensSlice";
 import type { Chain, Token } from "@/types/token";
-import type { TokenSelection } from "../Exchange/TokenChainSelectModal";
+import type { TokenSelection } from "@/components/Exchange/TokenChainSelectModal";
 
-const PANEL_WIDTH = 380;
+const INITIAL_TOKEN_LIST_SIZE = 100;
 const TAB_IDS = ["tokens", "offramp", "activities"] as const;
 type TabId = (typeof TAB_IDS)[number];
 
-interface TransferSelectPanelProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onSelect: (selection: TokenSelection) => void;
+const MODAL_TAB_CONTENT_BOX =
+  "flex flex-1 flex-col overflow-hidden min-h-[50vh] max-h-[60vh]";
+
+export interface TransferSelectPanelProps {
+  chains: Chain[];
+  tokens: Token[];
   excludeSymbol?: string;
+  onSelect: (selection: TokenSelection) => void;
+  /**
+   * `modal` — used inside TransferSelectModal (fixed tab body height).
+   * `embedded` — fills parent flex area (e.g. business pay sheet tab).
+   */
+  layout: "modal" | "embedded";
+  /** Increment when opening embedded picker to reset search, tab, and chain filter. */
+  resetKey?: number;
 }
 
 function getChainByIdFromList(
@@ -40,29 +51,46 @@ function TokenIconWithChainBadge({
   token: Token;
   chain: Chain | undefined;
 }) {
-  const chainInitials = chain?.shortName?.slice(0, 2) ?? chain?.name?.slice(0, 2) ?? "?";
+  const chainInitials =
+    chain?.shortName?.slice(0, 2) ?? chain?.name?.slice(0, 2) ?? "?";
+  const chainIcon = chain?.iconURI;
   return (
-    <span className="relative flex size-12 shrink-0 overflow-hidden rounded-full bg-muted ring-1 ring-border/50">
-      {token.logoURI != null && token.logoURI !== "" ? (
-        /* eslint-disable-next-line @next/next/no-img-element -- external token logo URLs */
-        <img
-          src={token.logoURI}
-          alt=""
-          width={48}
-          height={48}
-          className="size-12 object-cover"
-        />
-      ) : (
-        <span className="flex size-12 items-center justify-center text-base font-semibold text-muted-foreground">
-          {token.symbol.slice(0, 2)}
-        </span>
-      )}
+    <span className="relative flex size-12 shrink-0">
+      <span className="flex size-12 overflow-hidden rounded-full bg-muted ring-1 ring-border/50">
+        {token.logoURI != null && token.logoURI !== "" ? (
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img
+            src={token.logoURI}
+            alt=""
+            width={48}
+            height={48}
+            className="size-12 object-cover"
+          />
+        ) : (
+          <span className="flex size-12 items-center justify-center text-base font-semibold text-muted-foreground">
+            {token.symbol.slice(0, 2)}
+          </span>
+        )}
+      </span>
       {chain != null && (
         <span
-          className="absolute bottom-0 right-0 flex size-5 items-center justify-center rounded-full border-2 border-background bg-muted text-[10px] font-medium text-muted-foreground ring-1 ring-border/50"
+          className="absolute -bottom-0.5 -right-0.5 z-10 flex size-5 overflow-hidden rounded-full border-0 border-background bg-muted ring-1 ring-border/50"
           aria-hidden
         >
-          {chainInitials}
+          {chainIcon ? (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img
+              src={chainIcon}
+              alt=""
+              width={20}
+              height={20}
+              className="size-5 object-cover"
+            />
+          ) : (
+            <span className="flex size-5 items-center justify-center text-[10px] font-medium text-muted-foreground">
+              {chainInitials}
+            </span>
+          )}
         </span>
       )}
     </span>
@@ -70,38 +98,44 @@ function TokenIconWithChainBadge({
 }
 
 export function TransferSelectPanel({
-  open,
-  onOpenChange,
-  onSelect,
+  chains,
+  tokens,
   excludeSymbol,
+  onSelect,
+  layout,
+  resetKey = 0,
 }: TransferSelectPanelProps) {
   const dispatch = useAppDispatch();
+  const usedTokensEntries = useAppSelector((s) => s.usedTokens.entries);
+  const deferredUsedEntries = useDeferredValue(usedTokensEntries);
+
   const [activeTab, setActiveTab] = useState<TabId>("tokens");
   const [search, setSearch] = useState("");
   const [selectedChainId, setSelectedChainId] = useState<string | null>(null);
-  const [recentChainIds, setRecentChainIds] = useState<string[]>([]);
 
-  const { data: apiChains = [], isSuccess: chainsSuccess } = useGetChainsQuery(
-    undefined,
-    { skip: !open }
+  const resetUi = useCallback(() => {
+    setActiveTab("tokens");
+    setSearch("");
+    setSelectedChainId(null);
+  }, []);
+
+  useEffect(() => {
+    if (layout === "embedded" && resetKey > 0) resetUi();
+  }, [resetKey, layout, resetUi]);
+
+  const getChainById = useCallback(
+    (chainId: string) =>
+      getChainByIdFromList(chains, chainId) ?? getStaticChainById(chainId),
+    [chains]
   );
-  const { data: apiTokens = [], isSuccess: tokensSuccess } = useGetTokensQuery(
-    undefined,
-    { skip: !open }
-  );
 
-  const chains = chainsSuccess && apiChains.length > 0 ? apiChains : CHAINS;
-  const tokens = tokensSuccess && apiTokens.length > 0 ? apiTokens : TOKENS;
-  const getChainById = (chainId: string) =>
-    getChainByIdFromList(chains, chainId) ?? getStaticChainById(chainId);
-
-  const favoriteOrRecentChainIds = useMemo(() => {
+  const suggestedChainIds = useMemo(() => {
     const seen = new Set<string>();
     const out: string[] = [];
-    for (const id of recentChainIds) {
-      if (chains.some((c) => c.id === id) && !seen.has(id)) {
-        seen.add(id);
-        out.push(id);
+    for (const e of deferredUsedEntries) {
+      if (chains.some((c) => c.id === e.chainId) && !seen.has(e.chainId)) {
+        seen.add(e.chainId);
+        out.push(e.chainId);
       }
     }
     for (const c of chains) {
@@ -112,16 +146,18 @@ export function TransferSelectPanel({
       }
     }
     return out;
-  }, [chains, recentChainIds]);
+  }, [chains, deferredUsedEntries]);
+
+  const usedTokenIdOrder = useMemo(() => {
+    const order = new Map<string, number>();
+    deferredUsedEntries.forEach((e, i) => order.set(e.tokenId, i));
+    return order;
+  }, [deferredUsedEntries]);
 
   const filteredTokens = useMemo(() => {
     let list = tokens;
-    if (excludeSymbol) {
-      list = list.filter((t) => t.symbol !== excludeSymbol);
-    }
-    if (selectedChainId) {
-      list = list.filter((t) => t.chainId === selectedChainId);
-    }
+    if (excludeSymbol) list = list.filter((t) => t.symbol !== excludeSymbol);
+    if (selectedChainId) list = list.filter((t) => t.chainId === selectedChainId);
     if (search.trim()) {
       const q = search.trim().toLowerCase();
       list = list.filter(
@@ -130,93 +166,90 @@ export function TransferSelectPanel({
           t.name.toLowerCase().includes(q)
       );
     }
+    list = [...list].sort((a, b) => {
+      const aIdx = usedTokenIdOrder.get(a.id) ?? 1e9;
+      const bIdx = usedTokenIdOrder.get(b.id) ?? 1e9;
+      return aIdx - bIdx;
+    });
     return list;
-  }, [tokens, search, selectedChainId, excludeSymbol]);
+  }, [tokens, search, selectedChainId, excludeSymbol, usedTokenIdOrder]);
 
   const handleSelectToken = (token: Token) => {
     const chain = getChainById(token.chainId);
     if (chain) {
       dispatch(recordTokenUsed({ tokenId: token.id, chainId: token.chainId }));
-      setRecentChainIds((prev) => {
-        const next = [chain.id, ...prev.filter((id) => id !== chain.id)].slice(
-          0,
-          5
-        );
-        return next;
-      });
       onSelect({ chain, token });
-      onOpenChange(false);
     }
   };
 
+  const isEmbedded = layout === "embedded";
+  const tabNavClass = cn(
+    "flex shrink-0 gap-1 px-2 py-2 sm:px-4",
+    !isEmbedded && "border-b border-border"
+  );
+
+  const tabContentClass = cn(
+    "flex flex-col overflow-hidden",
+    isEmbedded ? "min-h-0 flex-1" : MODAL_TAB_CONTENT_BOX
+  );
+
   return (
-    <div className={cn("flex relative", open ? "" : "hidden")}>
+    <div
+      className={cn(
+        "flex min-h-0 w-full flex-col overflow-hidden",
+        isEmbedded && "min-h-0 flex-1"
+      )}
+    >
+      <nav className={tabNavClass} aria-label="Token picker sections">
+        {TAB_IDS.map((tab) => (
+          <button
+            key={tab}
+            type="button"
+            onClick={() => setActiveTab(tab)}
+            className={cn(
+              "rounded-lg px-3 py-2 text-sm font-medium capitalize transition-colors",
+              activeTab === tab
+                ? "text-primary"
+                : "text-muted-foreground hover:text-card-foreground"
+            )}
+          >
+            {tab === "offramp"
+              ? "Offramp"
+              : tab === "activities"
+                ? "Activities"
+                : "Tokens"}
+          </button>
+        ))}
+      </nav>
 
-      <button
-        type="button"
-        onClick={() => onOpenChange(false)}
-        className="rounded-full p-3 m-5 bg-muted h-fit text-foreground hover:text-foreground transition-colors cursor-pointer w-20 flex items-center justify-center absolute -left-30"
-        aria-label="Close"
-      >
-        <ChevronLeft className="size-5" /> Back
-      </button>
-      <aside
-        role="region"
-        aria-label="Select token"
-        className={cn(
-          // "flex flex-col shrink-0 border-l border-border bg-card transition-[transform] duration-300 ease-out overflow-hidden ml-2 relative w-[40rem] glass-card",
-          "glass-card tab-modal overflow-hidden p-2 shadow-xl shrink-0 min-w-0 transition-all duration-300 ease-out h-fit w-[--modal-width]",
-          open ? "translate-x-0" : "translate-x-full hidden"
-        )}
-      // style={{ width: open ? PANEL_WIDTH : 0, minWidth: open ? PANEL_WIDTH : 0 }}
-      >
-        <header className="flex items-center gap-2 shrink-0 px-4 py-3">
-
-          <h2 className="text-lg font-semibold text-foreground">Select token</h2>
-        </header>
-
-        <nav
-          className="flex shrink-0 gap-1 py-2 border-b border-border "
-          aria-label="Sections"
-        >
-          {(["tokens", "offramp", "activities"] as const).map((tab) => (
-            <button
-              key={tab}
-              type="button"
-              onClick={() => setActiveTab(tab)}
-              className={cn(
-                "rounded-lg px-3 py-2 text-sm font-medium capitalize transition-colors cursor-pointer",
-                activeTab === tab
-                  ? "text-primary"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              {tab === "offramp" ? "Offramp" : tab === "activities" ? "Activities" : "Tokens"}
-            </button>
-          ))}
-        </nav>
-
+      <div className={tabContentClass}>
         {activeTab === "tokens" && (
-          <>
-            <div className="shrink-0 px-4 pt-3 pb-2">
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+            <div className="shrink-0 px-2 pb-2 pt-3 sm:px-4">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+                <Search
+                  className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+                  aria-hidden
+                />
                 <Input
                   type="text"
                   placeholder="Search token or paste address"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="pl-9 rounded-xl"
+                  className={cn(
+                    "pl-9 rounded-xl shadow-none",
+                    isEmbedded ? "border border-border" : "border-none"
+                  )}
                 />
               </div>
             </div>
 
             <section
-              className="px-3 pb-2 shrink-0"
+              className="shrink-0 px-2 pb-2 sm:px-4"
               aria-label="Chains"
             >
               <ul className="flex flex-wrap gap-2">
-                {favoriteOrRecentChainIds.map((chainId) => {
+                {suggestedChainIds.map((chainId) => {
                   const chain = getChainById(chainId);
                   if (chain == null) return null;
                   const isActive = selectedChainId === chain.id;
@@ -228,13 +261,23 @@ export function TransferSelectPanel({
                           setSelectedChainId(isActive ? null : chain.id)
                         }
                         className={cn(
-                          "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+                          "flex cursor-pointer items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
                           isActive
                             ? "bg-primary text-primary-foreground"
-                            : "bg-muted/50 hover:bg-muted text-foreground"
+                            : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-card-foreground"
                         )}
                       >
-                        {chain.shortName ?? chain.name}
+                        {chain.iconURI ? (
+                          /* eslint-disable-next-line @next/next/no-img-element */
+                          <img
+                            src={chain.iconURI}
+                            alt=""
+                            width={18}
+                            height={18}
+                            className="size-[18px] shrink-0 rounded-full object-cover"
+                          />
+                        ) : null}
+                        <span>{chain.shortName ?? chain.name}</span>
                       </button>
                     </li>
                   );
@@ -243,7 +286,7 @@ export function TransferSelectPanel({
             </section>
 
             <section
-              className="flex-1 min-h-0 overflow-y-auto px-2 pb-4"
+              className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-1 pb-4 sm:px-2"
               aria-label="Token list"
             >
               {filteredTokens.length === 0 ? (
@@ -252,53 +295,63 @@ export function TransferSelectPanel({
                 </p>
               ) : (
                 <ul className="space-y-0">
-                  {filteredTokens.map((token) => {
-                    const chain = getChainById(token.chainId);
-                    return (
-                      <li key={token.id}>
-                        <button
-                          type="button"
-                          onClick={() => handleSelectToken(token)}
-                          className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left hover:bg-muted/40 transition-colors"
-                        >
-                          <TokenIconWithChainBadge token={token} chain={chain ?? undefined} />
-                          <span className="flex-1 min-w-0">
-                            <span className="block text-sm font-medium text-foreground truncate">
-                              {token.name}
+                  {filteredTokens
+                    .slice(0, INITIAL_TOKEN_LIST_SIZE)
+                    .map((token) => {
+                      const chain = getChainById(token.chainId);
+                      return (
+                        <li key={token.id}>
+                          <button
+                            type="button"
+                            onClick={() => handleSelectToken(token)}
+                            className="flex w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-3 text-left transition-colors hover:bg-muted/40"
+                          >
+                            <TokenIconWithChainBadge
+                              token={token}
+                              chain={chain ?? undefined}
+                            />
+                            <span className="min-w-0 flex-1">
+                              <span className="block truncate text-sm font-medium text-primary">
+                                {token.name}
+                              </span>
+                              <span className="flex items-center gap-1.5 truncate text-xs text-muted-foreground">
+                                <span className="truncate">
+                                  {chain?.shortName ??
+                                    chain?.name ??
+                                    token.chainId}
+                                </span>
+                              </span>
                             </span>
-                            <span className="block text-xs text-muted-foreground truncate">
-                              {chain?.shortName ?? chain?.name ?? token.chainId}
+                            <span className="modal-balance tabular-nums text-sm font-semibold text-primary">
+                              0.00 {token.symbol}
                             </span>
-                          </span>
-                          <span className="text-sm font-semibold text-foreground tabular-nums">
-                            0.00 {token.symbol}
-                          </span>
-                        </button>
-                      </li>
-                    );
-                  })}
+                          </button>
+                        </li>
+                      );
+                    })}
                 </ul>
               )}
             </section>
-          </>
+          </div>
         )}
 
         {activeTab === "offramp" && (
-          <section className="flex-1 overflow-y-auto px-4 py-6">
+          <section className="min-h-0 flex-1 overflow-y-auto px-4 py-6">
             <p className="text-sm text-muted-foreground">
-              Offramp options: Mobile money (Momo), banks, and other payout methods will appear here.
+              Offramp options: Mobile money (Momo), banks, and other payout
+              methods will appear here.
             </p>
           </section>
         )}
 
         {activeTab === "activities" && (
-          <section className="flex-1 overflow-y-auto px-4 py-6">
+          <section className="min-h-0 flex-1 overflow-y-auto px-4 py-6">
             <p className="text-sm text-muted-foreground">
               Recent transfer and swap activity will appear here.
             </p>
           </section>
         )}
-      </aside>
+      </div>
     </div>
   );
 }

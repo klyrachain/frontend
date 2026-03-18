@@ -111,8 +111,9 @@
   --ease-token: cubic-bezier(0.4, 0, 0.2, 1);
   --z-dropdown: 10;
   --z-sticky: 40;
-  --z-modal: 50;
-  --z-toast: 100;
+  /* Above fixed header (z-100) so dialog content is visible */
+  --z-modal: 110;
+  --z-toast: 120;
   --font-sans-active: var(--font-geist-sans);
   --font-mono-active: var(--font-geist-mono);
   /* --background: oklch(1 0 0); */

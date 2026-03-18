@@ -14,7 +14,7 @@ export function FlowsNav() {
   const pathname = usePathname();
   return (
     <nav
-      className="flex shrink-0 gap-1 rounded-xl border border-border bg-card/80 p-1 shadow-sm backdrop-blur-sm"
+      className="sticky top-4 z-30 mx-auto flex w-fit max-w-full shrink-0 gap-1 rounded-xl border border-border bg-card/90 p-1 shadow-sm backdrop-blur-md supports-[backdrop-filter]:bg-card/75"
       aria-label="App flows"
     >
       {FLOWS.map(({ href, label }) => {

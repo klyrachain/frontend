@@ -1,8 +1,7 @@
-import Link from "next/link";
-import { Header } from "@/components/Landing";
 import { HeroShaderBackground } from "@/components/Landing/HeroShaderBackground";
 import { HERO_CONFIG } from "@/config/hero";
 import { FlowsNav } from "@/app/(flows)/FlowsNav";
+import { FlowsPagePopTransition } from "@/app/(flows)/FlowsPagePopTransition";
 
 export default function FlowsLayout({
   children,
@@ -26,15 +25,15 @@ export default function FlowsLayout({
         >
           Skip to main content
         </a>
-        <Header initialCompact />
+        {/* <Header initialCompact /> */}
         <main id="main-content" role="main" tabIndex={-1}>
           <section
-            className="relative z-10 flex flex-col items-center justify-center min-h-screen pb-[var(--g10)] bg-transparent"
+            className="relative z-10 flex min-h-screen flex-col items-center justify-start bg-transparent pb-[var(--g10)] pt-8 sm:pt-12"
             aria-label="App flows"
           >
-            <div className="relative z-[1] w-full max-w-6xl mx-auto px-2 sm:px-4 bg-transparent flex flex-col items-center gap-6">
+            <div className="relative z-[1] mx-auto flex w-full max-w-6xl flex-col items-center gap-6 bg-transparent px-2 sm:px-4">
               <FlowsNav />
-              {children}
+              <FlowsPagePopTransition>{children}</FlowsPagePopTransition>
             </div>
           </section>
         </main>
