@@ -14,6 +14,8 @@ function trimTrailingSlash(url: string): string {
 }
 
 const DEFAULT_BUSINESS_API = "http://localhost:4000";
+/** Include path if the dashboard lives under /app, etc. */
+const DEFAULT_BUSINESS_DASHBOARD_URL = "http://localhost:3002/app";
 
 export const env = {
   /**
@@ -21,5 +23,13 @@ export const env = {
    */
   businessApiOrigin: trimTrailingSlash(
     process.env.NEXT_PUBLIC_BUSINESS_API_URL ?? DEFAULT_BUSINESS_API
+  ),
+  /**
+   * Dashboard app URL used for login-code handoff (can include path, but no query).
+   * Example: https://localhost:3002/app
+   */
+  businessDashboardUrl: trimTrailingSlash(
+    process.env.NEXT_PUBLIC_BUSINESS_DASHBOARD_URL ??
+      DEFAULT_BUSINESS_DASHBOARD_URL
   ),
 } as const;

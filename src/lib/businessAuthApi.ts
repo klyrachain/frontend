@@ -234,6 +234,67 @@ export async function verifyBusinessPasskeyLogin(input: {
   return { accessToken };
 }
 
+export interface BusinessLoginCodeResult {
+  code: string;
+  redirectUrl: string | null;
+  ttlSeconds: number;
+}
+
+/**
+ * Exchange a portal access token for a short-lived, single-use login code.
+ * The dashboard then trades that code back for the JWT.
+ */
+export async function createBusinessLoginCode(
+  accessToken: string,
+  redirectUrl?: string
+): Promise<BusinessLoginCodeResult> {
+  const body = await requestJson("/api/business-auth/login/code", {
+    method: "POST",
+    body: JSON.stringify({
+      accessToken,
+      redirectUrl,
+    }),
+  });
+
+  if (!body || typeof body !== "object") {
+    throw new BusinessAuthApiError(
+      "Invalid response from login code endpoint",
+      500,
+      body
+    );
+  }
+
+  const outer = body as Record<string, unknown>;
+  const data =
+    outer.data && typeof outer.data === "object" && !Array.isArray(outer.data)
+      ? (outer.data as Record<string, unknown>)
+      : outer;
+
+  const rawCode = data.code;
+  const rawRedirect = data.redirectUrl;
+  const rawTtl = data.ttlSeconds;
+
+  if (typeof rawCode !== "string" || rawCode.length === 0) {
+    throw new BusinessAuthApiError(
+      "Invalid login code response: missing code",
+      500,
+      body
+    );
+  }
+
+  return {
+    code: rawCode,
+    redirectUrl:
+      typeof rawRedirect === "string" && rawRedirect.length > 0
+        ? rawRedirect
+        : null,
+    ttlSeconds:
+      typeof rawTtl === "number" && Number.isFinite(rawTtl) && rawTtl > 0
+        ? rawTtl
+        : 60,
+  };
+}
+
 export async function requestBusinessMagicLink(email: string): Promise<void> {
   await requestJson("/api/business-auth/magic-link/request", {
     method: "POST",

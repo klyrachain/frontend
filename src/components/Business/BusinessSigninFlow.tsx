@@ -2,25 +2,22 @@
 
 import { useCallback, useEffect, useId, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Fingerprint, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   BusinessAuthApiError,
+  createBusinessLoginCode,
   fetchBusinessAuthConfig,
   fetchBusinessPasskeyLoginOptions,
-  fetchBusinessSession,
   getGoogleOAuthStartUrl,
   loginBusinessWithPassword,
   requestBusinessMagicLink,
   verifyBusinessPasskeyLogin,
 } from "@/lib/businessAuthApi";
-import {
-  setBusinessAccessToken,
-} from "@/lib/businessAuthStorage";
 import { cn } from "@/lib/utils";
+import { env } from "@/config/env";
 
 const MAGIC_COOLDOWN_SECONDS = 30;
 
@@ -30,32 +27,65 @@ function isValidEmail(value: string): boolean {
 
 function formatApiError(error: unknown): string {
   if (error instanceof BusinessAuthApiError) return error.message;
-  if (error instanceof TypeError && error.message === "Failed to fetch") {
-    return "Network error: could not reach the server. Confirm the API is running and try again.";
+  const msg =
+    error instanceof TypeError || error instanceof Error
+      ? error.message
+      : "";
+  if (
+    msg === "Failed to fetch" ||
+    msg === "Load failed" ||
+    msg.toLowerCase().includes("network")
+  ) {
+    return "Network error: could not reach the auth API (check the dev server and that POST /api/business-auth/login/code exists on core). If the dashboard is on HTTPS with a self-signed cert, open it once in the browser to trust it.";
   }
   if (error instanceof Error) return error.message;
   return "Something went wrong. Please try again.";
 }
 
-async function redirectAfterSession(
-  router: ReturnType<typeof useRouter>,
-  accessToken: string
-): Promise<void> {
-  setBusinessAccessToken(accessToken);
+function buildDashboardRedirectUrl(baseUrl: string, code: string): string {
+  const trimmed = baseUrl.trim();
+  if (!trimmed) {
+    throw new Error(
+      "NEXT_PUBLIC_BUSINESS_DASHBOARD_URL is not set. Example: https://localhost:3002/app"
+    );
+  }
+  let url: URL;
   try {
-    const session = await fetchBusinessSession(accessToken);
-    if (!session.profileComplete) {
-      router.push("/business/signup?finishProfile=1");
-      return;
+    if (/^https?:\/\//i.test(trimmed)) {
+      url = new URL(trimmed);
+    } else {
+      url = new URL(`https://${trimmed}`);
     }
   } catch {
-    /* fall through to app */
+    throw new Error(
+      `Invalid dashboard URL "${trimmed}". Use a full URL (e.g. https://localhost:3002/app).`
+    );
   }
-  router.push("/app");
+  url.searchParams.set("login_code", code);
+  return url.toString();
+}
+
+/**
+ * Creates a login code; retries without redirectUrl if core rejects the URL (allowlist).
+ */
+async function handoffToDashboardWithLoginCode(accessToken: string): Promise<void> {
+  const dashboardBase = env.businessDashboardUrl;
+  let result: Awaited<ReturnType<typeof createBusinessLoginCode>>;
+  try {
+    result = await createBusinessLoginCode(accessToken, dashboardBase);
+  } catch (first: unknown) {
+    const err = first instanceof BusinessAuthApiError ? first : null;
+    if (err && (err.status === 400 || err.status === 422)) {
+      result = await createBusinessLoginCode(accessToken);
+    } else {
+      throw first;
+    }
+  }
+  const base = result.redirectUrl?.trim() || dashboardBase;
+  window.location.assign(buildDashboardRedirectUrl(base, result.code));
 }
 
 export function BusinessSigninFlow() {
-  const router = useRouter();
   const formId = useId();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -99,7 +129,7 @@ export function BusinessSigninFlow() {
         email,
         password,
       });
-      await redirectAfterSession(router, accessToken);
+      await handoffToDashboardWithLoginCode(accessToken);
     } catch (err: unknown) {
       const apiErr = err instanceof BusinessAuthApiError ? err : null;
       if (apiErr?.status === 401 || apiErr?.status === 403) {
@@ -160,7 +190,7 @@ export function BusinessSigninFlow() {
         email,
         response,
       });
-      await redirectAfterSession(router, accessToken);
+      await handoffToDashboardWithLoginCode(accessToken);
     } catch (err: unknown) {
       setFormError(formatApiError(err));
     } finally {
