@@ -178,6 +178,62 @@ export async function registerBusinessUser(input: {
   return { accessToken };
 }
 
+/**
+ * Password sign-in. If core uses a different path (e.g. login/password), update here.
+ */
+export async function loginBusinessWithPassword(input: {
+  email: string;
+  password: string;
+}): Promise<{ accessToken: string }> {
+  const body = await requestJson("/api/business-auth/login", {
+    method: "POST",
+    body: JSON.stringify({
+      email: input.email.trim().toLowerCase(),
+      password: input.password,
+    }),
+  });
+  const accessToken = pickAccessToken(body);
+  if (!accessToken) {
+    throw new BusinessAuthApiError(
+      "Invalid response: missing access token",
+      500,
+      body
+    );
+  }
+  return { accessToken };
+}
+
+export async function fetchBusinessPasskeyLoginOptions(
+  email: string
+): Promise<unknown> {
+  return requestJson("/api/business-auth/login/passkey/options", {
+    method: "POST",
+    body: JSON.stringify({ email: email.trim().toLowerCase() }),
+  });
+}
+
+export async function verifyBusinessPasskeyLogin(input: {
+  email: string;
+  response: unknown;
+}): Promise<{ accessToken: string }> {
+  const body = await requestJson("/api/business-auth/login/passkey/verify", {
+    method: "POST",
+    body: JSON.stringify({
+      email: input.email.trim().toLowerCase(),
+      response: input.response,
+    }),
+  });
+  const accessToken = pickAccessToken(body);
+  if (!accessToken) {
+    throw new BusinessAuthApiError(
+      "Invalid response: missing access token",
+      500,
+      body
+    );
+  }
+  return { accessToken };
+}
+
 export async function requestBusinessMagicLink(email: string): Promise<void> {
   await requestJson("/api/business-auth/magic-link/request", {
     method: "POST",

@@ -24,6 +24,7 @@ import {
   completeBusinessOnboarding,
   consumePortalOrMagicTokenOnce,
   fetchBusinessAuthConfig,
+  fetchBusinessSession,
   getGoogleOAuthStartUrl,
   requestBusinessMagicLink,
   fetchBusinessPasskeyRegistrationOptions,
@@ -173,6 +174,45 @@ export function BusinessSignupFlow() {
       })
       .finally(() => {
         if (!cancelled) setIsResolvingPortal(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [searchParams, router, magicTokenFromEmail]);
+
+  /** After password/passkey sign-in when profile is incomplete (step 4). */
+  useEffect(() => {
+    if (searchParams.get("finishProfile") !== "1") return;
+    if (magicTokenFromEmail) return;
+    const portalHandoff =
+      searchParams.get("portal_token")?.trim() ||
+      searchParams.get("token")?.trim() ||
+      searchParams.get("magic_token")?.trim();
+    if (portalHandoff) return;
+
+    const token = getBusinessAccessToken();
+    if (!token) {
+      router.replace("/business/signin");
+      return;
+    }
+
+    let cancelled = false;
+    setStepError(null);
+
+    void fetchBusinessSession(token)
+      .then((session) => {
+        if (cancelled) return;
+        if (session.profileComplete) {
+          router.replace("/app");
+          return;
+        }
+        setPostOnboardingPath("/app");
+        setStep(4);
+        router.replace("/business/signup", { scroll: false });
+      })
+      .catch(() => {
+        if (!cancelled) router.replace("/business/signin");
       });
 
     return () => {
@@ -736,21 +776,31 @@ export function BusinessSignupFlow() {
                 </div>
 
                 {emailNotAvailable ? (
-                  <>
+                  <p className="text-sm text-zinc-600">
                     {suggestPasswordLogin ? (
                       <>
-                        <p className="text-sm text-zinc-600 p-0 m-2">
-                          Welcome back. Sign in instead.
-                        </p>
+                        Welcome back.{" "}
+                        <Link
+                          href="/business/signin"
+                          className="font-medium text-zinc-900 underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-sm"
+                        >
+                          Sign in
+                        </Link>{" "}
+                        instead.
                       </>
                     ) : (
                       <>
-                        <p className="text-sm text-zinc-600 p-0 m-0">
-                          Welcome back. Sign in or use a different address.
-                        </p>
+                        Welcome back.{" "}
+                        <Link
+                          href="/business/signin"
+                          className="font-medium text-zinc-900 underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-sm"
+                        >
+                          Sign in
+                        </Link>{" "}
+                        or use a different address.
                       </>
                     )}
-                  </>
+                  </p>
                 ) : null}
 
                 {stepError && step === 1 ? (
@@ -1202,7 +1252,7 @@ export function BusinessSignupFlow() {
         <p>
           Already have an account?{" "}
           <Link
-            href="/app"
+            href="/business/signin"
             className="font-medium text-zinc-900 underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-sm"
           >
             Sign in
