@@ -12,6 +12,9 @@ import { X } from "lucide-react";
 import type { Chain, Token } from "@/types/token";
 import type { TokenSelection } from "../Exchange/TokenChainSelectModal";
 import { TransferSelectPanel } from "@/components/Transfer/TransferSelectPanel";
+import type { OnrampDestination } from "@/components/Transfer/TransferOnrampTab";
+import type { AggregateAllocation } from "@/lib/aggregate-payment-plan";
+import type { AggregateRowView } from "@/components/Transfer/TransferAggregateTab";
 import {
   BOTTOM_SHEET_EDGE_CLASSES,
   BOTTOM_SHEET_MOBILE_SLIDE_CLASSES,
@@ -19,8 +22,9 @@ import {
 
 const MODAL_MAX_HEIGHT_CLASS = "max-h-[85vh]";
 
+/** Desktop: center in viewport (base DialogContent is centered; these overrides previously used top-4, which hugged the top). */
 const DESKTOP_MODAL_CLASSES =
-  "sm:fixed sm:inset-auto sm:left-[50%] sm:top-4 sm:w-full sm:max-w-[var(--modal-width)] sm:-translate-x-1/2 sm:translate-y-0 sm:data-[state=open]:zoom-in-95 sm:data-[state=open]:slide-in-from-top-0";
+  "sm:fixed sm:inset-auto sm:left-1/2 sm:top-1/2 sm:w-full sm:max-w-[var(--modal-width)] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:data-[state=open]:zoom-in-95";
 const DRAG_CLOSE_THRESHOLD_PX = 80;
 
 interface TransferSelectModalProps {
@@ -30,6 +34,15 @@ interface TransferSelectModalProps {
   excludeSymbol?: string;
   chains: Chain[];
   tokens: Token[];
+  invoiceChargeKind?: "FIAT" | "CRYPTO";
+  onMorapayOfframpSelect?: () => void;
+  onOnrampChoice?: (destination: OnrampDestination) => void;
+  onAggregateApply?: (allocations: AggregateAllocation[]) => void;
+  aggregateContext?: {
+    walletAddress: string | null;
+    invoiceLabel: string;
+    rows: AggregateRowView[];
+  };
 }
 
 export function TransferSelectModal({
@@ -39,6 +52,11 @@ export function TransferSelectModal({
   excludeSymbol,
   chains,
   tokens,
+  invoiceChargeKind = "FIAT",
+  onMorapayOfframpSelect,
+  onOnrampChoice,
+  onAggregateApply,
+  aggregateContext,
 }: TransferSelectModalProps) {
   const [dragOffset, setDragOffset] = useState(0);
   const dragStartY = useRef(0);
@@ -88,6 +106,7 @@ export function TransferSelectModal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
+        aria-describedby={undefined}
         contentAnimation="gsap-pop"
         className={cn(
           "z-[var(--z-modal)] flex flex-col p-0 bg-transparent border-none shadow-none focus:outline-none !duration-300 min-h-0 overflow-hidden",
@@ -152,6 +171,20 @@ export function TransferSelectModal({
             tokens={tokens}
             excludeSymbol={excludeSymbol}
             onSelect={handleSelect}
+            invoiceChargeKind={invoiceChargeKind}
+            onMorapayOfframpSelect={() => {
+              onMorapayOfframpSelect?.();
+              onOpenChange(false);
+            }}
+            onOnrampChoice={(dest) => {
+              onOnrampChoice?.(dest);
+              onOpenChange(false);
+            }}
+            onAggregateApply={(alloc) => {
+              onAggregateApply?.(alloc);
+              onOpenChange(false);
+            }}
+            aggregateContext={aggregateContext}
           />
         </div>
       </DialogContent>

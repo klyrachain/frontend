@@ -15,9 +15,26 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { recordTokenUsed } from "@/store/slices/usedTokensSlice";
 import type { Chain, Token } from "@/types/token";
 import type { TokenSelection } from "@/components/Exchange/TokenChainSelectModal";
+import { TokenIconWithChainBadge } from "@/components/Token/TokenIconWithChainBadge";
+import { TransferOnrampTab } from "@/components/Transfer/TransferOnrampTab";
+import type { OnrampDestination } from "@/components/Transfer/TransferOnrampTab";
+import { TransferOfframpTab } from "@/components/Transfer/TransferOfframpTab";
+import {
+  TransferAggregateTab,
+  type AggregateRowView,
+} from "@/components/Transfer/TransferAggregateTab";
+import type { AggregateAllocation } from "@/lib/aggregate-payment-plan";
+import { TransferActivitiesTab } from "@/components/Transfer/TransferActivitiesTab";
 
 const INITIAL_TOKEN_LIST_SIZE = 100;
-const TAB_IDS = ["tokens", "offramp", "activities"] as const;
+
+const TAB_IDS = [
+  "tokens",
+  "onramp",
+  "offramp",
+  "aggregate",
+  "activities",
+] as const;
 type TabId = (typeof TAB_IDS)[number];
 
 const MODAL_TAB_CONTENT_BOX =
@@ -28,13 +45,18 @@ export interface TransferSelectPanelProps {
   tokens: Token[];
   excludeSymbol?: string;
   onSelect: (selection: TokenSelection) => void;
-  /**
-   * `modal` — used inside TransferSelectModal (fixed tab body height).
-   * `embedded` — fills parent flex area (e.g. business pay sheet tab).
-   */
   layout: "modal" | "embedded";
-  /** Increment when opening embedded picker to reset search, tab, and chain filter. */
   resetKey?: number;
+  /** FIAT-denominated invoice: offramp Morapay is disabled; onramp is for buying crypto to pay. */
+  invoiceChargeKind?: "FIAT" | "CRYPTO";
+  onMorapayOfframpSelect?: () => void;
+  onOnrampChoice?: (destination: OnrampDestination) => void;
+  onAggregateApply?: (allocations: AggregateAllocation[]) => void;
+  aggregateContext?: {
+    walletAddress: string | null;
+    invoiceLabel: string;
+    rows: AggregateRowView[];
+  };
 }
 
 function getChainByIdFromList(
@@ -44,57 +66,21 @@ function getChainByIdFromList(
   return chains.find((c) => c.id === chainId);
 }
 
-function TokenIconWithChainBadge({
-  token,
-  chain,
-}: {
-  token: Token;
-  chain: Chain | undefined;
-}) {
-  const chainInitials =
-    chain?.shortName?.slice(0, 2) ?? chain?.name?.slice(0, 2) ?? "?";
-  const chainIcon = chain?.iconURI;
-  return (
-    <span className="relative flex size-12 shrink-0">
-      <span className="flex size-12 overflow-hidden rounded-full bg-muted ring-1 ring-border/50">
-        {token.logoURI != null && token.logoURI !== "" ? (
-          /* eslint-disable-next-line @next/next/no-img-element */
-          <img
-            src={token.logoURI}
-            alt=""
-            width={48}
-            height={48}
-            className="size-12 object-cover"
-          />
-        ) : (
-          <span className="flex size-12 items-center justify-center text-base font-semibold text-muted-foreground">
-            {token.symbol.slice(0, 2)}
-          </span>
-        )}
-      </span>
-      {chain != null && (
-        <span
-          className="absolute -bottom-0.5 -right-0.5 z-10 flex size-5 overflow-hidden rounded-full border-0 border-background bg-muted ring-1 ring-border/50"
-          aria-hidden
-        >
-          {chainIcon ? (
-            /* eslint-disable-next-line @next/next/no-img-element */
-            <img
-              src={chainIcon}
-              alt=""
-              width={20}
-              height={20}
-              className="size-5 object-cover"
-            />
-          ) : (
-            <span className="flex size-5 items-center justify-center text-[10px] font-medium text-muted-foreground">
-              {chainInitials}
-            </span>
-          )}
-        </span>
-      )}
-    </span>
-  );
+function tabLabel(tab: TabId): string {
+  switch (tab) {
+    case "tokens":
+      return "Tokens";
+    case "onramp":
+      return "Onramp";
+    case "offramp":
+      return "Offramp";
+    case "aggregate":
+      return "Aggregate";
+    case "activities":
+      return "Activities";
+    default:
+      return tab;
+  }
 }
 
 export function TransferSelectPanel({
@@ -104,6 +90,11 @@ export function TransferSelectPanel({
   onSelect,
   layout,
   resetKey = 0,
+  invoiceChargeKind = "FIAT",
+  onMorapayOfframpSelect,
+  onOnrampChoice,
+  onAggregateApply,
+  aggregateContext,
 }: TransferSelectPanelProps) {
   const dispatch = useAppDispatch();
   const usedTokensEntries = useAppSelector((s) => s.usedTokens.entries);
@@ -112,6 +103,8 @@ export function TransferSelectPanel({
   const [activeTab, setActiveTab] = useState<TabId>("tokens");
   const [search, setSearch] = useState("");
   const [selectedChainId, setSelectedChainId] = useState<string | null>(null);
+
+  const morapayEnabled = invoiceChargeKind === "CRYPTO";
 
   const resetUi = useCallback(() => {
     setActiveTab("tokens");
@@ -184,7 +177,7 @@ export function TransferSelectPanel({
 
   const isEmbedded = layout === "embedded";
   const tabNavClass = cn(
-    "flex shrink-0 gap-1 px-2 py-2 sm:px-4",
+    "checkout-token-scroll-x flex shrink-0 gap-1 overflow-x-auto px-2 py-2 sm:px-4",
     !isEmbedded && "border-b border-border"
   );
 
@@ -192,6 +185,10 @@ export function TransferSelectPanel({
     "flex flex-col overflow-hidden",
     isEmbedded ? "min-h-0 flex-1" : MODAL_TAB_CONTENT_BOX
   );
+
+  const aggregateRows = aggregateContext?.rows ?? [];
+  const aggregateWallet = aggregateContext?.walletAddress ?? null;
+  const aggregateInvoice = aggregateContext?.invoiceLabel ?? "";
 
   return (
     <div
@@ -207,17 +204,13 @@ export function TransferSelectPanel({
             type="button"
             onClick={() => setActiveTab(tab)}
             className={cn(
-              "rounded-lg px-3 py-2 text-sm font-medium capitalize transition-colors",
+              "shrink-0 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors sm:px-3",
               activeTab === tab
                 ? "text-primary"
                 : "text-muted-foreground hover:text-card-foreground"
             )}
           >
-            {tab === "offramp"
-              ? "Offramp"
-              : tab === "activities"
-                ? "Activities"
-                : "Tokens"}
+            {tabLabel(tab)}
           </button>
         ))}
       </nav>
@@ -286,7 +279,7 @@ export function TransferSelectPanel({
             </section>
 
             <section
-              className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-1 pb-4 sm:px-2"
+              className="checkout-token-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain px-1 pb-4 sm:px-2"
               aria-label="Token list"
             >
               {filteredTokens.length === 0 ? (
@@ -335,22 +328,37 @@ export function TransferSelectPanel({
           </div>
         )}
 
-        {activeTab === "offramp" && (
-          <section className="min-h-0 flex-1 overflow-y-auto px-4 py-6">
-            <p className="text-sm text-muted-foreground">
-              Offramp options: Mobile money (Momo), banks, and other payout
-              methods will appear here.
-            </p>
-          </section>
+        {activeTab === "onramp" && (
+          <TransferOnrampTab
+            onChoose={(dest) => {
+              onOnrampChoice?.(dest);
+            }}
+          />
         )}
 
-        {activeTab === "activities" && (
-          <section className="min-h-0 flex-1 overflow-y-auto px-4 py-6">
-            <p className="text-sm text-muted-foreground">
-              Recent transfer and swap activity will appear here.
-            </p>
-          </section>
+        {activeTab === "offramp" && (
+          <TransferOfframpTab
+            morapayEnabled={morapayEnabled}
+            onSelectMorapay={() => {
+              onMorapayOfframpSelect?.();
+            }}
+          />
         )}
+
+        {activeTab === "aggregate" && (
+          <TransferAggregateTab
+            walletAddress={aggregateWallet}
+            invoiceLabel={aggregateInvoice}
+            rows={aggregateRows}
+            tokens={tokens}
+            chains={chains}
+            onApply={(alloc) => {
+              onAggregateApply?.(alloc);
+            }}
+          />
+        )}
+
+        {activeTab === "activities" && <TransferActivitiesTab />}
       </div>
     </div>
   );

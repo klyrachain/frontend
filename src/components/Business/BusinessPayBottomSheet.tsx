@@ -29,6 +29,7 @@ import { useGetChainsQuery, useGetTokensQuery } from "@/store/api/squidApi";
 import { formatBusinessFiatTitle } from "@/lib/formatBusinessFiat";
 import { cn } from "@/lib/utils";
 import { BusinessPayProcessingSection } from "@/components/Business/BusinessPayProcessingSection";
+import { useClientMounted } from "@/hooks/use-client-mounted";
 
 const DRAG_CLOSE_THRESHOLD_PX = 80;
 const PAY_PROCESS_DURATION_MS = 20_000;
@@ -137,8 +138,10 @@ export function BusinessPayBottomSheet({
   const processPaymentRef = useRef(processPayment);
   processPaymentRef.current = processPayment;
 
+  const clientMounted = useClientMounted();
   const usedEntries = useAppSelector((s) => s.usedTokens.entries);
   const deferredUsedEntries = useDeferredValue(usedEntries);
+  const entriesForSuggestions = clientMounted ? deferredUsedEntries : [];
 
   useEffect(() => {
     if (open) {
@@ -233,8 +236,8 @@ export function BusinessPayBottomSheet({
   );
 
   const suggestedSelections = useMemo(
-    () => buildSuggestedTokenSelections(deferredUsedEntries, chains, tokens),
-    [deferredUsedEntries, chains, tokens]
+    () => buildSuggestedTokenSelections(entriesForSuggestions, chains, tokens),
+    [entriesForSuggestions, chains, tokens]
   );
 
   const fiatTitle = formatBusinessFiatTitle(amountDisplay, currencyDisplay);

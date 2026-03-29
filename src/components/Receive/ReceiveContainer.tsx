@@ -19,6 +19,7 @@ import {
   buildSuggestedTokenSelections,
   isValidPositiveAmount,
 } from "@/lib/flowTokens";
+import { useClientMounted } from "@/hooks/use-client-mounted";
 import {
   getReceiveAccountSpec,
   isValidReceiveAddress,
@@ -57,8 +58,10 @@ export function ReceiveContainer() {
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [generatedPaymentLink, setGeneratedPaymentLink] = useState("");
 
+  const clientMounted = useClientMounted();
   const usedEntries = useAppSelector((s) => s.usedTokens.entries);
   const deferredUsedEntries = useDeferredValue(usedEntries);
+  const entriesForSuggestions = clientMounted ? deferredUsedEntries : [];
   const { data: apiChains = [], isSuccess: chainsSuccess } = useGetChainsQuery();
   const { data: apiTokens = [], isSuccess: tokensSuccess } = useGetTokensQuery();
   const chains = useMemo(
@@ -70,8 +73,8 @@ export function ReceiveContainer() {
     [apiTokens, tokensSuccess]
   );
   const suggestedSelections = useMemo(
-    () => buildSuggestedTokenSelections(deferredUsedEntries, chains, tokens),
-    [deferredUsedEntries, chains, tokens]
+    () => buildSuggestedTokenSelections(entriesForSuggestions, chains, tokens),
+    [entriesForSuggestions, chains, tokens]
   );
 
   const accountSpec = useMemo(() => {

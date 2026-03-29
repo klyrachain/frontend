@@ -346,7 +346,7 @@ export function BusinessSigninFlow() {
           </div>
 
           <p className="mt-10 text-center text-sm text-zinc-600">
-            New to Klyra?{" "}
+            New to Morapay?{" "}
             <Link
               href="/business/signup"
               className="font-medium text-zinc-900 underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-sm"

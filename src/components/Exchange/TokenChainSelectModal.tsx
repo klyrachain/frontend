@@ -15,6 +15,7 @@ import { useGetChainsQuery, useGetTokensQuery } from "@/store/api/squidApi";
 import { useAppDispatch } from "@/store/hooks";
 import { recordTokenUsed } from "@/store/slices/usedTokensSlice";
 import type { Chain, Token } from "@/types/token";
+import { TokenAvatarWithFallback } from "@/components/Token/TokenAvatarWithFallback";
 
 export interface TokenSelection {
   chain: Chain;
@@ -176,21 +177,17 @@ export function TokenChainSelectModal({
                         onClick={() => handleSelectToken(token)}
                         className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-muted/50 transition-colors"
                       >
-                        {token.logoURI != null && token.logoURI !== "" ? (
-                          <span className="relative flex size-9 shrink-0 overflow-hidden rounded-full bg-muted">
-                            <img
-                              src={token.logoURI}
-                              alt=""
-                              width={36}
-                              height={36}
-                              className="size-9 object-cover"
-                            />
-                          </span>
-                        ) : (
-                          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-semibold">
-                            {token.symbol.slice(0, 2)}
-                          </span>
-                        )}
+                        <span className="relative flex size-9 shrink-0 overflow-hidden rounded-full bg-muted">
+                          <TokenAvatarWithFallback
+                            logoURI={token.logoURI}
+                            symbol={token.symbol}
+                            chainId={token.chainId}
+                            width={36}
+                            height={36}
+                            className="size-9"
+                            alt=""
+                          />
+                        </span>
                         <span className="flex-1 min-w-0">
                           <span className="modal-balance block font-semibold truncate text-card-foreground">
                             {token.symbol}

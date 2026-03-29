@@ -15,6 +15,7 @@ import { Settings, ArrowDown, ChevronDown } from "lucide-react";
 import { useGetChainsQuery, useGetTokensQuery } from "@/store/api/squidApi";
 import { TokenChainSelectModal, type TokenSelection } from "./TokenChainSelectModal";
 import type { Token } from "@/types/token";
+import { TokenAvatarWithFallback } from "@/components/Token/TokenAvatarWithFallback";
 
 const PRICE_PREVIEW = "≈ $0.00";
 
@@ -36,15 +37,16 @@ function TokenSelectorButton({
       onClick={onClick}
       className="shrink-0 gap-1.5 rounded-xl border-white/10 bg-white/5 px-3 py-2 hover:bg-white/10"
     >
-      {token?.logoURI != null && token.logoURI !== "" ? (
+      {token != null ? (
         <span className="relative flex size-6 shrink-0 overflow-hidden rounded-full bg-muted">
-          {/* eslint-disable-next-line @next/next/no-img-element -- external token logo URLs from API */}
-          <img
-            src={token.logoURI}
-            alt=""
+          <TokenAvatarWithFallback
+            logoURI={token.logoURI}
+            symbol={token.symbol}
+            chainId={token.chainId}
             width={24}
             height={24}
-            className="size-6 object-cover"
+            className="size-6"
+            alt=""
           />
         </span>
       ) : (
