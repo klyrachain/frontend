@@ -20,15 +20,11 @@ export function CheckoutFiatPaystackSection({
 
   const startPaystack = async () => {
     const trimmed = email.trim();
-    if (!trimmed || !trimmed.includes("@")) {
-      setError("Enter a valid email.");
-      return;
-    }
     setLoading(true);
     setError(null);
     try {
       const result = await initializePaystackCheckout({
-        email: trimmed,
+        ...(trimmed ? { email: trimmed } : {}),
         paymentLinkId: payPageId,
       });
       if (!result.ok) {
@@ -49,7 +45,7 @@ export function CheckoutFiatPaystackSection({
       aria-label="Pay with card or mobile money"
     >
       <p className="text-center text-xs font-medium text-muted-foreground">
-        Pay with fiat (Paystack)
+        Pay with fiat
       </p>
       <Input
         type="email"

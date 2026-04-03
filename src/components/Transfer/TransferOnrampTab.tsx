@@ -17,31 +17,31 @@ export function TransferOnrampTab({ onChoose }: TransferOnrampTabProps) {
       className="checkout-token-scroll flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 py-6"
       aria-label="Onramp"
     >
-      <p className="text-sm text-muted-foreground">
-        Top up crypto to cover this invoice. Choose how you want to fund before
-        completing payment.
-      </p>
       <div className="flex flex-col gap-2">
         <Button
           type="button"
           variant="secondary"
-          className="h-auto justify-start rounded-xl py-4 text-left"
+          className="h-auto flex-col items-start justify-start gap-1 rounded-xl py-4 text-left"
           onClick={() => onChoose("pay-business")}
         >
-          <span className="block text-sm font-semibold">Pay via business</span>
+          <span className="block text-sm font-semibold">
+            Settle through business checkout
+          </span>
           <span className="block text-xs font-normal text-muted-foreground">
-            Route purchase through the merchant checkout (when available).
+            Pay with fiat while Morapay settles the required crypto to the
+            business.
           </span>
         </Button>
         <Button
           type="button"
           variant="secondary"
-          className="h-auto justify-start rounded-xl py-4 text-left"
+          className="h-auto flex-col items-start justify-start gap-1 rounded-xl py-4 text-left"
           onClick={() => onChoose("self-custody")}
         >
-          <span className="block text-sm font-semibold">Fund wallet first</span>
+          <span className="block text-sm font-semibold">Fund your wallet first</span>
           <span className="block text-xs font-normal text-muted-foreground">
-            Add crypto to your wallet, then return here to pay the invoice.
+            Onramp into your wallet first, then return to pay this invoice
+            (fiat or crypto).
           </span>
         </Button>
       </div>

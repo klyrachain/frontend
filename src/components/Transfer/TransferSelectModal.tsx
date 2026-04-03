@@ -34,6 +34,10 @@ interface TransferSelectModalProps {
   excludeSymbol?: string;
   chains: Chain[];
   tokens: Token[];
+  /** Bumps when the dialog opens so the panel can apply `defaultChainFilterId`. */
+  chainFilterResetKey?: number;
+  priorityChainIds?: string[];
+  defaultChainFilterId?: string | null;
   invoiceChargeKind?: "FIAT" | "CRYPTO";
   onMorapayOfframpSelect?: () => void;
   onOnrampChoice?: (destination: OnrampDestination) => void;
@@ -43,6 +47,7 @@ interface TransferSelectModalProps {
     invoiceLabel: string;
     rows: AggregateRowView[];
   };
+  tokenBalanceByTokenId?: Record<string, string>;
 }
 
 export function TransferSelectModal({
@@ -52,11 +57,15 @@ export function TransferSelectModal({
   excludeSymbol,
   chains,
   tokens,
+  chainFilterResetKey = 0,
+  priorityChainIds,
+  defaultChainFilterId,
   invoiceChargeKind = "FIAT",
   onMorapayOfframpSelect,
   onOnrampChoice,
   onAggregateApply,
   aggregateContext,
+  tokenBalanceByTokenId,
 }: TransferSelectModalProps) {
   const [dragOffset, setDragOffset] = useState(0);
   const dragStartY = useRef(0);
@@ -170,6 +179,9 @@ export function TransferSelectModal({
             chains={chains}
             tokens={tokens}
             excludeSymbol={excludeSymbol}
+            resetKey={chainFilterResetKey}
+            priorityChainIds={priorityChainIds}
+            defaultChainFilterId={defaultChainFilterId ?? null}
             onSelect={handleSelect}
             invoiceChargeKind={invoiceChargeKind}
             onMorapayOfframpSelect={() => {
@@ -185,6 +197,7 @@ export function TransferSelectModal({
               onOpenChange(false);
             }}
             aggregateContext={aggregateContext}
+            tokenBalanceByTokenId={tokenBalanceByTokenId}
           />
         </div>
       </DialogContent>

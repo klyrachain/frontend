@@ -2,12 +2,24 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import dynamic from "next/dynamic";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { isRequestLinkIdHex } from "@/lib/checkout-link-code";
 import type { PublicCommercePaymentLink } from "@/types/checkout-public.types";
 import { CheckoutTokenQuoteRows } from "@/components/checkout/CheckoutTokenQuoteRows";
-import { CheckoutFiatPaystackSection } from "@/components/checkout/CheckoutFiatPaystackSection";
+
+const CheckoutWalletHeaderAction = dynamic(
+  () =>
+    import("@/components/checkout/CheckoutWalletHeaderAction").then(
+      (module) => module.CheckoutWalletHeaderAction
+    ),
+  {
+    ssr: false,
+    loading: () => <span className="h-9 w-28 animate-pulse rounded-xl bg-muted/40" />,
+  }
+);
 
 type RequestByLinkPayload = {
   linkId?: string;
@@ -29,6 +41,8 @@ function unwrapData<T>(raw: unknown): T | null {
 
 export function CheckoutCodeClient() {
   const params = useParams();
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const code = typeof params?.code === "string" ? params.code : "";
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -67,9 +81,12 @@ export function CheckoutCodeClient() {
       setRequestPayload(null);
 
       const hex = isRequestLinkIdHex(code);
+      const wallet = searchParams.get("wallet")?.trim() ?? "";
       const path = hex
         ? `/api/core/requests/by-link/${encodeURIComponent(code.trim())}`
-        : `/api/core/public/payment-links/${encodeURIComponent(code.trim())}`;
+        : `/api/core/public/payment-links/${encodeURIComponent(code.trim())}${
+            wallet ? `?wallet=${encodeURIComponent(wallet)}` : ""
+          }`;
 
       try {
         const res = await fetch(path, { cache: "no-store" });
@@ -110,20 +127,32 @@ export function CheckoutCodeClient() {
     return () => {
       cancelled = true;
     };
-  }, [code]);
+  }, [code, searchParams]);
 
   const payHrefRequest = `/pay?requestLinkId=${encodeURIComponent(code.trim())}`;
 
   return (
-    <article className="glass-card w-full max-w-md overflow-hidden p-6 shadow-xl">
-      <header className="mb-4 border-b border-white/10 pb-3">
+    <article className="glass-card w-full max-w-md overflow-visible p-6 shadow-xl">
+      <header className="mb-4 flex flex-wrap items-start justify-between gap-3 border-b border-white/10 pb-3">
         <h1 className="text-xl font-semibold text-primary">Checkout</h1>
+        <CheckoutWalletHeaderAction />
       </header>
 
       {loading ? (
-        <p className="text-sm text-muted-foreground" aria-busy="true">
-          Loading…
-        </p>
+        <section className="space-y-4" aria-busy="true" aria-label="Loading checkout">
+          <div className="space-y-2 text-center">
+            <Skeleton className="mx-auto h-9 w-40 rounded-lg" />
+            <Skeleton className="mx-auto h-4 w-32 rounded-md" />
+          </div>
+          <div className="space-y-2">
+            <Skeleton className="h-[68px] w-full rounded-lg" />
+            <Skeleton className="h-[68px] w-full rounded-lg" />
+            <Skeleton className="h-[68px] w-full rounded-lg" />
+            <Skeleton className="h-[68px] w-full rounded-lg" />
+            <Skeleton className="mt-2 h-9 w-full rounded-lg" />
+            <Skeleton className="h-12 w-full rounded-xl" />
+          </div>
+        </section>
       ) : null}
 
       {!loading && error ? (
@@ -147,7 +176,7 @@ export function CheckoutCodeClient() {
               )}
             </p>
             <p className="text-sm text-muted-foreground">
-              To{" "}
+              to{" "}
               <span className="font-medium text-foreground">
                 {commerce.businessName}
               </span>
@@ -161,15 +190,32 @@ export function CheckoutCodeClient() {
               invoiceLabel={invoiceLabel}
               invoiceChargeKind={commerce.chargeKind}
               payPageId={commerce.id}
-              onContinueToPay={() => {
-                /* Wallet / onramp / aggregate signing: extend from payload.flow */
+              onContinueToPay={(payload) => {
+                if (!commerce?.id) return;
+                if (
+                  payload.flow === "token" ||
+                  payload.flow === "onramp" ||
+                  payload.flow === "aggregate"
+                ) {
+                  router.push(
+                    `/pay?payPageId=${encodeURIComponent(commerce.id)}`
+                  );
+                }
               }}
             />
           ) : null}
-          {commerce.type === "fixed" &&
-          (commerce.chargeKind ?? "").toString().toUpperCase() === "CRYPTO" &&
-          commerce.id ? (
-            <CheckoutFiatPaystackSection payPageId={commerce.id} />
+          {commerce.isOneTime && commerce.isPaid ? (
+            <div className="rounded-md border border-white/10 bg-background/40 p-3 text-left text-sm">
+              {commerce.alreadyPaidVerifiedByConnectedWallet ? (
+                <p className="text-primary">
+                  This one-time payment link is already paid and verified for your connected wallet.
+                </p>
+              ) : (
+                <p className="text-muted-foreground">
+                  This one-time payment link has already been paid. Connect the same wallet used for payment to view verification.
+                </p>
+              )}
+            </div>
           ) : null}
         </section>
       ) : null}

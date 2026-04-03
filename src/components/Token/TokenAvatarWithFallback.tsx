@@ -1,10 +1,37 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 
 const DICEBEAR_STYLE = "shapes";
 const DICEBEAR_BASE = `https://api.dicebear.com/7.x/${DICEBEAR_STYLE}/svg`;
+
+function normalizeLogoUri(input: string | null | undefined): string {
+  const raw = input?.trim() ?? "";
+  if (!raw) return "";
+  // GitHub "tree" URLs do not serve raw image bytes; convert to raw host.
+  if (raw.startsWith("https://github.com/") && raw.includes("/tree/")) {
+    const converted = raw
+      .replace("https://github.com/", "https://raw.githubusercontent.com/")
+      .replace("/tree/", "/");
+    return converted;
+  }
+  return raw;
+}
+
+function getSymbolFallbackUri(symbol: string): string {
+  const normalized = symbol.trim().toUpperCase();
+  if (
+    normalized === "BTC" ||
+    normalized === "WBTC" ||
+    normalized === "BTCB" ||
+    normalized === "XBT"
+  ) {
+    return "https://assets.coingecko.com/coins/images/1/standard/bitcoin.png?1696501400";
+  }
+  return "";
+}
 
 export function dicebearTokenAvatarUrl(seed: string): string {
   return `${DICEBEAR_BASE}?seed=${encodeURIComponent(seed)}`;
@@ -34,11 +61,17 @@ export function TokenAvatarWithFallback({
   alt = "",
 }: TokenAvatarWithFallbackProps) {
   const seed = `${symbol}:${chainId}`;
-  const primary = logoURI?.trim() ?? "";
+  const primary = normalizeLogoUri(logoURI);
+  const symbolFallback = getSymbolFallbackUri(symbol);
   const [primaryFailed, setPrimaryFailed] = useState(false);
+  const [symbolFallbackFailed, setSymbolFallbackFailed] = useState(false);
   const [dicebearFailed, setDicebearFailed] = useState(false);
 
   const showPrimary = primary.length > 0 && !primaryFailed;
+  const showSymbolFallback =
+    !showPrimary &&
+    symbolFallback.length > 0 &&
+    !symbolFallbackFailed;
 
   const handlePrimaryError = useCallback(() => {
     setPrimaryFailed(true);
@@ -48,14 +81,19 @@ export function TokenAvatarWithFallback({
     setDicebearFailed(true);
   }, []);
 
+  const handleSymbolFallbackError = useCallback(() => {
+    setSymbolFallbackFailed(true);
+  }, []);
+
   if (showPrimary) {
     return (
-      /* eslint-disable-next-line @next/next/no-img-element */
-      <img
+      <Image
         src={primary}
         alt={alt}
         width={width}
         height={height}
+        unoptimized
+        referrerPolicy="no-referrer"
         className={cn("shrink-0 rounded-full object-cover", className)}
         onError={handlePrimaryError}
       />
@@ -63,13 +101,28 @@ export function TokenAvatarWithFallback({
   }
 
   if (!dicebearFailed) {
+    if (showSymbolFallback) {
+      return (
+        <Image
+          src={symbolFallback}
+          alt={alt}
+          width={width}
+          height={height}
+          unoptimized
+          referrerPolicy="no-referrer"
+          className={cn("shrink-0 rounded-full object-cover", className)}
+          onError={handleSymbolFallbackError}
+        />
+      );
+    }
     return (
-      /* eslint-disable-next-line @next/next/no-img-element */
-      <img
+      <Image
         src={dicebearTokenAvatarUrl(seed)}
         alt={alt}
         width={width}
         height={height}
+        unoptimized
+        referrerPolicy="no-referrer"
         className={cn("shrink-0 rounded-full object-cover", className)}
         onError={handleDicebearError}
       />

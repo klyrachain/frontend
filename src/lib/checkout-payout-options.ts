@@ -50,7 +50,7 @@ export const CHECKOUT_PAYOUT_ROWS: CheckoutPayoutRowConfig[] = [
   },
   {
     id: "eth-wxrp",
-    label: "wXRP",
+    label: "WXRP",
     iconSymbol: "WXRP",
     balanceChainId: String(CHAIN_ID_ETHEREUM),
     balanceTokenAddress: ETHEREUM_WXRP_ADDRESS,

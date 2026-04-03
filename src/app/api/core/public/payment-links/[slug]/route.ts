@@ -3,7 +3,7 @@ import { getCoreBaseUrl } from "@/lib/server-core-base";
 
 type Ctx = { params: Promise<{ slug: string }> };
 
-export async function GET(_req: Request, ctx: Ctx) {
+export async function GET(req: Request, ctx: Ctx) {
   const core = getCoreBaseUrl();
   if (!core) {
     return NextResponse.json(
@@ -17,8 +17,11 @@ export async function GET(_req: Request, ctx: Ctx) {
   }
   const { slug } = await ctx.params;
   const enc = encodeURIComponent(slug);
+  const url = new URL(req.url);
+  const wallet = url.searchParams.get("wallet")?.trim() ?? "";
+  const qs = wallet ? `?wallet=${encodeURIComponent(wallet)}` : "";
   try {
-    const res = await fetch(`${core}/api/public/payment-links/${enc}`, {
+    const res = await fetch(`${core}/api/public/payment-links/${enc}${qs}`, {
       cache: "no-store",
       signal: AbortSignal.timeout(15_000),
     });

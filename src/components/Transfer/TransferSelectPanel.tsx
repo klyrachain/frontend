@@ -7,6 +7,7 @@ import {
   useMemo,
   useState,
 } from "react";
+import Image from "next/image";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { Search } from "lucide-react";
@@ -16,9 +17,9 @@ import { recordTokenUsed } from "@/store/slices/usedTokensSlice";
 import type { Chain, Token } from "@/types/token";
 import type { TokenSelection } from "@/components/Exchange/TokenChainSelectModal";
 import { TokenIconWithChainBadge } from "@/components/Token/TokenIconWithChainBadge";
-import { TransferOnrampTab } from "@/components/Transfer/TransferOnrampTab";
+import { dicebearTokenAvatarUrl } from "@/components/Token/TokenAvatarWithFallback";
 import type { OnrampDestination } from "@/components/Transfer/TransferOnrampTab";
-import { TransferOfframpTab } from "@/components/Transfer/TransferOfframpTab";
+import { TransferFiatTab } from "@/components/Transfer/TransferFiatTab";
 import {
   TransferAggregateTab,
   type AggregateRowView,
@@ -30,8 +31,7 @@ const INITIAL_TOKEN_LIST_SIZE = 100;
 
 const TAB_IDS = [
   "tokens",
-  "onramp",
-  "offramp",
+  "fiat",
   "aggregate",
   "activities",
 ] as const;
@@ -39,6 +39,75 @@ type TabId = (typeof TAB_IDS)[number];
 
 const MODAL_TAB_CONTENT_BOX =
   "flex flex-1 flex-col overflow-hidden min-h-[50vh] max-h-[60vh]";
+type PinnedChainPreference = {
+  key: string;
+  label: string;
+  idCandidates: string[];
+  nameCandidates: string[];
+};
+
+const PINNED_CHAIN_PREFERENCES: PinnedChainPreference[] = [
+  {
+    key: "base",
+    label: "Base",
+    idCandidates: ["8453", "base"],
+    nameCandidates: ["base"],
+  },
+  {
+    key: "ethereum",
+    label: "Ethereum",
+    idCandidates: ["1", "ethereum"],
+    nameCandidates: ["ethereum"],
+  },
+  {
+    key: "polygon",
+    label: "Polygon",
+    idCandidates: ["137", "polygon"],
+    nameCandidates: ["polygon"],
+  },
+  {
+    key: "stellar",
+    label: "Stellar",
+    idCandidates: ["148", "stellar"],
+    nameCandidates: ["stellar"],
+  },
+  {
+    key: "celo",
+    label: "Celo",
+    idCandidates: ["42220", "celo"],
+    nameCandidates: ["celo"],
+  },
+  {
+    key: "sui",
+    label: "Sui",
+    idCandidates: ["784", "sui"],
+    nameCandidates: ["sui"],
+  },
+  {
+    key: "bnb",
+    label: "BNB Chain",
+    idCandidates: ["56", "bnb", "bsc"],
+    nameCandidates: ["bnb chain", "binance", "bsc"],
+  },
+  {
+    key: "solana",
+    label: "Solana",
+    idCandidates: ["101", "solana"],
+    nameCandidates: ["solana"],
+  },
+  {
+    key: "monad",
+    label: "Monad",
+    idCandidates: ["monad", "10143", "34443"],
+    nameCandidates: ["monad"],
+  },
+  {
+    key: "bitcoin",
+    label: "Bitcoin",
+    idCandidates: ["bitcoin", "btc", "8332"],
+    nameCandidates: ["bitcoin", "btc"],
+  },
+];
 
 export interface TransferSelectPanelProps {
   chains: Chain[];
@@ -47,6 +116,10 @@ export interface TransferSelectPanelProps {
   onSelect: (selection: TokenSelection) => void;
   layout: "modal" | "embedded";
   resetKey?: number;
+  /** Shown first in the chain chip row (e.g. wallet’s current chain). */
+  priorityChainIds?: string[];
+  /** When `resetKey` increments, tokens tab filters to this chain if present. */
+  defaultChainFilterId?: string | null;
   /** FIAT-denominated invoice: offramp Morapay is disabled; onramp is for buying crypto to pay. */
   invoiceChargeKind?: "FIAT" | "CRYPTO";
   onMorapayOfframpSelect?: () => void;
@@ -57,6 +130,7 @@ export interface TransferSelectPanelProps {
     invoiceLabel: string;
     rows: AggregateRowView[];
   };
+  tokenBalanceByTokenId?: Record<string, string>;
 }
 
 function getChainByIdFromList(
@@ -70,10 +144,8 @@ function tabLabel(tab: TabId): string {
   switch (tab) {
     case "tokens":
       return "Tokens";
-    case "onramp":
-      return "Onramp";
-    case "offramp":
-      return "Offramp";
+    case "fiat":
+      return "Fiat";
     case "aggregate":
       return "Aggregate";
     case "activities":
@@ -83,6 +155,57 @@ function tabLabel(tab: TabId): string {
   }
 }
 
+function normalizeChainText(value: string | undefined): string {
+  return (value ?? "").trim().toLowerCase();
+}
+
+function resolvePinnedChain(chainList: Chain[], pref: PinnedChainPreference): Chain | null {
+  const idCandidates = new Set(pref.idCandidates.map((item) => normalizeChainText(item)));
+  const nameCandidates = pref.nameCandidates.map((item) => normalizeChainText(item));
+  return (
+    chainList.find((chain) => {
+      const id = normalizeChainText(chain.id);
+      if (idCandidates.has(id)) return true;
+      const name = normalizeChainText(chain.name);
+      const shortName = normalizeChainText(chain.shortName);
+      return nameCandidates.some(
+        (candidate) => name.includes(candidate) || shortName.includes(candidate)
+      );
+    }) ?? null
+  );
+}
+
+function fallbackChainIcon(chain: Chain): string {
+  const chainName = normalizeChainText(chain.name);
+  const chainId = normalizeChainText(chain.id);
+  if (chainName.includes("stellar") || chainId === "148") {
+    return "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/xlm.png";
+  }
+  if (chainName.includes("bitcoin") || chainId === "8332" || chainId === "btc") {
+    return "https://assets.coingecko.com/coins/images/1/standard/bitcoin.png?1696501400";
+  }
+  return "";
+}
+
+function chainAliasKeys(value: string | null | undefined): string[] {
+  const normalized = normalizeChainText(value ?? "");
+  if (!normalized) return [];
+  if (normalized === "8332" || normalized === "bitcoin" || normalized === "btc") {
+    return ["8332", "bitcoin", "btc"];
+  }
+  if (normalized === "148" || normalized === "stellar" || normalized === "xlm") {
+    return ["148", "stellar", "xlm"];
+  }
+  return [normalized];
+}
+
+function matchesSelectedChain(tokenChainId: string, selectedChainId: string | null): boolean {
+  if (!selectedChainId) return true;
+  const left = new Set(chainAliasKeys(tokenChainId));
+  const right = chainAliasKeys(selectedChainId);
+  return right.some((id) => left.has(id));
+}
+
 export function TransferSelectPanel({
   chains,
   tokens,
@@ -90,11 +213,13 @@ export function TransferSelectPanel({
   onSelect,
   layout,
   resetKey = 0,
+  defaultChainFilterId = null,
   invoiceChargeKind = "FIAT",
   onMorapayOfframpSelect,
   onOnrampChoice,
   onAggregateApply,
   aggregateContext,
+  tokenBalanceByTokenId,
 }: TransferSelectPanelProps) {
   const dispatch = useAppDispatch();
   const usedTokensEntries = useAppSelector((s) => s.usedTokens.entries);
@@ -109,12 +234,12 @@ export function TransferSelectPanel({
   const resetUi = useCallback(() => {
     setActiveTab("tokens");
     setSearch("");
-    setSelectedChainId(null);
-  }, []);
+    setSelectedChainId(defaultChainFilterId ?? null);
+  }, [defaultChainFilterId]);
 
   useEffect(() => {
-    if (layout === "embedded" && resetKey > 0) resetUi();
-  }, [resetKey, layout, resetUi]);
+    if (resetKey > 0) resetUi();
+  }, [resetKey, resetUi]);
 
   const getChainById = useCallback(
     (chainId: string) =>
@@ -122,24 +247,18 @@ export function TransferSelectPanel({
     [chains]
   );
 
-  const suggestedChainIds = useMemo(() => {
+  const suggestedChains = useMemo(() => {
     const seen = new Set<string>();
-    const out: string[] = [];
-    for (const e of deferredUsedEntries) {
-      if (chains.some((c) => c.id === e.chainId) && !seen.has(e.chainId)) {
-        seen.add(e.chainId);
-        out.push(e.chainId);
-      }
-    }
-    for (const c of chains) {
-      if (out.length >= 6) break;
-      if (!seen.has(c.id)) {
-        seen.add(c.id);
-        out.push(c.id);
-      }
+    const out: Array<{ id: string; label: string }> = [];
+    for (const pref of PINNED_CHAIN_PREFERENCES) {
+      const chain = resolvePinnedChain(chains, pref);
+      if (!chain) continue;
+      if (seen.has(chain.id)) continue;
+      seen.add(chain.id);
+      out.push({ id: chain.id, label: pref.label });
     }
     return out;
-  }, [chains, deferredUsedEntries]);
+  }, [chains]);
 
   const usedTokenIdOrder = useMemo(() => {
     const order = new Map<string, number>();
@@ -150,7 +269,9 @@ export function TransferSelectPanel({
   const filteredTokens = useMemo(() => {
     let list = tokens;
     if (excludeSymbol) list = list.filter((t) => t.symbol !== excludeSymbol);
-    if (selectedChainId) list = list.filter((t) => t.chainId === selectedChainId);
+    if (selectedChainId) {
+      list = list.filter((t) => matchesSelectedChain(t.chainId, selectedChainId));
+    }
     if (search.trim()) {
       const q = search.trim().toLowerCase();
       list = list.filter(
@@ -160,12 +281,27 @@ export function TransferSelectPanel({
       );
     }
     list = [...list].sort((a, b) => {
+      const aBalance = Number.parseFloat(tokenBalanceByTokenId?.[a.id] ?? "0");
+      const bBalance = Number.parseFloat(tokenBalanceByTokenId?.[b.id] ?? "0");
+      const safeABalance = Number.isFinite(aBalance) ? aBalance : 0;
+      const safeBBalance = Number.isFinite(bBalance) ? bBalance : 0;
+      if (safeBBalance !== safeABalance) return safeBBalance - safeABalance;
       const aIdx = usedTokenIdOrder.get(a.id) ?? 1e9;
       const bIdx = usedTokenIdOrder.get(b.id) ?? 1e9;
-      return aIdx - bIdx;
+      if (aIdx !== bIdx) return aIdx - bIdx;
+      const symbolCompare = a.symbol.localeCompare(b.symbol, undefined, { sensitivity: "base" });
+      if (symbolCompare !== 0) return symbolCompare;
+      return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
     });
     return list;
-  }, [tokens, search, selectedChainId, excludeSymbol, usedTokenIdOrder]);
+  }, [
+    tokens,
+    search,
+    selectedChainId,
+    excludeSymbol,
+    usedTokenIdOrder,
+    tokenBalanceByTokenId,
+  ]);
 
   const handleSelectToken = (token: Token) => {
     const chain = getChainById(token.chainId);
@@ -242,10 +378,15 @@ export function TransferSelectPanel({
               aria-label="Chains"
             >
               <ul className="flex flex-wrap gap-2">
-                {suggestedChainIds.map((chainId) => {
-                  const chain = getChainById(chainId);
+                {suggestedChains.map((chip) => {
+                  const chain = getChainById(chip.id);
                   if (chain == null) return null;
                   const isActive = selectedChainId === chain.id;
+                  const fallbackIcon = fallbackChainIcon(chain);
+                  const chainIconSrc =
+                    chain.iconURI?.trim() ||
+                    fallbackIcon ||
+                    dicebearTokenAvatarUrl(`chain:${chain.id}`);
                   return (
                     <li key={chain.id}>
                       <button
@@ -260,17 +401,24 @@ export function TransferSelectPanel({
                             : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-card-foreground"
                         )}
                       >
-                        {chain.iconURI ? (
-                          /* eslint-disable-next-line @next/next/no-img-element */
-                          <img
-                            src={chain.iconURI}
-                            alt=""
-                            width={18}
-                            height={18}
-                            className="size-[18px] shrink-0 rounded-full object-cover"
-                          />
-                        ) : null}
-                        <span>{chain.shortName ?? chain.name}</span>
+                        <Image
+                          src={chainIconSrc}
+                          alt=""
+                          width={18}
+                          height={18}
+                          unoptimized
+                          referrerPolicy="no-referrer"
+                          className="size-[18px] shrink-0 rounded-full object-cover"
+                          onError={(event) => {
+                            const fallback =
+                              fallbackIcon ||
+                              dicebearTokenAvatarUrl(`chain:${chain.id}`);
+                            const img = event.currentTarget as HTMLImageElement;
+                            if (img.src === fallback) return;
+                            img.src = fallback;
+                          }}
+                        />
+                        <span>{chip.label}</span>
                       </button>
                     </li>
                   );
@@ -316,7 +464,7 @@ export function TransferSelectPanel({
                               </span>
                             </span>
                             <span className="modal-balance tabular-nums text-sm font-semibold text-primary">
-                              0.00 {token.symbol}
+                              {(tokenBalanceByTokenId?.[token.id] ?? "0")} {token.symbol}
                             </span>
                           </button>
                         </li>
@@ -328,17 +476,12 @@ export function TransferSelectPanel({
           </div>
         )}
 
-        {activeTab === "onramp" && (
-          <TransferOnrampTab
-            onChoose={(dest) => {
+        {activeTab === "fiat" && (
+          <TransferFiatTab
+            morapayEnabled={morapayEnabled}
+            onOnrampChoice={(dest) => {
               onOnrampChoice?.(dest);
             }}
-          />
-        )}
-
-        {activeTab === "offramp" && (
-          <TransferOfframpTab
-            morapayEnabled={morapayEnabled}
             onSelectMorapay={() => {
               onMorapayOfframpSelect?.();
             }}

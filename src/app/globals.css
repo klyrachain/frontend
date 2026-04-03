@@ -319,7 +319,7 @@ html[data-mono-font="ibmPlexMono"] {
   font-weight: var(--font-weight-medium);
   border: var(--border-0);
   /* background: var(--primary); */
-  color: black;
+  color: var(--foreground);
   padding: var(--p-0);
   margin: var(--m-0);
 }

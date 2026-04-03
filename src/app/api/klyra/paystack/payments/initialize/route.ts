@@ -36,7 +36,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(data, { status: res.status });
   } catch {
     return NextResponse.json(
-      { success: false, error: "Paystack initialize failed" },
+      {
+        success: false,
+        error: "Paystack initialize failed",
+        code: "PAYSTACK_PROXY_UNAVAILABLE",
+      },
       { status: 502 }
     );
   }

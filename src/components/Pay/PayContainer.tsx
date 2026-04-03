@@ -1,16 +1,19 @@
 "use client";
 
-import { useState, useMemo, useDeferredValue, useEffect } from "react";
+import { useState, useMemo, useDeferredValue, useEffect, useCallback } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { TransferSelectModal } from "@/components/Transfer/TransferSelectModal";
-import { SuggestedTokensRow } from "@/components/Transfer/SuggestedTokensRow";
 import {
   TokenSelectField,
   AmountField,
   ContactIdentifierField,
 } from "@/components/flows";
+import { chainSlugToCore } from "@/lib/core-chain-slug";
 import type { TokenSelection } from "@/components/Exchange/TokenChainSelectModal";
 import { useAppSelector } from "@/store/hooks";
 import { useGetChainsQuery, useGetTokensQuery } from "@/store/api/squidApi";
@@ -18,6 +21,14 @@ import { CHAINS, TOKENS } from "@/config/chainsAndTokens";
 import { buildSuggestedTokenSelections } from "@/lib/flowTokens";
 import { useClientMounted } from "@/hooks/use-client-mounted";
 import type { PublicCommercePaymentLink } from "@/types/checkout-public.types";
+
+const SuggestedTokensRow = dynamic(
+  () =>
+    import("@/components/Transfer/SuggestedTokensRow").then(
+      (m) => m.SuggestedTokensRow
+    ),
+  { ssr: false }
+);
 
 /** Matches Core `GET /api/public/payment-links/by-id/:id` UUID validation */
 const PAY_PAGE_UUID_RE =
@@ -48,6 +59,14 @@ export function PayContainer() {
     ? ""
     : (searchParams.get("requestLinkId")?.trim() ?? "");
   const prefillAmount = searchParams.get("prefillAmount")?.trim() ?? "";
+  const receiveMode = searchParams.get("receive") === "1";
+  const urlAmount = searchParams.get("amount")?.trim() ?? "";
+  const urlTo = searchParams.get("to")?.trim() ?? "";
+  const payMode = (searchParams.get("mode")?.trim().toLowerCase() ?? "") as
+    | ""
+    | "fiat"
+    | "crypto";
+  const fiatCurrency = searchParams.get("currency")?.trim().toUpperCase() ?? "";
 
   const [sendSelection, setSendSelection] = useState<TokenSelection | null>(null);
   const [amount, setAmount] = useState("");
@@ -60,6 +79,10 @@ export function PayContainer() {
   const [commerceSummary, setCommerceSummary] =
     useState<CommercePayPageSummary | null>(null);
   const [commerceLoadErr, setCommerceLoadErr] = useState<string | null>(null);
+  const [payerEmail, setPayerEmail] = useState("");
+  const [sendLoading, setSendLoading] = useState(false);
+  const [sendResult, setSendResult] = useState<string | null>(null);
+  const [fiatCurrencyInput, setFiatCurrencyInput] = useState("GHS");
 
   const amountLocked =
     commerceSummary?.type === "fixed" && commerceSummary.amount != null;
@@ -86,7 +109,16 @@ export function PayContainer() {
   useEffect(() => {
     if (payPageId) return;
     if (prefillAmount) setAmount(prefillAmount);
-  }, [prefillAmount, payPageId]);
+    else if (receiveMode && urlAmount) setAmount(urlAmount);
+  }, [prefillAmount, payPageId, receiveMode, urlAmount]);
+
+  useEffect(() => {
+    if (receiveMode && urlTo) setTo(urlTo);
+  }, [receiveMode, urlTo]);
+
+  useEffect(() => {
+    if (fiatCurrency) setFiatCurrencyInput(fiatCurrency);
+  }, [fiatCurrency]);
 
   useEffect(() => {
     if (!payPageId) {
@@ -197,6 +229,125 @@ export function PayContainer() {
   const checkoutBackCode =
     commerceSummary?.publicCode?.trim() || commerceSummary?.slug?.trim() || "";
 
+  const standalonePay = !payPageId && !requestLinkId;
+
+  const handleSendRequest = useCallback(async () => {
+    if (!sendSelection) return;
+    setSendLoading(true);
+    setSendResult(null);
+    try {
+      const tChain = chainSlugToCore(sendSelection.chain.name);
+      const amt = Number(amount.trim());
+      if (!Number.isFinite(amt) || amt <= 0) {
+        setSendResult("Enter a valid amount.");
+        return;
+      }
+      const res = await fetch("/api/core/requests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          payerEmail: payerEmail.trim(),
+          t_amount: amt,
+          t_chain: tChain,
+          t_token: sendSelection.token.symbol,
+          toIdentifier: to.trim(),
+          receiveSummary: `${amount.trim()} ${sendSelection.token.symbol} on ${sendSelection.chain.name}`,
+          f_chain: tChain,
+          f_token: sendSelection.token.symbol,
+          f_amount: amt,
+          channels: ["EMAIL"],
+        }),
+      });
+      const json: unknown = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const err =
+          json && typeof json === "object" && "error" in json
+            ? String((json as { error?: string }).error ?? "")
+            : "";
+        setSendResult(err || "Could not create payment request.");
+        return;
+      }
+      const data =
+        json &&
+        typeof json === "object" &&
+        "data" in json &&
+        (json as { data?: { payLink?: string; claimCode?: string } }).data
+          ? (json as { data: { payLink?: string; claimCode?: string } }).data
+          : null;
+      if (data?.payLink) {
+        setSendResult(
+          `Created. Pay link: ${data.payLink}${
+            data.claimCode ? ` · Claim code (recipient): ${data.claimCode}` : ""
+          }`
+        );
+      } else {
+        setSendResult("Payment request created.");
+      }
+    } catch {
+      setSendResult("Network error.");
+    } finally {
+      setSendLoading(false);
+    }
+  }, [amount, payerEmail, sendSelection, to]);
+
+  const handleSendFiatRequest = useCallback(async () => {
+    const amt = Number(amount.trim());
+    if (!Number.isFinite(amt) || amt <= 0) {
+      setSendResult("Enter a valid amount.");
+      return;
+    }
+    const cur = fiatCurrency || "GHS";
+    setSendLoading(true);
+    setSendResult(null);
+    try {
+      const res = await fetch("/api/core/requests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          payerEmail: payerEmail.trim(),
+          t_amount: amt,
+          t_chain: "MOMO",
+          t_token: cur,
+          toIdentifier: to.trim(),
+          receiveSummary: `${amount.trim()} ${cur} (fiat)`,
+          channels: ["EMAIL"],
+        }),
+      });
+      const json: unknown = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const err =
+          json && typeof json === "object" && "error" in json
+            ? String((json as { error?: string }).error ?? "")
+            : "";
+        setSendResult(err || "Could not create payment request.");
+        return;
+      }
+      const data =
+        json &&
+        typeof json === "object" &&
+        "data" in json &&
+        (json as { data?: { payLink?: string; claimCode?: string } }).data
+          ? (json as { data: { payLink?: string; claimCode?: string } }).data
+          : null;
+      if (data?.payLink) {
+        setSendResult(
+          `Created. Pay link: ${data.payLink}${
+            data.claimCode ? ` · Claim code (recipient): ${data.claimCode}` : ""
+          }`
+        );
+      } else {
+        setSendResult("Payment request created.");
+      }
+    } catch {
+      setSendResult("Network error.");
+    } finally {
+      setSendLoading(false);
+    }
+  }, [amount, fiatCurrencyInput, payerEmail, to]);
+
+  const fiatStandalone = standalonePay && payMode === "fiat";
+  const cryptoStandalone = standalonePay && payMode !== "fiat";
+
   return (
     <div className="flex flex-col duration-300 ease-out relative w-full items-center justify-center">
       {payPageIdInvalid ? (
@@ -293,26 +444,59 @@ export function PayContainer() {
           </p>
         </section>
       ) : null}
+      {receiveMode ? (
+        <p
+          className="mb-4 w-full max-w-md rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-xs text-muted-foreground"
+          role="status"
+        >
+          Receive link: complete payment details below. The recipient configured amount
+          and payout preferences on their side.
+        </p>
+      ) : null}
+      {fiatStandalone ? (
+        <p className="mb-4 w-full max-w-md rounded-lg border border-primary/15 bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+          Fiat: payer completes with card or mobile money (Paystack). You still need a
+          valid recipient identifier and your email for receipts.
+        </p>
+      ) : null}
       <article className="glass-card overflow-hidden p-2 shadow-xl shrink-0 min-w-0 transition-all duration-300 ease-out h-fit">
         <header className="mb-6 pl-2">
           <h1 className="text-2xl text-primary font-semibold">I want to send</h1>
         </header>
 
         <section className="flex flex-col gap-2">
-          <div className="flex flex-col gap-2">
-            {suggestedSelections.length > 0 && (
-              <SuggestedTokensRow
-                suggestions={suggestedSelections}
-                onSelect={setSendSelection}
-                side="left"
+          {cryptoStandalone ? (
+            <div className="flex flex-col gap-2">
+              {suggestedSelections.length > 0 && (
+                <SuggestedTokensRow
+                  suggestions={suggestedSelections}
+                  onSelect={setSendSelection}
+                  side="left"
+                />
+              )}
+              <TokenSelectField
+                label="Select token"
+                selection={sendSelection}
+                onOpenSelect={() => setSelectModalOpen(true)}
               />
-            )}
-            <TokenSelectField
-              label="Select token"
-              selection={sendSelection}
-              onOpenSelect={() => setSelectModalOpen(true)}
-            />
-          </div>
+            </div>
+          ) : null}
+
+          {fiatStandalone ? (
+            <div className="space-y-2 px-1">
+              <Label htmlFor="fiat-currency" className="text-sm">
+                Fiat currency
+              </Label>
+              <Input
+                id="fiat-currency"
+                value={fiatCurrencyInput}
+                onChange={(e) => setFiatCurrencyInput(e.target.value)}
+                placeholder="GHS, NGN, …"
+                className="rounded-xl"
+                autoCapitalize="characters"
+              />
+            </div>
+          ) : null}
 
           <AmountField
             label="Amount"
@@ -333,12 +517,59 @@ export function PayContainer() {
             ariaLabel="Recipient: email, phone number or crypto address"
           />
 
-          <Button
-            size="lg"
-            className="w-full rounded-xl py-6 text-base font-semibold bg-black"
-          >
-            Send
-          </Button>
+          {standalonePay ? (
+            <ContactIdentifierField
+              label="Your email"
+              description=""
+              value={payerEmail}
+              onChange={setPayerEmail}
+              placeholder="you@example.com"
+              ariaLabel="Your email for payment receipt"
+            />
+          ) : null}
+
+          {sendResult ? (
+            <p className="rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-xs text-muted-foreground break-words">
+              {sendResult}
+            </p>
+          ) : null}
+
+          {cryptoStandalone ? (
+            <Button
+              size="lg"
+              className="w-full rounded-xl py-6 text-base font-semibold bg-black"
+              disabled={
+                sendLoading ||
+                !sendSelection ||
+                !amount.trim() ||
+                !to.trim() ||
+                !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payerEmail.trim())
+              }
+              onClick={() => void handleSendRequest()}
+            >
+              {sendLoading ? "Creating…" : "Send"}
+            </Button>
+          ) : null}
+          {fiatStandalone ? (
+            <Button
+              size="lg"
+              className="w-full rounded-xl py-6 text-base font-semibold bg-black"
+              disabled={
+                sendLoading ||
+                !amount.trim() ||
+                !to.trim() ||
+                !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payerEmail.trim())
+              }
+              onClick={() => void handleSendFiatRequest()}
+            >
+              {sendLoading ? "Creating…" : "Send"}
+            </Button>
+          ) : null}
+          {!standalonePay ? (
+            <p className="text-center text-xs text-muted-foreground">
+              Complete payment using the checkout summary link above.
+            </p>
+          ) : null}
         </section>
       </article>
 

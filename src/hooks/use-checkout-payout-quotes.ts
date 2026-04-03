@@ -3,8 +3,6 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import type { CheckoutRowSpec } from "@/types/checkout-row-spec";
 
-const CHECKOUT_QUOTE_REFRESH_MS = 30_000;
-
 export type PayoutQuoteRowState = {
   loading: boolean;
   error: string | null;
@@ -37,7 +35,17 @@ export function useCheckoutPayoutQuotes(
 ): Record<string, PayoutQuoteRowState> {
   const [rows, setRows] = useState<Record<string, PayoutQuoteRowState>>({});
 
-  const rowSig = rowSpecs.map((r) => r.id).join("|");
+  const rowSig = rowSpecs
+    .map((r) =>
+      [
+        r.id,
+        r.kind,
+        "chain" in r ? r.chain : "",
+        "symbol" in r ? r.symbol : "",
+        "tokenAddress" in r ? (r.tokenAddress ?? "") : "",
+      ].join(":")
+    )
+    .join("|");
   const fiatSig = `${fiatAmount?.trim() ?? ""}|${fiatCurrency?.trim() ?? ""}|${evmWalletAddress ?? ""}`;
 
   const run = useCallback(
@@ -51,11 +59,11 @@ export function useCheckoutPayoutQuotes(
 
       setRows((prev) => {
         const next = { ...prev };
-        const ids =
+        const targetIds =
           partialRefetchIds != null && partialRefetchIds.length > 0
             ? partialRefetchIds
             : rowSpecs.map((r) => r.id);
-        for (const id of ids) {
+        for (const id of targetIds) {
           next[id] = {
             ...(next[id] ?? emptyRowState()),
             loading: true,
@@ -92,12 +100,28 @@ export function useCheckoutPayoutQuotes(
         setRows((prev) => {
           const next = { ...prev };
           const incoming = Array.isArray(json.data?.rows) ? json.data!.rows! : [];
+          const targetIds =
+            partialRefetchIds != null && partialRefetchIds.length > 0
+              ? partialRefetchIds
+              : rowSpecs.map((r) => r.id);
 
           if (!res.ok || json.success !== true) {
+            const erroredIncomingIds = new Set<string>();
             for (const r of incoming) {
-              const id = r.id?.trim();
+              const id = r.id?.trim() ?? "";
               if (!id) continue;
+              erroredIncomingIds.add(id);
               next[id] = {
+                loading: false,
+                error: "Quote unavailable",
+                cryptoAmount: null,
+                cryptoSymbol: null,
+              };
+            }
+            for (const id of targetIds) {
+              if (erroredIncomingIds.has(id)) continue;
+              next[id] = {
+                ...(next[id] ?? emptyRowState()),
                 loading: false,
                 error: "Quote unavailable",
                 cryptoAmount: null,
@@ -207,16 +231,6 @@ export function useCheckoutPayoutQuotes(
       void runRef.current(null);
     }
   }, [enabled, fiatAmount, fiatCurrency, fiatSig, rowSig, rowSpecs]);
-
-  useEffect(() => {
-    if (!enabled || !fiatAmount?.trim() || !fiatCurrency?.trim()) {
-      return;
-    }
-    const id = window.setInterval(() => {
-      void runRef.current(null);
-    }, CHECKOUT_QUOTE_REFRESH_MS);
-    return () => clearInterval(id);
-  }, [enabled, fiatAmount, fiatCurrency, rowSig]);
 
   return rows;
 }

@@ -32,7 +32,7 @@ export function AmountField({
   return (
     <div className="rounded-xl border border-border bg-muted/10 p-4">
       <p className="mb-2 text-xs text-muted-foreground">{label}</p>
-      <div className="flex items-center justify-between gap-2 text-black">
+      <div className="flex items-center justify-between gap-2 text-foreground">
         <Input
           type="text"
           inputMode="decimal"

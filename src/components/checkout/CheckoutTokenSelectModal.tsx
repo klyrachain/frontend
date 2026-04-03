@@ -1,6 +1,6 @@
 "use client";
 
-import { useDeferredValue, useEffect, useMemo, useState } from "react";
+import { useDeferredValue, useMemo, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import type { Chain, Token } from "@/types/token";
 import { TokenAvatarWithFallback } from "@/components/Token/TokenAvatarWithFallback";
 import { Search } from "lucide-react";
+import { useHybridBalances } from "@/hooks/use-hybrid-balances";
 
 type ModalVariant = "checkout" | "pay";
 
@@ -32,20 +33,25 @@ function addressFromTokenId(tokenId: string, chainId: string): string | null {
 function matchBalance(
   items: BalanceItem[],
   chainId: string,
-  tokenAddress: string
+  tokenAddress: string,
+  fallback: "0" | "—"
 ): string {
+  const formatFetchedBalance = (balance: string | undefined): string => {
+    const raw = balance?.trim() ?? "";
+    return raw === "" ? "0" : raw;
+  };
   const want = tokenAddress.trim();
   for (const it of items) {
     const ic = it.chainId?.trim() ?? "";
     if (ic !== chainId.trim()) continue;
     const ta = it.tokenAddress?.trim() ?? "";
     if (chainId === "101") {
-      if (ta === want) return it.balance?.trim() ?? "—";
+      if (ta === want) return formatFetchedBalance(it.balance);
     } else if (ta.toLowerCase() === want.toLowerCase()) {
-      return it.balance?.trim() ?? "—";
+      return formatFetchedBalance(it.balance);
     }
   }
-  return "—";
+  return fallback;
 }
 
 export interface CheckoutTokenSelectModalProps {
@@ -69,40 +75,28 @@ export function CheckoutTokenSelectModal({
 }: CheckoutTokenSelectModalProps) {
   const [search, setSearch] = useState("");
   const deferredSearch = useDeferredValue(search);
-  const [balances, setBalances] = useState<BalanceItem[]>([]);
-  const [balLoading, setBalLoading] = useState(false);
-
-  useEffect(() => {
-    if (!open || !walletAddress?.trim()) {
-      setBalances([]);
-      setBalLoading(false);
-      return;
-    }
-    let cancelled = false;
-    (async () => {
-      setBalLoading(true);
-      try {
-        const res = await fetch(
-          `/api/squid/balances?address=${encodeURIComponent(walletAddress.trim())}`,
-          { cache: "no-store" }
-        );
-        const json = (await res.json()) as {
-          success?: boolean;
-          data?: BalanceItem[];
-        };
-        if (!cancelled && res.ok && json.success === true && Array.isArray(json.data)) {
-          setBalances(json.data);
-        } else if (!cancelled) setBalances([]);
-      } catch {
-        if (!cancelled) setBalances([]);
-      } finally {
-        if (!cancelled) setBalLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [open, walletAddress]);
+  const networkIds = useMemo(
+    () => [...new Set(tokens.map((token) => Number.parseInt(token.chainId, 10)))],
+    [tokens]
+  );
+  const tokenAddresses = useMemo(
+    () =>
+      [
+        ...new Set(
+          tokens
+            .map((token) => addressFromTokenId(token.id, token.chainId))
+            .filter((addr): addr is string => Boolean(addr))
+            .map((addr) => addr.toLowerCase())
+        ),
+      ],
+    [tokens]
+  );
+  const { items: balances, loading: balLoading, error: balError } = useHybridBalances({
+    walletAddress: open ? walletAddress : null,
+    networkIds,
+    tokenAddresses,
+    refreshKey: open ? 1 : 0,
+  });
 
   const chainById = useMemo(
     () => new Map(chains.map((c) => [c.id, c] as const)),
@@ -154,7 +148,12 @@ export function CheckoutTokenSelectModal({
             const addr = addressFromTokenId(token.id, token.chainId);
             const bal =
               showBalanceCol && addr
-                ? matchBalance(balances, token.chainId, addr)
+                ? matchBalance(
+                    balances,
+                    token.chainId,
+                    addr,
+                    balError ? "—" : "0"
+                  )
                 : null;
             return (
               <li key={token.id}>

@@ -2,37 +2,17 @@
 
 import { useCallback, useEffect, useId, useState } from "react";
 import Image from "next/image";
-import { ChevronDown, Copy, Mail, X } from "lucide-react";
+import { Copy, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Dialog,
-  DialogClose,
   DialogContent,
   DialogDescription,
-  DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import {
-  PAYMENT_LINK_SHARE_INFO,
-  PAYMENT_LINK_NEXT_STEPS,
-  buildReceiveShareMessage,
-} from "@/config/paymentLinkShare";
-
-const FAQ_ITEMS = [
-  ...PAYMENT_LINK_NEXT_STEPS.map((item) => ({
-    title: item.title,
-    body: item.subtitle,
-  })),
-  ...PAYMENT_LINK_SHARE_INFO.map((item) => ({
-    title: item.title,
-    body: item.subtitle,
-  })),
-] as const;
-
-const INITIAL_OPEN: Record<number, boolean> = Object.fromEntries(
-  FAQ_ITEMS.map((_, i) => [i, i >= 4])
-) as Record<number, boolean>;
+import { buildReceiveShareMessage } from "@/config/paymentLinkShare";
 
 export interface PaymentLinkShareModalProps {
   open: boolean;
@@ -40,16 +20,23 @@ export interface PaymentLinkShareModalProps {
   paymentLink: string;
   amount: string;
   tokenSymbol: string;
+  receiveMode?: "CRYPTO" | "FIAT";
+  chainId?: string;
+  optionalSenderContact?: string;
+  countryName?: string;
+}
+
+function notifySenderEmailFromContact(contact: string | undefined): string | undefined {
+  const t = contact?.trim() ?? "";
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(t) ? t : undefined;
 }
 
 function SharePlatformButton({
-  label,
   onClick,
   ariaLabel,
   children,
   className,
 }: {
-  label: string;
   onClick: () => void;
   ariaLabel: string;
   children: React.ReactNode;
@@ -68,63 +55,7 @@ function SharePlatformButton({
       <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/[0.08]">
         {children}
       </span>
-      {/* <span className="line-clamp-2 text-center text-xs font-semibold leading-tight text-primary">
-        {label}
-      </span> */}
     </button>
-  );
-}
-
-function CollapsibleFaqItem({
-  title,
-  body,
-  isOpen,
-  onToggle,
-  id,
-}: {
-  title: string;
-  body: string;
-  isOpen: boolean;
-  onToggle: () => void;
-  id: string;
-}) {
-  return (
-    <div className="rounded-2xl bg-primary/[0.04]">
-      <button
-        type="button"
-        id={`${id}-trigger`}
-        aria-expanded={isOpen}
-        aria-controls={`${id}-panel`}
-        onClick={onToggle}
-        className="flex w-full items-center gap-4 px-4 py-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
-      >
-        <span className="min-w-0 flex-1 text-sm font-semibold leading-snug text-primary">
-          {title}
-        </span>
-        <ChevronDown
-          className={cn(
-            "size-5 shrink-0 text-primary transition-transform duration-200",
-            isOpen && "rotate-180"
-          )}
-          aria-hidden
-        />
-      </button>
-      <div
-        id={`${id}-panel`}
-        role="region"
-        aria-labelledby={`${id}-trigger`}
-        className={cn(
-          "grid transition-[grid-template-rows] duration-200 ease-out",
-          isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
-        )}
-      >
-        <div className="overflow-hidden">
-          <p className="px-4 pb-4 pt-0 text-sm leading-relaxed text-primary/70">
-            {body}
-          </p>
-        </div>
-      </div>
-    </div>
   );
 }
 
@@ -134,19 +65,97 @@ export function PaymentLinkShareModal({
   paymentLink,
   amount,
   tokenSymbol,
+  receiveMode = "CRYPTO",
+  chainId,
+  optionalSenderContact,
+  countryName,
 }: PaymentLinkShareModalProps) {
   const [copied, setCopied] = useState(false);
-  const [faqOpen, setFaqOpen] = useState<Record<number, boolean>>(INITIAL_OPEN);
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+  const [dispatchChannel, setDispatchChannel] = useState<"EMAIL" | "SMS">("EMAIL");
+  const [dispatchDestination, setDispatchDestination] = useState("");
+  const [dispatchBusy, setDispatchBusy] = useState(false);
+  const [dispatchError, setDispatchError] = useState<string | null>(null);
+  const [dispatchOk, setDispatchOk] = useState(false);
   const linkFieldId = useId();
-  const faqBaseId = useId();
   const message = buildReceiveShareMessage(paymentLink, amount, tokenSymbol);
+
+  useEffect(() => {
+    if (!open || !paymentLink.trim()) {
+      setQrDataUrl(null);
+      return;
+    }
+    let cancelled = false;
+    void import("qrcode")
+      .then((mod) =>
+        mod.default.toDataURL(paymentLink, {
+          width: 176,
+          margin: 2,
+          color: { dark: "#0f172a", light: "#ffffff" },
+        })
+      )
+      .then((url) => {
+        if (!cancelled) setQrDataUrl(url);
+      })
+      .catch(() => {
+        if (!cancelled) setQrDataUrl(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, paymentLink]);
 
   useEffect(() => {
     if (!open) {
       setCopied(false);
-      setFaqOpen(INITIAL_OPEN);
+      setDispatchDestination("");
+      setDispatchError(null);
+      setDispatchOk(false);
     }
   }, [open]);
+
+  const handleDispatch = async () => {
+    const dest = dispatchDestination.trim();
+    if (!dest) {
+      setDispatchError("Enter an email or phone number.");
+      return;
+    }
+    setDispatchBusy(true);
+    setDispatchError(null);
+    setDispatchOk(false);
+    try {
+      const res = await fetch("/api/core/payment-link-dispatch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          channel: dispatchChannel,
+          destination: dest,
+          link_url: paymentLink,
+          amount,
+          token_symbol: tokenSymbol,
+          chain_id: chainId,
+          receive_mode: receiveMode,
+          notify_sender_email: notifySenderEmailFromContact(optionalSenderContact),
+          country_name: countryName?.trim() || undefined,
+        }),
+      });
+      const json: unknown = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const err =
+          json && typeof json === "object" && "error" in json
+            ? String((json as { error?: string }).error ?? "")
+            : "";
+        setDispatchError(err || "Could not send.");
+        return;
+      }
+      setDispatchOk(true);
+      setDispatchDestination("");
+    } catch {
+      setDispatchError("Network error.");
+    } finally {
+      setDispatchBusy(false);
+    }
+  };
 
   const handleCopy = useCallback(async () => {
     try {
@@ -179,107 +188,128 @@ export function PaymentLinkShareModal({
           "sm:left-[50%] sm:top-4 sm:w-full sm:max-w-3xl sm:-translate-x-1/2 sm:translate-y-0 sm:rounded-3xl sm:data-[state=open]:slide-in-from-top-0"
         )}
       >
+        <DialogTitle className="sr-only">Your payment link</DialogTitle>
         <DialogDescription className="sr-only">
           Share your Morapay payment link with copy, WhatsApp, or email.
         </DialogDescription>
 
-        {/* <DialogHeader className="flex flex-row items-start justify-between gap-4 space-y-0 border-b border-primary/10 px-6 pb-6 pt-8 text-left">
-          <div className="min-w-0 space-y-2 pr-2">
-            <DialogTitle className="text-xl font-semibold tracking-tight text-primary">
-              Your payment link
-            </DialogTitle>
-            <p className="text-sm leading-relaxed text-primary/70">
-              Share with your payer.
-            </p>
-          </div>
-          <DialogClose
-            type="button"
-            className="shrink-0 rounded-full p-2 text-primary transition-colors hover:bg-primary/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-            aria-label="Close"
-          >
-            <X className="size-6" aria-hidden />
-          </DialogClose>
-        </DialogHeader> */}
-
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-8 sm:px-6">
-              <label
-                htmlFor={linkFieldId}
-                className="mb-2 block text-xs font-semibold uppercase tracking-wide text-primary"
-              >
-                Link
-              </label>
-          <div className="flex gap-8">
-            <div className="flex gap-2">
-              <output
-                id={linkFieldId}
-                className="block max-h-5 ellipsis overflow-y-auto break-all rounded-full bg-primary/[0.06] px-4 py-4 font-mono text-xs leading-relaxed text-primary sm:max-h-none sm:text-sm"
-                aria-live="polite"
-              >
-                {paymentLink}
-              </output>
-                <div
-              role="group"
-              aria-label="Share payment link"
-              className="flex gap-2 sm:gap-4 justify-center items-center"
-            >
-              <SharePlatformButton
-                label={copied ? "Copied" : "Copy"}
-                onClick={handleCopy}
-                ariaLabel="Copy link to clipboard"
-              >
-                <Copy className="size-5 text-primary" aria-hidden />
-              </SharePlatformButton>
-              <SharePlatformButton
-                label="WhatsApp"
-                onClick={handleWhatsApp}
-                ariaLabel="Share link via WhatsApp"
-                className="hover:bg-[#25D366]/8"
-              >
-                <Image
-                  src="/icons/whatsapp.svg"
-                  alt=""
-                  width={24}
-                  height={24}
-                  className="size-6"
+          <p className="mb-4 text-lg font-semibold text-foreground">Share payment link</p>
+          <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
+            <div className="flex shrink-0 justify-center sm:justify-start">
+              {qrDataUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element -- data URL from qrcode
+                <img
+                  src={qrDataUrl}
+                  alt="QR code for payment link"
+                  width={176}
+                  height={176}
+                  className="size-44 rounded-xl border border-border bg-white p-2"
                 />
-              </SharePlatformButton>
-              <SharePlatformButton
-                label="Email"
-                onClick={handleEmail}
-                ariaLabel="Share link via email"
-              >
-                <Mail className="size-5 text-primary" aria-hidden />
-              </SharePlatformButton>
-                </div>
+              ) : (
+                <div
+                  className="size-44 shrink-0 rounded-xl border border-border bg-muted/40"
+                  aria-hidden
+                />
+              )}
             </div>
-
-
-            {/* <section aria-labelledby={`${faqBaseId}-heading`}>
-              <h2
-                id={`${faqBaseId}-heading`}
-                className="mb-4 text-base font-semibold text-primary"
-              >
-                What to do next & FAQ
-              </h2>
-              <div className="flex flex-col gap-4">
-                {FAQ_ITEMS.map((item, index) => (
-                  <CollapsibleFaqItem
-                    key={`${item.title}-${index}`}
-                    id={`${faqBaseId}-${index}`}
-                    title={item.title}
-                    body={item.body}
-                    isOpen={faqOpen[index] ?? false}
-                    onToggle={() =>
-                      setFaqOpen((prev) => ({
-                        ...prev,
-                        [index]: !prev[index],
-                      }))
-                    }
-                  />
-                ))}
+            <div className="min-w-0 flex-1 space-y-4">
+              <div>
+                <label
+                  htmlFor={linkFieldId}
+                  className="mb-2 block text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+                >
+                  Link
+                </label>
+                <output
+                  id={linkFieldId}
+                  className="block max-h-40 overflow-y-auto rounded-xl border border-border bg-muted/20 px-3 py-3 font-mono text-xs leading-relaxed text-foreground sm:text-sm"
+                  aria-live="polite"
+                >
+                  {paymentLink}
+                </output>
               </div>
-            </section> */}
+              <div
+                role="group"
+                aria-label="Share payment link"
+                className="flex flex-wrap gap-2 sm:gap-4"
+              >
+                <SharePlatformButton
+                  onClick={handleCopy}
+                  ariaLabel={copied ? "Copied" : "Copy link to clipboard"}
+                >
+                  <Copy className="size-5 text-primary" aria-hidden />
+                </SharePlatformButton>
+                <SharePlatformButton
+                  onClick={handleWhatsApp}
+                  ariaLabel="Share link via WhatsApp"
+                  className="hover:bg-[#25D366]/8"
+                >
+                  <Image
+                    src="/icons/whatsapp.svg"
+                    alt=""
+                    width={24}
+                    height={24}
+                    className="size-6"
+                  />
+                </SharePlatformButton>
+                <SharePlatformButton onClick={handleEmail} ariaLabel="Share link via email">
+                  <Mail className="size-5 text-primary" aria-hidden />
+                </SharePlatformButton>
+              </div>
+            </div>
           </div>
+
+          <section
+            className="mt-8 space-y-3 border-t border-border pt-6"
+            aria-label="Send link by email or SMS"
+          >
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Send link
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant={dispatchChannel === "EMAIL" ? "default" : "outline"}
+                className="rounded-full"
+                onClick={() => setDispatchChannel("EMAIL")}
+              >
+                Email
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant={dispatchChannel === "SMS" ? "default" : "outline"}
+                className="rounded-full"
+                onClick={() => setDispatchChannel("SMS")}
+              >
+                SMS
+              </Button>
+            </div>
+            <Input
+              value={dispatchDestination}
+              onChange={(e) => setDispatchDestination(e.target.value)}
+              placeholder={dispatchChannel === "EMAIL" ? "payer@example.com" : "+233541234567"}
+              className="rounded-xl font-mono text-sm"
+              autoComplete={dispatchChannel === "EMAIL" ? "email" : "tel"}
+            />
+            <Button
+              type="button"
+              variant="secondary"
+              className="w-full rounded-xl"
+              disabled={dispatchBusy || !dispatchDestination.trim()}
+              onClick={() => void handleDispatch()}
+            >
+              {dispatchBusy ? "Sending…" : `Send via ${dispatchChannel === "EMAIL" ? "email" : "SMS"}`}
+            </Button>
+            {dispatchError ? (
+              <p className="text-xs text-destructive">{dispatchError}</p>
+            ) : null}
+            {dispatchOk ? (
+              <p className="text-xs text-muted-foreground">Sent. Dispatch is logged on the server.</p>
+            ) : null}
+          </section>
         </div>
 
         <footer className="shrink-0 px-4 py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:px-6">

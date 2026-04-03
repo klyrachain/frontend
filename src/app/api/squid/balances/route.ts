@@ -30,9 +30,13 @@ export async function GET(request: NextRequest) {
   query.set("address", address.trim());
   const chainId = searchParams.get("chainId");
   const tokenAddress = searchParams.get("tokenAddress");
+  const networkIds = searchParams.get("networkIds");
+  const tokenAddresses = searchParams.get("tokenAddresses");
   const testnet = searchParams.get("testnet");
   if (chainId) query.set("chainId", chainId);
   if (tokenAddress) query.set("tokenAddress", tokenAddress);
+  if (networkIds) query.set("networkIds", networkIds);
+  if (tokenAddresses) query.set("tokenAddresses", tokenAddresses);
   if (testnet) query.set("testnet", testnet);
 
   const url = `${BACKEND_BASE}/api/squid/balances?${query.toString()}`;

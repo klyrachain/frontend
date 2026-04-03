@@ -1,5 +1,6 @@
 import { HeroShaderBackground } from "@/components/Landing/HeroShaderBackground";
 import { HERO_CONFIG } from "@/config/hero";
+import { DynamicRootProvider } from "@/components/DynamicWallet/DynamicRootProvider";
 
 export default function CheckoutLayout({
   children,
@@ -7,6 +8,7 @@ export default function CheckoutLayout({
   children: React.ReactNode;
 }) {
   return (
+    <DynamicRootProvider>
     <div className="landing-page relative min-h-screen bg-transparent text-foreground">
       <HeroShaderBackground
         embeddedText={HERO_CONFIG.embeddedText}
@@ -33,5 +35,6 @@ export default function CheckoutLayout({
         </main>
       </div>
     </div>
+    </DynamicRootProvider>
   );
 }

@@ -1,8 +1,16 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import type { TokenSelection } from "@/components/Exchange/TokenChainSelectModal";
-import { SuggestedTokensRow } from "@/components/Transfer/SuggestedTokensRow";
 import { TokenAvatarWithFallback } from "@/components/Token/TokenAvatarWithFallback";
+
+const SuggestedTokensRow = dynamic(
+  () =>
+    import("@/components/Transfer/SuggestedTokensRow").then(
+      (m) => m.SuggestedTokensRow
+    ),
+  { ssr: false }
+);
 
 export interface TransferTokenColumnProps {
   label: string;

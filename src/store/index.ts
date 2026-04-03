@@ -14,6 +14,7 @@ import { navigationReducer } from "./slices/navigationSlice";
 import { usedTokensReducer } from "./slices/usedTokensSlice";
 import { baseApi } from "./api/baseApi";
 import { squidApi } from "./api/squidApi";
+import { gasApi } from "./api/gasApi";
 import { getPersistStorage } from "./storage";
 import { getUsedTokensCookieStorage } from "@/lib/cookie";
 
@@ -40,13 +41,14 @@ export const makeStore = () =>
       usedTokens: persistedUsedTokensReducer,
       [baseApi.reducerPath]: baseApi.reducer,
       [squidApi.reducerPath]: squidApi.reducer,
+      [gasApi.reducerPath]: gasApi.reducer,
     },
     middleware: (getDefaultMiddleware) =>
       getDefaultMiddleware({
         serializableCheck: {
           ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
         },
-      }).concat(baseApi.middleware, squidApi.middleware),
+      }).concat(baseApi.middleware, squidApi.middleware, gasApi.middleware),
   });
 
 export type AppStore = ReturnType<typeof makeStore>;

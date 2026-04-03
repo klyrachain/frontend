@@ -7,6 +7,26 @@ import {
   type CheckoutPayoutRowConfig,
 } from "@/lib/checkout-payout-options";
 
+/**
+ * When the wallet is on an EVM chain that matches a default checkout row, show that row first.
+ * No-op when the chain does not match any default row (e.g. Polygon).
+ */
+export function reorderCheckoutRowsForEvmChain(
+  specs: CheckoutRowSpec[],
+  walletChainId: number | undefined
+): CheckoutRowSpec[] {
+  if (walletChainId == null || Number.isNaN(walletChainId)) return specs;
+  const match = CHECKOUT_PAYOUT_ROWS.find(
+    (r) => r.balanceChainId === String(walletChainId)
+  );
+  if (!match) return specs;
+  const idx = specs.findIndex((s) => s.id === match.id);
+  if (idx <= 0) return specs;
+  const copy = [...specs];
+  const [row] = copy.splice(idx, 1);
+  return row ? [row, ...copy] : specs;
+}
+
 /** Map numeric chain id (Squid) → Core public-quote `chain` code. Extend as needed. */
 const CHAIN_ID_TO_QUOTE_CHAIN: Record<string, string> = {
   "1": "ETHEREUM",
@@ -45,6 +65,15 @@ export function parseTokenAddressFromSquidId(
 
 function normalizeEvmAddress(a: string): string {
   return a.startsWith("0x") ? a.toLowerCase() : a;
+}
+
+function shortHexLabel(addr: string): string {
+  const t = addr.trim();
+  if (t.startsWith("0x") && t.length > 12) {
+    return `${t.slice(0, 6)}…${t.slice(-4)}`;
+  }
+  if (t.length > 18) return `${t.slice(0, 8)}…`;
+  return t;
 }
 
 function makeCustomRowId(chainId: string, address: string): string {
@@ -172,12 +201,16 @@ export function specToDisplayRow(
           ? got === address
           : normalizeEvmAddress(got) === want;
       }) ?? null;
-    const sym = token?.symbol ?? spec.symbol;
+    const rawSym = token?.symbol ?? spec.symbol;
+    const sym =
+      rawSym && /^0x[a-fA-F0-9]{20,}$/.test(rawSym.trim())
+        ? shortHexLabel(rawSym.trim())
+        : rawSym;
     return {
       spec,
       id: spec.id,
       label: sym,
-      iconSymbol: sym,
+      iconSymbol: token?.symbol ?? spec.symbol,
       balanceChainId: chainId,
       balanceTokenAddress: address,
     };

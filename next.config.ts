@@ -18,6 +18,11 @@ const nextConfig: NextConfig = {
         hostname: "api.dicebear.com",
         pathname: "/**",
       },
+      {
+        protocol: "https",
+        hostname: "assets.coingecko.com",
+        pathname: "/**",
+      },
     ],
   },
 };

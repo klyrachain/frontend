@@ -1,14 +1,10 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useMemo } from "react";
 import type { CheckoutPayoutRowConfig } from "@/lib/checkout-payout-options";
-
-type BalanceItem = {
-  chainId?: string;
-  tokenAddress?: string;
-  balance?: string;
-  tokenSymbol?: string;
-};
+import { useHybridBalances } from "@/hooks/use-hybrid-balances";
+import type { BalanceItem } from "@/lib/balances/types";
+import { normalizeAddressForChain } from "@/lib/balances/address-normalization";
 
 function tokenMatch(
   item: BalanceItem,
@@ -25,50 +21,47 @@ function tokenMatch(
   return ta.toLowerCase() === want.toLowerCase();
 }
 
+function formatFetchedBalance(balance: string | undefined): string {
+  const raw = balance?.trim() ?? "";
+  if (raw === "") return "0";
+  return raw;
+}
+
 export function useCheckoutBalances(
   walletAddress: string | null,
-  payoutRows: CheckoutPayoutRowConfig[]
+  payoutRows: CheckoutPayoutRowConfig[],
+  refreshKey: number = 0
 ): {
   byRowId: Record<string, string>;
   loading: boolean;
+  error: string | null;
+  items: BalanceItem[];
 } {
-  const [items, setItems] = useState<BalanceItem[]>([]);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (!walletAddress?.trim()) {
-      setItems([]);
-      setLoading(false);
-      return;
-    }
-    let cancelled = false;
-    (async () => {
-      setLoading(true);
-      try {
-        const res = await fetch(
-          `/api/squid/balances?address=${encodeURIComponent(walletAddress.trim())}`,
-          { cache: "no-store" }
-        );
-        const json = (await res.json()) as {
-          success?: boolean;
-          data?: BalanceItem[];
-        };
-        if (cancelled) return;
-        if (res.ok && json.success === true && Array.isArray(json.data)) {
-          setItems(json.data);
-        } else {
-          setItems([]);
-        }
-      } catch {
-        if (!cancelled) setItems([]);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [walletAddress]);
+  const walletSig = walletAddress?.trim() ?? "";
+  const networkIds = useMemo(
+    () =>
+      [...new Set(payoutRows.map((row) => Number.parseInt(row.balanceChainId, 10)))].filter(
+        (id) => Number.isFinite(id)
+      ),
+    [payoutRows]
+  );
+  const tokenAddresses = useMemo(
+    () =>
+      [
+        ...new Set(
+          payoutRows.map((row) =>
+            normalizeAddressForChain(row.balanceChainId, row.balanceTokenAddress)
+          )
+        ),
+      ].filter((address) => address.length > 0),
+    [payoutRows]
+  );
+  const { items, loading, error } = useHybridBalances({
+    walletAddress: walletSig || null,
+    networkIds,
+    tokenAddresses,
+    refreshKey,
+  });
 
   const byRowId = useMemo(() => {
     const out: Record<string, string> = {};
@@ -76,10 +69,14 @@ export function useCheckoutBalances(
       const hit = items.find((it) =>
         tokenMatch(it, row.balanceChainId, row.balanceTokenAddress)
       );
-      out[row.id] = hit?.balance?.trim() ? hit.balance : "—";
+      if (hit) {
+        out[row.id] = formatFetchedBalance(hit.balance);
+        continue;
+      }
+      out[row.id] = error ? "—" : "0";
     }
     return out;
-  }, [items, payoutRows]);
+  }, [items, payoutRows, error]);
 
-  return { byRowId, loading };
+  return { byRowId, loading, error, items };
 }

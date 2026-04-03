@@ -110,12 +110,20 @@ export function TransferAggregateTab({
     });
   }, []);
 
+  const allocatableRowIds = useMemo(() => {
+    return new Set(inputs.map((item) => item.rowId));
+  }, [inputs]);
+
   const coverage = useMemo(() => {
     return mergedAllocations.reduce((acc, a) => acc + a.coverFraction, 0);
   }, [mergedAllocations]);
 
   const sortedRows = useMemo(() => {
-    return [...rows].sort((a, b) => {
+    const withBalance = rows.filter((r) => {
+      const b = parseBalanceHuman(r.balanceLabel);
+      return Number.isFinite(b) && b > 0;
+    });
+    return [...withBalance].sort((a, b) => {
       const ba = parseBalanceHuman(a.balanceLabel);
       const bb = parseBalanceHuman(b.balanceLabel);
       if (!Number.isFinite(ba) && !Number.isFinite(bb)) return 0;
@@ -148,12 +156,6 @@ export function TransferAggregateTab({
       className="checkout-token-scroll flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 py-6"
       aria-label="Aggregate payment"
     >
-      <p className="text-sm text-muted-foreground">
-        Target: <span className="font-medium text-foreground">{invoiceLabel}</span>.
-        Suggested amounts use each row&apos;s quote for the full invoice and your
-        live balance. Toggle rows to change the set; batching many transfers
-        typically needs a dedicated contract or multiple transactions.
-      </p>
       <p className="text-xs text-muted-foreground">
         Coverage: {(Math.min(1, coverage) * 100).toFixed(0)}% (quote basis).
       </p>
@@ -161,18 +163,24 @@ export function TransferAggregateTab({
         {visibleList.map((r) => {
           const token = findTokenForAggregate(tokens, r.chainId, r.iconSymbol);
           const chain = chainFromId(chains, r.chainId);
+          const isAllocatable = allocatableRowIds.has(r.rowId);
           const isOn = selected.has(r.rowId);
           const alloc = mergedAllocations.find((a) => a.rowId === r.rowId);
           return (
             <li key={r.rowId}>
               <button
                 type="button"
-                onClick={() => toggle(r.rowId)}
+                onClick={() => {
+                  if (!isAllocatable) return;
+                  toggle(r.rowId);
+                }}
+                disabled={!isAllocatable}
                 className={cn(
                   "flex w-full items-center gap-3 rounded-xl border px-3 py-3 text-left transition-colors",
-                  isOn
+                  isOn && isAllocatable
                     ? "border-primary/50 bg-primary/5"
-                    : "border-border bg-muted/20 hover:bg-muted/40"
+                    : "border-border bg-muted/20 hover:bg-muted/40",
+                  !isAllocatable && "cursor-not-allowed opacity-70"
                 )}
               >
                 <TokenIconWithChainBadge
@@ -192,6 +200,7 @@ export function TransferAggregateTab({
                         </span>
                       </>
                     ) : null}
+                    {!alloc && !isAllocatable ? " · quote unavailable" : null}
                   </span>
                 </span>
                 <span
