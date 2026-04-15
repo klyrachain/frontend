@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
 type WrappedData = {
@@ -9,7 +9,7 @@ type WrappedData = {
   totals?: { transactions: number; completed: number; successRate: number };
 };
 
-export default function WalletWrappedPage() {
+function WalletWrappedContent() {
   const searchParams = useSearchParams();
   const wallet = searchParams.get("wallet")?.trim() ?? "";
   const [data, setData] = useState<WrappedData | null>(null);
@@ -64,5 +64,20 @@ export default function WalletWrappedPage() {
         </section>
       ) : null}
     </main>
+  );
+}
+
+export default function WalletWrappedPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="mx-auto w-full max-w-xl space-y-4 p-6">
+          <h1 className="text-2xl font-semibold">Your year in review</h1>
+          <p className="text-sm text-muted-foreground">Loading…</p>
+        </main>
+      }
+    >
+      <WalletWrappedContent />
+    </Suspense>
   );
 }

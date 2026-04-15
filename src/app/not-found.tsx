@@ -4,44 +4,28 @@ import { Button } from "@/components/ui/button";
 export default function NotFound() {
   return (
     <main
-      className="min-h-screen flex items-center justify-center bg-zinc-900 "
+      className="flex min-h-screen items-center justify-center bg-background px-4 py-12 text-foreground"
       role="main"
       aria-label="Page not found"
     >
       <section
-        className="w-full h-full rounded-2xl bg-white p-12 sm:p-16 text-center overflow-hidden bg-white"
+        className="w-full max-w-md rounded-2xl border border-border/80 bg-card/85 p-8 text-center shadow-lg backdrop-blur-md"
         aria-labelledby="not-found-heading"
       >
-        <div
-          className="absolute inset-0 w-full h-full opacity-[0.03]"
-          style={{
-            backgroundImage: `
-              linear-gradient(to right, #a1a1aa 1px, transparent 1px),
-              linear-gradient(to bottom, #a1a1aa 1px, transparent 1px)
-            `,
-            backgroundSize: "24px 24px",
-          }}
-          aria-hidden
-        />
-        <div className="relative flex flex-col items-center gap-6 w-full h-full ">
-          <h1
-            id="not-found-heading"
-            className="text-[4rem] sm:text-[6rem] font-bold text-zinc-800 tracking-tight select-none"
-            style={{
-              textShadow:
-                "0 1px 0 rgba(255,255,255,0.8), 0 2px 4px rgba(0,0,0,0.06)",
-            }}
-          >
-            404
-          </h1>
-          <p className="text-zinc-500 text-base sm:text-lg">
-            Page not found.{" "}
-            <Button variant="link" size="sm" className="p-0 h-auto text-base" asChild>
-              <Link href="/" className="text-zinc-700 hover:text-zinc-900 font-medium underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 focus-visible:ring-offset-2 rounded">
-                Go back
-              </Link>
-            </Button>
-          </p>
+        <p className="text-sm font-medium uppercase tracking-wide text-muted-foreground">Error</p>
+        <h1
+          id="not-found-heading"
+          className="mt-2 text-5xl font-bold tabular-nums tracking-tight text-foreground sm:text-6xl"
+        >
+          404
+        </h1>
+        <p className="mt-4 text-sm text-muted-foreground">
+          This page doesn&apos;t exist or was moved.
+        </p>
+        <div className="mt-8 flex flex-col gap-2 sm:flex-row sm:justify-center">
+          <Button asChild>
+            <Link href="/">Back to home</Link>
+          </Button>
         </div>
       </section>
     </main>

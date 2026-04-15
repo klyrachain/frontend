@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { CheckCircle2, CreditCard, Loader2 } from "lucide-react";
@@ -118,7 +118,7 @@ function CopyRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-export default function PaymentReturnPage() {
+function PaymentReturnContent() {
   const searchParams = useSearchParams();
   const reference =
     searchParams.get("reference")?.trim() ||
@@ -274,5 +274,22 @@ export default function PaymentReturnPage() {
         </Link>
       </p>
     </article>
+  );
+}
+
+export default function PaymentReturnPage() {
+  return (
+    <Suspense
+      fallback={
+        <article className="glass-card relative w-full max-w-md overflow-hidden p-6 shadow-xl">
+          <div className="flex flex-col items-center justify-center gap-4 py-10">
+            <Loader2 className="size-10 animate-spin text-primary" aria-hidden />
+            <p className="text-sm text-muted-foreground">Loading…</p>
+          </div>
+        </article>
+      }
+    >
+      <PaymentReturnContent />
+    </Suspense>
   );
 }
