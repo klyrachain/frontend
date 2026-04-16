@@ -1,10 +1,11 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { cn } from "@/lib/utils";
 import type { TokenSelection } from "@/components/Exchange/TokenChainSelectModal";
+import { TokenAvatarWithFallback } from "@/components/Token/TokenAvatarWithFallback";
 
 const SUGGESTED_TOKENS_MAX = 5;
 
@@ -21,6 +22,11 @@ export function SuggestedTokensRow({
   excludeSymbol,
   side,
 }: SuggestedTokensRowProps) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const containerRef = useRef<HTMLDivElement>(null);
   const list = excludeSymbol
     ? suggestions.filter((s) => s.token.symbol !== excludeSymbol)
@@ -45,6 +51,8 @@ export function SuggestedTokensRow({
     { dependencies: [displayList.length, side], scope: containerRef }
   );
 
+  // Avoid hydration mismatch: RTK/cache + deferred used-tokens often differ SSR vs first client paint.
+  if (!mounted) return null;
   if (suggestions.length === 0) return null;
   if (displayList.length === 0) return null;
   return (
@@ -66,20 +74,15 @@ export function SuggestedTokensRow({
           aria-label={`Select ${sel.token.symbol} on ${sel.chain.shortName ?? sel.chain.name}`}
           className="flex items-center gap-1.5 rounded-full border border-border bg-muted/30 text-sm font-medium text-foreground transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
-          {sel.token.logoURI ? (
-            /* eslint-disable-next-line @next/next/no-img-element */
-            <img
-              src={sel.token.logoURI}
-              alt=""
-              width={40}
-              height={40}
-              className="size-6 shrink-0 rounded-full object-cover"
-            />
-          ) : (
-            <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold">
-              {sel.token.symbol.slice(0, 2)}
-            </span>
-          )}
+          <TokenAvatarWithFallback
+            logoURI={sel.token.logoURI}
+            symbol={sel.token.symbol}
+            chainId={String(sel.chain.id)}
+            width={24}
+            height={24}
+            className="size-6"
+            alt=""
+          />
         </button>
       ))}
     </div>

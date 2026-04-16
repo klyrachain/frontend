@@ -1,7 +1,7 @@
 "use client";
 
-import Image from "next/image";
 import type { TokenSelection } from "@/components/Exchange/TokenChainSelectModal";
+import { TokenAvatarWithFallback } from "@/components/Token/TokenAvatarWithFallback";
 
 export interface TokenSelectFieldProps {
   label: string;
@@ -34,19 +34,15 @@ export function TokenSelectField({
       >
         {selection ? (
           <>
-            {selection.token.logoURI ? (
-              <Image
-                src={selection.token.logoURI}
-                alt=""
-                width={34}
-                height={34}
-                className="size-8 shrink-0 rounded-full object-cover"
-              />
-            ) : (
-              <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold">
-                {selection.token.symbol.slice(0, 2)}
-              </span>
-            )}
+            <TokenAvatarWithFallback
+              logoURI={selection.token.logoURI}
+              symbol={selection.token.symbol}
+              chainId={selection.token.chainId}
+              width={34}
+              height={34}
+              className="size-8"
+              alt=""
+            />
             <span className="min-w-0 truncate font-medium text-primary">
               {selection.token.name}
             </span>

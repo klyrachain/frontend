@@ -2,6 +2,7 @@ import { HeroShaderBackground } from "@/components/Landing/HeroShaderBackground"
 import { HERO_CONFIG } from "@/config/hero";
 import { FlowsNav } from "@/app/(flows)/FlowsNav";
 import { FlowsPagePopTransition } from "@/app/(flows)/FlowsPagePopTransition";
+import { DynamicRootProvider } from "@/components/DynamicWallet/DynamicRootProvider";
 
 export default function FlowsLayout({
   children,
@@ -9,6 +10,7 @@ export default function FlowsLayout({
   children: React.ReactNode;
 }) {
   return (
+    <DynamicRootProvider>
     <div className="landing-page relative min-h-screen bg-transparent text-foreground">
       <HeroShaderBackground
         embeddedText={HERO_CONFIG.embeddedText}
@@ -39,5 +41,6 @@ export default function FlowsLayout({
         </main>
       </div>
     </div>
+    </DynamicRootProvider>
   );
 }

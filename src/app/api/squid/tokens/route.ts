@@ -1,24 +1,29 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getBackendBaseUrl } from "@/lib/server-backend-base";
 
-const BACKEND_BASE =
-  process.env.BACKEND_API_URL ??
-  process.env.NEXT_PUBLIC_SQUID_API_BASE_URL ??
-  "https://backend-m7eg-mevsyou.vercel.app";
+/** Payload often exceeds Next.js Data Cache limit (~2MB); RTK caches on the client. */
+export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url);
-  const testnet = searchParams.get("testnet");
-  const all = searchParams.get("all");
-  const query = new URLSearchParams();
-  if (testnet) query.set("testnet", testnet);
-  if (all) query.set("all", all);
-  const qs = query.toString();
+  const BACKEND_BASE = getBackendBaseUrl();
+  if (!BACKEND_BASE) {
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          "Set BACKEND_API_URL or NEXT_PUBLIC_SQUID_API_BASE_URL (e.g. http://localhost:4001).",
+        code: "BACKEND_NOT_CONFIGURED",
+      },
+      { status: 503 }
+    );
+  }
+  const qs = new URL(request.url).searchParams.toString();
   const url = `${BACKEND_BASE}/api/squid/tokens${qs ? `?${qs}` : ""}`;
 
   try {
     const res = await fetch(url, {
       headers: { Accept: "application/json" },
-      next: { revalidate: 300 },
+      cache: "no-store",
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {

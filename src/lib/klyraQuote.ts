@@ -1,5 +1,5 @@
 /**
- * Klyra quote API (POST /api/klyra/quotes).
+ * Morapay quote API (POST /api/klyra/quotes).
  * See md/backend-api.md – POST /api/klyra/quotes.
  */
 

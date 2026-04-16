@@ -11,6 +11,8 @@ export interface AmountFieldProps {
   ariaLabel?: string;
   /** Use transfer-style input class */
   variant?: "default" | "transfer";
+  /** When true, amount comes from server (e.g. fixed checkout link) and cannot be edited */
+  readOnly?: boolean;
 }
 
 export function AmountField({
@@ -20,6 +22,7 @@ export function AmountField({
   footer,
   ariaLabel,
   variant = "default",
+  readOnly = false,
 }: AmountFieldProps) {
   const inputClass =
     variant === "transfer"
@@ -29,14 +32,17 @@ export function AmountField({
   return (
     <div className="rounded-xl border border-border bg-muted/10 p-4">
       <p className="mb-2 text-xs text-muted-foreground">{label}</p>
-      <div className="flex items-center justify-between gap-2 text-black">
+      <div className="flex items-center justify-between gap-2 text-foreground">
         <Input
           type="text"
           inputMode="decimal"
           placeholder="0"
           value={amount}
-          onChange={(e) => onAmountChange(e.target.value)}
-          className={inputClass}
+          readOnly={readOnly}
+          onChange={(e) => {
+            if (!readOnly) onAmountChange(e.target.value);
+          }}
+          className={`${inputClass}${readOnly ? " cursor-default bg-muted/30" : ""}`}
           aria-label={ariaLabel ?? label}
         />
       </div>

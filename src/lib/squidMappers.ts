@@ -1,5 +1,6 @@
 import type { Chain, Token } from "@/types/token";
 import type { SquidChain, SquidToken } from "@/types/squidApi";
+import { normalizeAddressForChain } from "@/lib/balances/address-normalization";
 
 function pickChains(raw: SquidChain[]): SquidChain[] {
   return Array.isArray(raw) ? raw : [];
@@ -16,6 +17,44 @@ function chainIdToString(id: number | string | undefined): string {
   return "";
 }
 
+function dynamicSpriteChainIcon(anchor: string): string {
+  if (anchor === "stellar") {
+    return "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/xlm.png";
+  }
+  if (anchor === "bitcoin") {
+    return "https://assets.coingecko.com/coins/images/1/standard/bitcoin.png?1696501400";
+  }
+  return "";
+}
+
+function normalizeIconUri(input: string | undefined): string {
+  const raw = input?.trim() ?? "";
+  if (!raw) return "";
+  if (raw.startsWith("https://github.com/") && raw.includes("/tree/")) {
+    return raw
+      .replace("https://github.com/", "https://raw.githubusercontent.com/")
+      .replace("/tree/", "/");
+  }
+  return raw;
+}
+
+function isBitcoinLikeSymbol(symbol: string): boolean {
+  const s = symbol.trim().toUpperCase();
+  return s === "BTC" || s === "WBTC" || s === "BTCB" || s === "XBT";
+}
+
+function inferChainIconFallback(chainName: string, chainId: string): string {
+  const normalizedName = chainName.trim().toLowerCase();
+  const normalizedId = chainId.trim().toLowerCase();
+  if (normalizedName.includes("stellar") || normalizedId === "148") {
+    return dynamicSpriteChainIcon("stellar");
+  }
+  if (normalizedName.includes("bitcoin") || normalizedId === "8332" || normalizedId === "btc") {
+    return dynamicSpriteChainIcon("bitcoin");
+  }
+  return "";
+}
+
 /**
  * Maps backend Squid chains response to app Chain[].
  * Accepts { data: { chains } }, { chains }, or raw array.
@@ -28,20 +67,34 @@ export function mapSquidChainsToChains(
     : (response?.data?.chains ?? response?.chains ?? []);
   const list = pickChains(raw);
   return list
-    .filter((c) => c.chainId != null && chainIdToString(c.chainId) !== "")
-    .map((c) => {
-      const id = chainIdToString(c.chainId);
+    .filter(
+      (squidChain) =>
+        squidChain.chainId != null && chainIdToString(squidChain.chainId) !== ""
+    )
+    .map((squidChain) => {
+      const id = chainIdToString(squidChain.chainId);
       const name =
-        (c.chainName ?? c.networkName ?? c.nativeCurrency?.name ?? id) || "Unknown";
+        (squidChain.chainName ??
+          squidChain.networkName ??
+          squidChain.nativeCurrency?.name ??
+          id) || "Unknown";
       const shortName =
-        c.shortName ?? c.nativeCurrency?.symbol ?? name.slice(0, 8);
-      const chainIconURI =
-        c.chainIconURI ?? (c as { chainIconUri?: string }).chainIconUri ?? "";
+        squidChain.shortName ??
+        squidChain.nativeCurrency?.symbol ??
+        name.slice(0, 8);
+      const chainIconURI = normalizeIconUri(
+        squidChain.chainIconURI ??
+          (squidChain as { chainIconUri?: string }).chainIconUri
+      );
+      const fallbackChainIcon =
+        chainIconURI === "" ? inferChainIconFallback(name, id) : "";
       return {
         id,
         name,
         shortName,
-        ...(chainIconURI !== "" ? { iconURI: chainIconURI } : {}),
+        ...((chainIconURI !== "" ? chainIconURI : fallbackChainIcon) !== ""
+          ? { iconURI: chainIconURI !== "" ? chainIconURI : fallbackChainIcon }
+          : {}),
       };
     });
 }
@@ -59,27 +112,34 @@ export function mapSquidTokensToTokens(
   const list = pickTokens(raw);
   return list
     .filter(
-      (t) =>
-        t.chainId != null &&
-        chainIdToString(t.chainId) !== "" &&
-        (t.symbol ?? t.address)
+      (squidToken) =>
+        squidToken.chainId != null &&
+        chainIdToString(squidToken.chainId) !== "" &&
+        (squidToken.symbol ?? squidToken.address)
     )
-    .map((t) => {
-      const chainId = chainIdToString(t.chainId);
-      const symbol = t.symbol ?? "?";
-      const name = t.name ?? symbol;
-      const address = t.address ?? "";
+    .map((squidToken) => {
+      const chainId = chainIdToString(squidToken.chainId);
+      const symbol = squidToken.symbol ?? "?";
+      const name = squidToken.name ?? symbol;
+      const address = squidToken.address ?? "";
+      const normalizedAddress = normalizeAddressForChain(chainId, address);
+      const logoURI = normalizeIconUri(squidToken.logoURI);
+      const bitcoinFallbackLogo =
+        isBitcoinLikeSymbol(symbol) &&
+        (logoURI === "" || logoURI.includes("sprite.svg#bitcoin"))
+          ? "https://assets.coingecko.com/coins/images/1/standard/bitcoin.png?1696501400"
+          : "";
       const id =
         address && chainId
-          ? `${address.toLowerCase()}-${chainId}`
+          ? `${normalizedAddress}-${chainId}`
           : `${symbol}-${chainId}`.toLowerCase();
       return {
         id,
         symbol,
         name,
         chainId,
-        ...(t.logoURI != null && t.logoURI !== ""
-          ? { logoURI: t.logoURI }
+        ...((logoURI !== "" ? logoURI : bitcoinFallbackLogo) !== ""
+          ? { logoURI: logoURI !== "" ? logoURI : bitcoinFallbackLogo }
           : {}),
       };
     });

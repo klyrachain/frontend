@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, type ComponentProps } from "react";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { ShaderGradient, ShaderGradientCanvas } from "@shadergradient/react";
@@ -162,51 +162,52 @@ export function HeroShaderBackground({
     : embeddedImages;
   const hasImages = imageList.length > 0;
 
+  const shaderGradientProps = {
+    animate: "on" as const,
+    brightness: 1.2,
+    cAzimuthAngle: 0,
+    cDistance: 3.6,
+    cPolarAngle: 90,
+    cameraZoom: 1,
+    color1: "#023436",
+    color2: "#037971",
+    color3: "#037971",
+    embedMode: "off",
+    envPreset: "dawn" as const,
+    fov: 45,
+    frameRate: 10,
+    gizmoHelper: "hide",
+    grain: "on",
+    lightType: "env",
+    pixelDensity: 1,
+    positionX: -1.4,
+    positionY: 0,
+    positionZ: 0,
+    range: "disabled",
+    rangeEnd: 40,
+    rangeStart: 0,
+    reflection: 0,
+    rotationX: 0,
+    rotationY: 10,
+    rotationZ: 50,
+    shader: "defaults",
+    type: "plane" as const,
+    uAmplitude: 1,
+    uDensity: 1.8,
+    uFrequency: 5.5,
+    uSpeed: 0.01,
+    uStrength: 0.2,
+    uTime: 0,
+    wireframe: false,
+  } as unknown as ComponentProps<typeof ShaderGradient>;
+
   return (
     <div
       className="fixed inset-0 z-0 size-full overflow-hidden pointer-events-none"
       aria-hidden
     >
       <ShaderGradientCanvas className="!absolute !inset-0 !size-full">
-        <ShaderGradient
-          animate="on"
-          brightness={1.2}
-          cAzimuthAngle={0}
-          cDistance={3.6}
-          cPolarAngle={90}
-          cameraZoom={1}
-          color1="#023436"
-          color2="#037971"
-          color3="#037971"
-          destination="onCanvas"
-          embedMode="off"
-          envPreset="dawn"
-          fov={45}
-          frameRate={10}
-          gizmoHelper="hide"
-          grain="on"
-          lightType="env"
-          pixelDensity={1}
-          positionX={-1.4}
-          positionY={0}
-          positionZ={0}
-          range="disabled"
-          rangeEnd={40}
-          rangeStart={0}
-          reflection={0}
-          rotationX={0}
-          rotationY={10}
-          rotationZ={50}
-          shader="defaults"
-          type="plane"
-          uAmplitude={1}
-          uDensity={1.8}
-          uFrequency={5.5}
-          uSpeed={0.01}
-          uStrength={0.2}
-          uTime={0}
-          wireframe={false}
-        />
+        <ShaderGradient {...shaderGradientProps} />
       </ShaderGradientCanvas>
 
       {backgroundImage ? (
