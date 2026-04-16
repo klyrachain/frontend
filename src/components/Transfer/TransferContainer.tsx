@@ -164,7 +164,7 @@ export function TransferContainer() {
           ? String((json as { error?: string }).error ?? "")
           : "";
       if (!res.ok) {
-        setIntentMessage(err || "Could not create transfer. Check CORE_API_KEY and pool configuration.");
+        setIntentMessage(err || "Could not create transfer. Check BACKEND_API_URL and Morapay API / Core configuration.");
         return;
       }
       const tid = data?.transaction_id ?? "";

@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
-import { getCoreBaseUrl } from "@/lib/server-core-base";
+import { BACKEND_API_CONFIGURE_HINT, getBackendBaseUrl } from "@/lib/server-backend-base";
 
 export async function POST(req: Request) {
-  const core = getCoreBaseUrl();
-  if (!core) {
+  const backend = getBackendBaseUrl();
+  if (!backend) {
     return NextResponse.json(
       {
         success: false,
-        error: "Set NEXT_PUBLIC_CORE_URL (or CORE_URL) for checkout proxies.",
-        code: "CORE_NOT_CONFIGURED",
+        error: BACKEND_API_CONFIGURE_HINT,
+        code: "BACKEND_NOT_CONFIGURED",
       },
       { status: 503 }
     );
@@ -24,10 +24,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: false, error: "Invalid JSON." }, { status: 400 });
   }
   try {
-    const res = await fetch(`${core}/api/public/gas-usage`, {
+    const res = await fetch(`${backend}/api/klyra/public/gas-usage`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        Accept: "application/json",
         "X-Gas-Report-Token": token,
       },
       body: JSON.stringify(body),
@@ -36,6 +37,6 @@ export async function POST(req: Request) {
     const out: unknown = await res.json().catch(() => ({}));
     return NextResponse.json(out, { status: res.status });
   } catch {
-    return NextResponse.json({ success: false, error: "Could not reach Core." }, { status: 502 });
+    return NextResponse.json({ success: false, error: "Could not reach the Morapay API." }, { status: 502 });
   }
 }

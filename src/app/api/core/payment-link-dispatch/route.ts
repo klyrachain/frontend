@@ -1,26 +1,14 @@
 import { NextResponse } from "next/server";
-import { getCoreBaseUrl } from "@/lib/server-core-base";
+import { BACKEND_API_CONFIGURE_HINT, getBackendBaseUrl } from "@/lib/server-backend-base";
 
 export async function POST(request: Request) {
-  const core = getCoreBaseUrl();
-  if (!core) {
+  const backend = getBackendBaseUrl();
+  if (!backend) {
     return NextResponse.json(
       {
         success: false,
-        error: "Set NEXT_PUBLIC_CORE_URL (or CORE_URL) for Core proxy.",
-        code: "CORE_NOT_CONFIGURED",
-      },
-      { status: 503 }
-    );
-  }
-
-  const apiKey = process.env.CORE_API_KEY?.trim();
-  if (!apiKey) {
-    return NextResponse.json(
-      {
-        success: false,
-        error: "Set CORE_API_KEY on the server.",
-        code: "CORE_API_KEY_MISSING",
+        error: BACKEND_API_CONFIGURE_HINT,
+        code: "BACKEND_NOT_CONFIGURED",
       },
       { status: 503 }
     );
@@ -34,12 +22,9 @@ export async function POST(request: Request) {
   }
 
   try {
-    const res = await fetch(`${core}/api/payment-link-dispatch`, {
+    const res = await fetch(`${backend}/api/klyra/payment-link-dispatch`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKey,
-      },
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
       body: JSON.stringify(body),
       cache: "no-store",
       signal: AbortSignal.timeout(30_000),
@@ -47,6 +32,6 @@ export async function POST(request: Request) {
     const payload: unknown = await res.json().catch(() => ({}));
     return NextResponse.json(payload, { status: res.status });
   } catch {
-    return NextResponse.json({ success: false, error: "Could not reach Core." }, { status: 502 });
+    return NextResponse.json({ success: false, error: "Could not reach the Morapay API." }, { status: 502 });
   }
 }

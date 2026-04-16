@@ -67,15 +67,24 @@ export function mapSquidChainsToChains(
     : (response?.data?.chains ?? response?.chains ?? []);
   const list = pickChains(raw);
   return list
-    .filter((c) => c.chainId != null && chainIdToString(c.chainId) !== "")
-    .map((c) => {
-      const id = chainIdToString(c.chainId);
+    .filter(
+      (squidChain) =>
+        squidChain.chainId != null && chainIdToString(squidChain.chainId) !== ""
+    )
+    .map((squidChain) => {
+      const id = chainIdToString(squidChain.chainId);
       const name =
-        (c.chainName ?? c.networkName ?? c.nativeCurrency?.name ?? id) || "Unknown";
+        (squidChain.chainName ??
+          squidChain.networkName ??
+          squidChain.nativeCurrency?.name ??
+          id) || "Unknown";
       const shortName =
-        c.shortName ?? c.nativeCurrency?.symbol ?? name.slice(0, 8);
+        squidChain.shortName ??
+        squidChain.nativeCurrency?.symbol ??
+        name.slice(0, 8);
       const chainIconURI = normalizeIconUri(
-        c.chainIconURI ?? (c as { chainIconUri?: string }).chainIconUri
+        squidChain.chainIconURI ??
+          (squidChain as { chainIconUri?: string }).chainIconUri
       );
       const fallbackChainIcon =
         chainIconURI === "" ? inferChainIconFallback(name, id) : "";
@@ -103,18 +112,18 @@ export function mapSquidTokensToTokens(
   const list = pickTokens(raw);
   return list
     .filter(
-      (t) =>
-        t.chainId != null &&
-        chainIdToString(t.chainId) !== "" &&
-        (t.symbol ?? t.address)
+      (squidToken) =>
+        squidToken.chainId != null &&
+        chainIdToString(squidToken.chainId) !== "" &&
+        (squidToken.symbol ?? squidToken.address)
     )
-    .map((t) => {
-      const chainId = chainIdToString(t.chainId);
-      const symbol = t.symbol ?? "?";
-      const name = t.name ?? symbol;
-      const address = t.address ?? "";
+    .map((squidToken) => {
+      const chainId = chainIdToString(squidToken.chainId);
+      const symbol = squidToken.symbol ?? "?";
+      const name = squidToken.name ?? symbol;
+      const address = squidToken.address ?? "";
       const normalizedAddress = normalizeAddressForChain(chainId, address);
-      const logoURI = normalizeIconUri(t.logoURI);
+      const logoURI = normalizeIconUri(squidToken.logoURI);
       const bitcoinFallbackLogo =
         isBitcoinLikeSymbol(symbol) &&
         (logoURI === "" || logoURI.includes("sprite.svg#bitcoin"))

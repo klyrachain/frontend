@@ -99,7 +99,7 @@ export function CheckoutTokenSelectModal({
   });
 
   const chainById = useMemo(
-    () => new Map(chains.map((c) => [c.id, c] as const)),
+    () => new Map(chains.map((chain) => [chain.id, chain] as const)),
     [chains]
   );
 
@@ -108,10 +108,10 @@ export function CheckoutTokenSelectModal({
     if (!q) return tokens.slice(0, 120);
     return tokens
       .filter(
-        (t) =>
-          t.symbol.toLowerCase().includes(q) ||
-          t.name.toLowerCase().includes(q) ||
-          t.chainId.includes(q)
+        (token) =>
+          token.symbol.toLowerCase().includes(q) ||
+          token.name.toLowerCase().includes(q) ||
+          token.chainId.includes(q)
       )
       .slice(0, 120);
   }, [tokens, deferredSearch]);

@@ -8,3 +8,7 @@ export function getBackendBaseUrl(): string | null {
   const b = process.env.NEXT_PUBLIC_SQUID_API_BASE_URL?.trim().replace(/\/$/, "");
   return a || b || null;
 }
+
+/** Shown when Next BFF cannot reach the integration API (Node backend). */
+export const BACKEND_API_CONFIGURE_HINT =
+  "Set BACKEND_API_URL or NEXT_PUBLIC_SQUID_API_BASE_URL to your Morapay API server (integration layer).";

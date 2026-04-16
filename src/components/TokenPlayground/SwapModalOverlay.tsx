@@ -85,12 +85,12 @@ export function SwapModalOverlay({
                 className="h-12 max-w-full border-0 bg-transparent text-lg font-medium placeholder:text-muted-foreground focus-visible:ring-0"
               />
               <div className="flex gap-1">
-                {TOKEN_CONFIGS.map((c) => (
+                {TOKEN_CONFIGS.map((tokenConfig) => (
                   <TokenPill
-                    key={c.id}
-                    config={c}
-                    isSelected={swapFromConfigId === c.id}
-                    onClick={() => onSwapFromChange(c.id)}
+                    key={tokenConfig.id}
+                    config={tokenConfig}
+                    isSelected={swapFromConfigId === tokenConfig.id}
+                    onClick={() => onSwapFromChange(tokenConfig.id)}
                   />
                 ))}
               </div>
@@ -108,12 +108,12 @@ export function SwapModalOverlay({
                 className="h-12 max-w-full border-0 bg-transparent text-lg font-medium placeholder:text-muted-foreground focus-visible:ring-0"
               />
               <div className="flex gap-1">
-                {TOKEN_CONFIGS.map((c) => (
+                {TOKEN_CONFIGS.map((tokenConfig) => (
                   <TokenPill
-                    key={c.id}
-                    config={c}
-                    isSelected={swapToConfigId === c.id}
-                    onClick={() => onSwapToChange(c.id)}
+                    key={tokenConfig.id}
+                    config={tokenConfig}
+                    isSelected={swapToConfigId === tokenConfig.id}
+                    onClick={() => onSwapToChange(tokenConfig.id)}
                   />
                 ))}
               </div>

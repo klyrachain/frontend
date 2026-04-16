@@ -333,9 +333,9 @@ export function ReceiveContainer() {
                   <option value="">
                     {fiatCountriesLoading ? "Loading countries…" : "Select country"}
                   </option>
-                  {fiatCountries.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name} ({c.code}) — {c.currency}
+                  {fiatCountries.map((country) => (
+                    <option key={country.id} value={country.id}>
+                      {country.name} ({country.code}) — {country.currency}
                     </option>
                   ))}
                 </select>

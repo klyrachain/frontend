@@ -1,27 +1,14 @@
 import { NextResponse } from "next/server";
-import { getCoreBaseUrl } from "@/lib/server-core-base";
+import { BACKEND_API_CONFIGURE_HINT, getBackendBaseUrl } from "@/lib/server-backend-base";
 
 export async function POST(request: Request) {
-  const core = getCoreBaseUrl();
-  if (!core) {
+  const backend = getBackendBaseUrl();
+  if (!backend) {
     return NextResponse.json(
       {
         success: false,
-        error: "Set NEXT_PUBLIC_CORE_URL (or CORE_URL) for quote proxy.",
-        code: "CORE_NOT_CONFIGURED",
-      },
-      { status: 503 }
-    );
-  }
-
-  const apiKey = process.env.CORE_API_KEY?.trim();
-  if (!apiKey) {
-    return NextResponse.json(
-      {
-        success: false,
-        error:
-          "Set CORE_API_KEY on the server to proxy pricing quotes (never expose in the browser).",
-        code: "CORE_API_KEY_MISSING",
+        error: BACKEND_API_CONFIGURE_HINT,
+        code: "BACKEND_NOT_CONFIGURED",
       },
       { status: 503 }
     );
@@ -38,12 +25,9 @@ export async function POST(request: Request) {
   }
 
   try {
-    const res = await fetch(`${core}/api/v1/quotes/checkout`, {
+    const res = await fetch(`${backend}/api/klyra/v1/quotes/checkout`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKey,
-      },
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
       body: JSON.stringify(body),
       cache: "no-store",
       signal: AbortSignal.timeout(45_000),
@@ -52,7 +36,7 @@ export async function POST(request: Request) {
     return NextResponse.json(payload, { status: res.status });
   } catch {
     return NextResponse.json(
-      { success: false, error: "Could not reach Core for checkout quotes." },
+      { success: false, error: "Could not reach the Morapay API for checkout quotes." },
       { status: 502 }
     );
   }

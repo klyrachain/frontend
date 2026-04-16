@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
-import { getCoreBaseUrl } from "@/lib/server-core-base";
+import { BACKEND_API_CONFIGURE_HINT, getBackendBaseUrl } from "@/lib/server-backend-base";
 
 export async function GET(req: Request) {
-  const core = getCoreBaseUrl();
-  if (!core) {
+  const backend = getBackendBaseUrl();
+  if (!backend) {
     return NextResponse.json(
       {
         success: false,
-        error: "Set NEXT_PUBLIC_CORE_URL (or CORE_URL) for checkout proxies.",
-        code: "CORE_NOT_CONFIGURED",
+        error: BACKEND_API_CONFIGURE_HINT,
+        code: "BACKEND_NOT_CONFIGURED",
       },
       { status: 503 }
     );
@@ -25,14 +25,14 @@ export async function GET(req: Request) {
   }
   try {
     const res = await fetch(
-      `${core}/api/public/wrapped/wallet?wallet=${encodeURIComponent(wallet)}&period=${encodeURIComponent(period)}`,
-      { cache: "no-store", signal: AbortSignal.timeout(15_000) }
+      `${backend}/api/klyra/public/wrapped/wallet?wallet=${encodeURIComponent(wallet)}&period=${encodeURIComponent(period)}`,
+      { cache: "no-store", headers: { Accept: "application/json" }, signal: AbortSignal.timeout(15_000) }
     );
     const body: unknown = await res.json().catch(() => ({}));
     return NextResponse.json(body, { status: res.status });
   } catch {
     return NextResponse.json(
-      { success: false, error: "Could not reach Core." },
+      { success: false, error: "Could not reach the Morapay API." },
       { status: 502 }
     );
   }

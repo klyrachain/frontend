@@ -1,27 +1,14 @@
 import { NextResponse } from "next/server";
-import { getCoreBaseUrl } from "@/lib/server-core-base";
+import { BACKEND_API_CONFIGURE_HINT, getBackendBaseUrl } from "@/lib/server-backend-base";
 
 export async function GET(request: Request) {
-  const core = getCoreBaseUrl();
-  if (!core) {
+  const backend = getBackendBaseUrl();
+  if (!backend) {
     return NextResponse.json(
       {
         success: false,
-        error: "Set NEXT_PUBLIC_CORE_URL (or CORE_URL) for countries proxy.",
-        code: "CORE_NOT_CONFIGURED",
-      },
-      { status: 503 }
-    );
-  }
-
-  const apiKey = process.env.CORE_API_KEY?.trim();
-  if (!apiKey) {
-    return NextResponse.json(
-      {
-        success: false,
-        error:
-          "Set CORE_API_KEY on the server to proxy countries (never expose in the browser).",
-        code: "CORE_API_KEY_MISSING",
+        error: BACKEND_API_CONFIGURE_HINT,
+        code: "BACKEND_NOT_CONFIGURED",
       },
       { status: 503 }
     );
@@ -35,11 +22,9 @@ export async function GET(request: Request) {
       : "supported=paystack";
 
   try {
-    const res = await fetch(`${core}/api/countries?${supportedQuery}`, {
+    const res = await fetch(`${backend}/api/klyra/countries?${supportedQuery}`, {
       method: "GET",
-      headers: {
-        "x-api-key": apiKey,
-      },
+      headers: { Accept: "application/json" },
       cache: "no-store",
       signal: AbortSignal.timeout(20_000),
     });
@@ -47,7 +32,7 @@ export async function GET(request: Request) {
     return NextResponse.json(payload, { status: res.status });
   } catch {
     return NextResponse.json(
-      { success: false, error: "Could not reach Core countries endpoint." },
+      { success: false, error: "Could not reach the Morapay API for countries." },
       { status: 502 }
     );
   }
