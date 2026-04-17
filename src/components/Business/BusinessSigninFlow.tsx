@@ -180,12 +180,14 @@ export function BusinessSigninFlow() {
     }
     setIsPasskeySigningIn(true);
     try {
-      const options = await fetchBusinessPasskeyLoginOptions(email);
+      const optionsJSON = await fetchBusinessPasskeyLoginOptions(email);
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const { startAuthentication } = require("@simplewebauthn/browser") as {
-        startAuthentication: (opts: unknown) => Promise<unknown>;
+        startAuthentication: (opts: {
+          optionsJSON: typeof optionsJSON;
+        }) => Promise<unknown>;
       };
-      const response = await startAuthentication(options);
+      const response = await startAuthentication({ optionsJSON });
       const { accessToken } = await verifyBusinessPasskeyLogin({
         email,
         response,

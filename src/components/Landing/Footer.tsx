@@ -7,32 +7,33 @@ const FOOTER_SECTIONS = [
   {
     heading: "Product",
     links: [
-      { label: "API", href: "#" },
-      { label: "SDKs", href: "#" },
-      { label: "Pricing", href: "#" },
+      { label: "API", href: "/developers/api" },
+      { label: "SDKs", href: "/developers/sdks" },
+      { label: "Pricing", href: "/pricing" },
     ],
   },
   {
     heading: "Company",
     links: [
-      { label: "About Us", href: "#" },
-      { label: "Careers", href: "#" },
-      { label: "Blog", href: "#" },
+      { label: "About Us", href: "/about" },
+      { label: "Privacy", href: "/privacy" },
+      { label: "Terms", href: "/terms" },
+      { label: "Blog", href: "/blog" },
     ],
   },
   {
     heading: "Resources",
     links: [
-      { label: "Documentation", href: "#" },
-      { label: "Guides", href: "#" },
-      { label: "Blog", href: "#" },
+      { label: "Documentation", href: "/docs" },
+      { label: "Guides", href: "/guides" },
+      { label: "Blog", href: "/blog" },
     ],
   },
   {
     heading: "Support",
     links: [
-      { label: "Help Center", href: "#" },
-      { label: "Contact", href: "#" },
+      { label: "Help Center", href: "/help" },
+      { label: "Contact", href: "/contact" },
     ],
   },
 ] as const;
@@ -50,11 +51,10 @@ export function Footer() {
         >
           <img
             src={LOGO_IMAGE_PATH}
-            alt=""
+            alt="Morapay"
             width={48}
             height={48}
             className="mb-[var(--g4)] h-12 w-12 shrink-0 object-contain invert dark:invert-0"
-            aria-hidden
           />
           <h2
             className="text-2xl font-bold text-white md:text-3xl"
@@ -68,7 +68,7 @@ export function Footer() {
           >
             Sign up for early access to our platform.
           </p>
-          <LaunchAppButton variant="outline" href="#">
+          <LaunchAppButton variant="outline">
             Launch App
           </LaunchAppButton>
         </div>
