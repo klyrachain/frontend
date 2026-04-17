@@ -541,14 +541,16 @@ export function BusinessSignupFlow() {
         password: profilePassword,
       });
 
-      const options = await fetchBusinessPasskeyRegistrationOptions(token);
+      const optionsJSON = await fetchBusinessPasskeyRegistrationOptions(token);
 
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const { startRegistration } = require("@simplewebauthn/browser") as {
-        startRegistration: (opts: unknown) => Promise<unknown>;
+        startRegistration: (opts: {
+          optionsJSON: typeof optionsJSON;
+        }) => Promise<unknown>;
       };
 
-      const credential = await startRegistration(options);
+      const credential = await startRegistration({ optionsJSON });
 
       await registerBusinessPasskey(token, {
         response: credential,

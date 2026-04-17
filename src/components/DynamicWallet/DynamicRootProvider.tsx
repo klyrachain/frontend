@@ -44,9 +44,7 @@ export function DynamicRootProvider({ children }: { children: ReactNode }) {
       settings={{
         environmentId,
         walletConnectors: getWalletConnectors(),
-        walletConnectPreferredChains: klyraEvmChains.map(
-          (chain) => `eip155:${chain.id}` as const
-        ),
+        defaultNumberOfWalletsToShow: 60,
         initialAuthenticationMode: "connect-only",
         enableConnectOnlyFallback: true,
       }}

@@ -16,6 +16,7 @@ import { StoreProvider } from "@/components/Providers/StoreProvider";
 import { TabCookieSync } from "@/components/Providers/TabCookieSync";
 import { ThemeSync } from "@/components/Theme/ThemeSync";
 import "./globals.css";
+import { getSiteUrl, siteOpenGraph } from "@/lib/site";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -82,8 +83,27 @@ const fontClassNames = [
   .join(" ");
 
 export const metadata: Metadata = {
-  title: "MoraPay",
-  description: "MoraPay is a platform for sending and receiving payments.",
+  metadataBase: getSiteUrl(),
+  title: {
+    default: "Morapay",
+    template: "%s · Morapay",
+  },
+  description:
+    "Morapay is a platform for sending and receiving payments, with APIs, dashboards, and multi-rail settlement.",
+  applicationName: "Morapay",
+  robots: { index: true, follow: true },
+  openGraph: {
+    ...siteOpenGraph(),
+    title: "Morapay",
+    description:
+      "Morapay is a platform for sending and receiving payments, with APIs, dashboards, and multi-rail settlement.",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Morapay",
+    description:
+      "Morapay is a platform for sending and receiving payments, with APIs, dashboards, and multi-rail settlement.",
+  },
 };
 
 export default function RootLayout({

@@ -1,5 +1,9 @@
 import { env } from "@/config/env";
 
+/** Core returns JSON options for `@simplewebauthn/browser` `optionsJSON` (v10 has no exported JSON option types). */
+export type WebAuthnCredentialCreationOptionsJSON = Record<string, unknown>;
+export type WebAuthnCredentialRequestOptionsJSON = Record<string, unknown>;
+
 const JSON_POST_HEADERS = {
   "Content-Type": "application/json",
   Accept: "application/json",
@@ -106,6 +110,17 @@ async function requestJson(
   return body;
 }
 
+function unwrapSuccessData(body: unknown): Record<string, unknown> | null {
+  if (!body || typeof body !== "object" || Array.isArray(body)) return null;
+  const o = body as Record<string, unknown>;
+  if (o.success !== true) return null;
+  const data = o.data;
+  if (data && typeof data === "object" && !Array.isArray(data)) {
+    return data as Record<string, unknown>;
+  }
+  return null;
+}
+
 const ACCESS_TOKEN_KEYS = [
   "accessToken",
   "access_token",
@@ -205,11 +220,21 @@ export async function loginBusinessWithPassword(input: {
 
 export async function fetchBusinessPasskeyLoginOptions(
   email: string
-): Promise<unknown> {
-  return requestJson("/api/business-auth/login/passkey/options", {
+): Promise<WebAuthnCredentialRequestOptionsJSON> {
+  const body = await requestJson("/api/business-auth/login/passkey/options", {
     method: "POST",
     body: JSON.stringify({ email: email.trim().toLowerCase() }),
   });
+  const data = unwrapSuccessData(body);
+  const options = data?.options;
+  if (!options || typeof options !== "object") {
+    throw new BusinessAuthApiError(
+      "Invalid response: missing passkey authentication options",
+      500,
+      body
+    );
+  }
+  return options as WebAuthnCredentialRequestOptionsJSON;
 }
 
 export async function verifyBusinessPasskeyLogin(input: {
@@ -553,13 +578,23 @@ export async function submitBusinessProfileSetup(
 
 export async function fetchBusinessPasskeyRegistrationOptions(
   accessToken: string
-): Promise<unknown> {
-  return requestJson("/api/business-auth/passkey/registration-options", {
+): Promise<WebAuthnCredentialCreationOptionsJSON> {
+  const body = await requestJson("/api/business-auth/passkey/registration-options", {
     method: "GET",
     headers: {
       Authorization: `Bearer ${accessToken}`,
     },
   });
+  const data = unwrapSuccessData(body);
+  const options = data?.options;
+  if (!options || typeof options !== "object") {
+    throw new BusinessAuthApiError(
+      "Invalid response: missing passkey registration options",
+      500,
+      body
+    );
+  }
+  return options as WebAuthnCredentialCreationOptionsJSON;
 }
 
 export async function registerBusinessPasskey(
