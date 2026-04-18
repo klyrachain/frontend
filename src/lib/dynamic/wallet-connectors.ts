@@ -12,13 +12,7 @@ import { TempoWalletConnectors } from "@dynamic-labs/tempo";
 import { TonWalletConnectors } from "@dynamic-labs/ton";
 import { TronWalletConnectors } from "@dynamic-labs/tron";
 
-/**
- * All first-party React wallet connector packages from Dynamic’s docs (Enabling Chains & Networks),
- * plus Stellar/Spark/Tron which use dedicated packages. Enable each chain in the Dynamic dashboard.
- *
- * Optional EVM add-ons (not included — need product keys / config): `@dynamic-labs/magic`,
- * `@dynamic-labs/blocto-evm`, `@dynamic-labs/ethereum-aa` (ZeroDev).
- */
+/** Dynamic multi-chain connectors; enable matching chains in the Dynamic dashboard. */
 export function getWalletConnectors() {
   return [
     AlgorandWalletConnectors,

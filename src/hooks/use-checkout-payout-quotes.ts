@@ -232,5 +232,20 @@ export function useCheckoutPayoutQuotes(
     }
   }, [enabled, fiatAmount, fiatCurrency, fiatSig, rowSig, rowSpecs]);
 
+  useEffect(() => {
+    if (!enabled || !fiatAmount?.trim() || !fiatCurrency?.trim()) {
+      return;
+    }
+    const intervalMs = 30_000;
+    const tick = () => {
+      if (typeof document !== "undefined" && document.visibilityState === "hidden") {
+        return;
+      }
+      void runRef.current(null);
+    };
+    const id = window.setInterval(tick, intervalMs);
+    return () => window.clearInterval(id);
+  }, [enabled, fiatAmount, fiatCurrency, fiatSig]);
+
   return rows;
 }

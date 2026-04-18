@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "pnpm run lint && next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "dynamic:list-connectors": "node ./scripts/list-dynamic-connector-exports.mjs"
   },
   "dependencies": {
     "@dynamic-labs/algorand": "^4.77.2",

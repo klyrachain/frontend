@@ -47,6 +47,8 @@ export const makeStore = () =>
       getDefaultMiddleware({
         serializableCheck: {
           ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
+          // Large RTK Query cache + persist can exceed the default 32ms in dev.
+          warnAfter: 128,
         },
       }).concat(baseApi.middleware, squidApi.middleware, gasApi.middleware),
   });

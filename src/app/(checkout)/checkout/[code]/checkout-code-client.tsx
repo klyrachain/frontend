@@ -3,12 +3,16 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { isRequestLinkIdHex } from "@/lib/checkout-link-code";
 import type { PublicCommercePaymentLink } from "@/types/checkout-public.types";
-import { CheckoutTokenQuoteRows } from "@/components/checkout/CheckoutTokenQuoteRows";
+import {
+  CheckoutTokenQuoteRows,
+  type CheckoutContinuePayload,
+} from "@/components/checkout/CheckoutTokenQuoteRows";
+import { CommerceCheckoutWalletPay } from "@/components/checkout/CommerceCheckoutWalletPay";
 
 const CheckoutWalletHeaderAction = dynamic(
   () =>
@@ -39,10 +43,39 @@ function unwrapData<T>(raw: unknown): T | null {
   return null;
 }
 
-export function CheckoutCodeClient() {
+type CheckoutCodeClientProps = {
+  /** `gas` uses Core gas-checkout route (metadata-gated); default uses public slug lookup. */
+  linkFetchVariant?: "commerce" | "gas";
+};
+
+async function fetchCheckoutResource(path: string): Promise<Response> {
+  const backoffMs = [0, 500, 1400];
+  let last: Response | null = null;
+  for (let i = 0; i < backoffMs.length; i++) {
+    const wait = backoffMs[i] ?? 0;
+    if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+    try {
+      const res = await fetch(path, { cache: "no-store" });
+      last = res;
+      if (res.ok) return res;
+      if (res.status === 429 || res.status >= 500) continue;
+      return res;
+    } catch {
+      last = null;
+      continue;
+    }
+  }
+  return last ?? new Response(JSON.stringify({ success: false, error: "Network error loading checkout." }), {
+    status: 502,
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
+export function CheckoutCodeClient({
+  linkFetchVariant = "commerce",
+}: CheckoutCodeClientProps) {
   const params = useParams();
   const searchParams = useSearchParams();
-  const router = useRouter();
   const code = typeof params?.code === "string" ? params.code : "";
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -51,6 +84,8 @@ export function CheckoutCodeClient() {
   );
   const [requestPayload, setRequestPayload] =
     useState<RequestByLinkPayload | null>(null);
+  const [walletPayPayload, setWalletPayPayload] =
+    useState<CheckoutContinuePayload | null>(null);
   /** Fixed-amount links: FIAT or CRYPTO — both get token quotes + modal (offramp Morapay only for CRYPTO). */
   const shouldShowCheckoutTokenQuotes = useMemo(() => {
     if (!commerce || commerce.amount == null) {
@@ -79,17 +114,22 @@ export function CheckoutCodeClient() {
       setError(null);
       setCommerce(null);
       setRequestPayload(null);
+      setWalletPayPayload(null);
 
       const hex = isRequestLinkIdHex(code);
       const wallet = searchParams.get("wallet")?.trim() ?? "";
       const path = hex
         ? `/api/core/requests/by-link/${encodeURIComponent(code.trim())}`
-        : `/api/core/public/payment-links/${encodeURIComponent(code.trim())}${
-            wallet ? `?wallet=${encodeURIComponent(wallet)}` : ""
-          }`;
+        : linkFetchVariant === "gas"
+          ? `/api/core/public/payment-links/gas-checkout/${encodeURIComponent(code.trim())}${
+              wallet ? `?wallet=${encodeURIComponent(wallet)}` : ""
+            }`
+          : `/api/core/public/payment-links/${encodeURIComponent(code.trim())}${
+              wallet ? `?wallet=${encodeURIComponent(wallet)}` : ""
+            }`;
 
       try {
-        const res = await fetch(path, { cache: "no-store" });
+        const res = await fetchCheckoutResource(path);
         const json: unknown = await res.json().catch(() => ({}));
         if (cancelled) return;
         if (!res.ok) {
@@ -127,7 +167,7 @@ export function CheckoutCodeClient() {
     return () => {
       cancelled = true;
     };
-  }, [code, searchParams]);
+  }, [code, searchParams, linkFetchVariant]);
 
   const payHrefRequest = `/pay?requestLinkId=${encodeURIComponent(code.trim())}`;
 
@@ -183,26 +223,27 @@ export function CheckoutCodeClient() {
             </p>
           </div>
           {shouldShowCheckoutTokenQuotes ? (
-            <CheckoutTokenQuoteRows
-              enabled={shouldShowCheckoutTokenQuotes}
-              fiatAmount={commerce.amount}
-              fiatCurrency={commerce.currency}
-              invoiceLabel={invoiceLabel}
-              invoiceChargeKind={commerce.chargeKind}
-              payPageId={commerce.id}
-              onContinueToPay={(payload) => {
-                if (!commerce?.id) return;
-                if (
-                  payload.flow === "token" ||
-                  payload.flow === "onramp" ||
-                  payload.flow === "aggregate"
-                ) {
-                  router.push(
-                    `/pay?payPageId=${encodeURIComponent(commerce.id)}`
-                  );
-                }
-              }}
-            />
+            <>
+              <CheckoutTokenQuoteRows
+                enabled={shouldShowCheckoutTokenQuotes}
+                fiatAmount={commerce.amount}
+                fiatCurrency={commerce.currency}
+                invoiceLabel={invoiceLabel}
+                invoiceChargeKind={commerce.chargeKind}
+                payPageId={commerce.id}
+                onContinueToPay={(payload) => {
+                  if (payload.flow === "morapay") return;
+                  setWalletPayPayload(payload);
+                }}
+              />
+              {walletPayPayload ? (
+                <CommerceCheckoutWalletPay
+                  commerce={commerce}
+                  payload={walletPayPayload}
+                  onClose={() => setWalletPayPayload(null)}
+                />
+              ) : null}
+            </>
           ) : null}
           {commerce.isOneTime && commerce.isPaid ? (
             <div className="rounded-md border border-white/10 bg-background/40 p-3 text-left text-sm">
