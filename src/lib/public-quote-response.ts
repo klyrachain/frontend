@@ -15,7 +15,11 @@ export function toPayerQuoteData(data: unknown): unknown {
   return {
     quoteId: d.quoteId,
     expiresAt: d.expiresAt,
-    input: { amount: inn.amount, currency: inn.currency },
+    input: {
+      amount: inn.amount,
+      currency: inn.currency,
+      ...(typeof inn.chain === "string" && inn.chain ? { chain: inn.chain } : {}),
+    },
     output: { amount: out.amount, currency: out.currency, chain: out.chain },
   };
 }

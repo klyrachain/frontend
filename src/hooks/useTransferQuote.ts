@@ -39,11 +39,14 @@ export function useTransferQuote({
 
   useEffect(() => {
     const chainId = fromSelection?.chain?.id?.trim();
+    const toChainId = toSelection?.chain?.id?.trim();
     const canFetch =
       fromSelection &&
       toSelection &&
       chainId != null &&
       chainId !== "" &&
+      toChainId != null &&
+      toChainId !== "" &&
       inputAmount.trim() !== "" &&
       parseFloat(inputAmount) > 0 &&
       fromSelection.token.id !== toSelection.token.id;
@@ -70,6 +73,7 @@ export function useTransferQuote({
           inputCurrency: fromSelection.token.symbol,
           outputCurrency: toSelection.token.symbol,
           chain: chainId,
+          toChain: toChainId,
           inputSide: "from" as const,
         };
         const response = await fetchKlyraQuote(request);
@@ -88,7 +92,13 @@ export function useTransferQuote({
         debounceRef.current = null;
       }
     };
-  }, [fromSelection?.token.id, fromSelection?.chain?.id, toSelection?.token.id, inputAmount]);
+  }, [
+    fromSelection?.token.id,
+    fromSelection?.chain?.id,
+    toSelection?.token.id,
+    toSelection?.chain?.id,
+    inputAmount,
+  ]);
 
   const outputAmount = parseOutputAmount(quote);
 

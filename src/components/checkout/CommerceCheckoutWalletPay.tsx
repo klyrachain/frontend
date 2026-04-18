@@ -9,6 +9,11 @@ import type { CheckoutContinuePayload } from "@/components/checkout/CheckoutToke
 import type { PublicCommercePaymentLink } from "@/types/checkout-public.types";
 import { isNonEvmCheckoutChainId } from "@/lib/checkout-chain-family";
 import { DynamicConnectTrigger } from "@/components/DynamicWallet/DynamicConnectTrigger";
+import type { PaymentInstruction } from "@/types/payment-instruction";
+import {
+  isEvmErc20TransferInstruction,
+  normalizeToEvmInstruction,
+} from "@/types/payment-instruction";
 
 const erc20TransferAbi = [
   {
@@ -23,17 +28,10 @@ const erc20TransferAbi = [
   },
 ] as const;
 
-type CalldataPayload = {
-  toAddress: string;
-  chainId: number;
-  tokenAddress: string;
-  amount: string;
-  decimals: number;
-};
-
 type IntentSuccess = {
   transaction_id: string;
-  calldata: CalldataPayload;
+  calldata: PaymentInstruction;
+  next_step?: string;
 };
 
 export type CommerceCheckoutWalletPayProps = {
@@ -132,13 +130,16 @@ export function CommerceCheckoutWalletPay({
         "data" in json
           ? ((json as { data: IntentSuccess }).data ?? null)
           : null;
-      if (
-        !data?.transaction_id ||
-        !data.calldata?.toAddress ||
-        !data.calldata?.tokenAddress
-      ) {
+      if (!data?.transaction_id || !data.calldata) {
         setIntentError("Invalid response from payment service.");
         return;
+      }
+      if (isEvmErc20TransferInstruction(data.calldata)) {
+        const evm = normalizeToEvmInstruction(data.calldata);
+        if (!evm?.toAddress || !evm.tokenAddress) {
+          setIntentError("Invalid response from payment service.");
+          return;
+        }
       }
       setIntentResult(data);
     } catch {
@@ -160,7 +161,11 @@ export function CommerceCheckoutWalletPay({
   const sendToPool = useCallback(async () => {
     setSendError(null);
     if (!intentResult?.calldata || !address) return;
-    const cd = intentResult.calldata;
+    const cd = normalizeToEvmInstruction(intentResult.calldata);
+    if (!cd) {
+      setSendError("Wallet signing in checkout is only available for EVM ERC-20 instructions.");
+      return;
+    }
     const targetChain = cd.chainId;
     if (chainId != null && chainId !== targetChain && switchChainAsync) {
       try {
@@ -260,6 +265,23 @@ export function CommerceCheckoutWalletPay({
         >
           {intentLoading ? "Preparing…" : "Prepare on-chain payment"}
         </Button>
+      ) : !isEvmErc20TransferInstruction(intentResult.calldata) ? (
+        <div className="space-y-2 rounded-md border border-amber-500/25 bg-amber-500/10 p-3 text-xs text-muted-foreground">
+          <p className="font-medium text-foreground">Instruction prepared (non-EVM)</p>
+          <p>
+            Kind:{" "}
+            <span className="font-mono text-foreground">
+              {(intentResult.calldata as { kind?: string }).kind ?? "unknown"}
+            </span>
+            . Sign in wallet from this screen is only wired for{" "}
+            <span className="font-medium text-foreground">evm_erc20_transfer</span>. Use the
+            Morapay Transfer app or your wallet for this chain, then confirm with your
+            operator flow if needed.
+          </p>
+          {intentResult.next_step ? (
+            <p className="text-[11px] leading-snug">{intentResult.next_step}</p>
+          ) : null}
+        </div>
       ) : (
         <div className="space-y-2">
           <p className="text-xs text-muted-foreground">

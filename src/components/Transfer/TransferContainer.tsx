@@ -6,7 +6,7 @@ import { useAccount } from "wagmi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Settings, ArrowRight, ChevronDown, ChevronUp } from "lucide-react";
+import { Settings, ArrowRight } from "lucide-react";
 import { TransferSelectModal } from "./TransferSelectModal";
 import type { TokenSelection } from "../Exchange/TokenChainSelectModal";
 import { useAppSelector } from "@/store/hooks";
@@ -37,9 +37,8 @@ export function TransferContainer() {
   const [rightSelection, setRightSelection] = useState<TokenSelection | null>(null);
   const [selectModalOpen, setSelectModalOpen] = useState(false);
   const [selectingSide, setSelectingSide] = useState<"left" | "right">("left");
-  const [receiverOpen, setReceiverOpen] = useState(true);
-  const [receiverUseCustom, setReceiverUseCustom] = useState(false);
-  const [customReceiverAddress, setCustomReceiverAddress] = useState("");
+  const [receiverAddress, setReceiverAddress] = useState("");
+  const [recipientError, setRecipientError] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [intentLoading, setIntentLoading] = useState(false);
   const [intentMessage, setIntentMessage] = useState<string | null>(null);
@@ -66,30 +65,28 @@ export function TransferContainer() {
     );
   }, [rightSelection]);
 
-  const defaultReceiverAddress = useMemo(() => {
-    if (!receiveSpec || receiveSpec.format !== "evm") return "";
-    if (isConnected && evmAddress) return evmAddress;
-    return "";
-  }, [receiveSpec, isConnected, evmAddress]);
-
-  useEffect(() => {
-    if (!receiverUseCustom) {
-      setCustomReceiverAddress("");
-    }
-  }, [receiverUseCustom]);
-
   useEffect(() => {
     setWalletCtaReady(true);
   }, []);
 
-  const effectiveReceiverAddress = receiverUseCustom
-    ? customReceiverAddress.trim()
-    : defaultReceiverAddress;
+  useEffect(() => {
+    setReceiverAddress("");
+    setRecipientError(false);
+  }, [rightSelection?.chain.id, rightSelection?.token.symbol]);
 
-  const receiverReady =
+  const trimmedReceiver = receiverAddress.trim();
+  const receiverValid =
     receiveSpec != null &&
-    effectiveReceiverAddress !== "" &&
-    isValidReceiveAddress(effectiveReceiverAddress, receiveSpec.format);
+    trimmedReceiver !== "" &&
+    isValidReceiveAddress(trimmedReceiver, receiveSpec.format);
+
+  const handleUseConnectedWallet = () => {
+    if (!receiveSpec || receiveSpec.format !== "evm") return;
+    const addr = evmAddress?.trim();
+    if (!addr) return;
+    setReceiverAddress(addr);
+    setRecipientError(false);
+  };
 
   const { outputAmount, isLoading: quoteLoading, error: quoteError } = useTransferQuote({
     fromSelection: leftSelection,
@@ -127,23 +124,22 @@ export function TransferContainer() {
         ? "Getting quote…"
         : quoteError ?? PRICE_PREVIEW_DEFAULT;
 
-  const receiverSummary =
-    rightSelection && receiveSpec && effectiveReceiverAddress
-      ? `Estimated delivery to ${shortAddr(effectiveReceiverAddress)}`
-      : rightSelection && receiveSpec && !effectiveReceiverAddress
-        ? "Connect a wallet or enter a receiver address below."
-        : null;
+  const deliveryLine =
+    trimmedReceiver !== "" &&
+    receiveSpec &&
+    isValidReceiveAddress(trimmedReceiver, receiveSpec.format)
+      ? ` · Estimated delivery to ${shortAddr(trimmedReceiver)}`
+      : "";
 
   const handleConfirm = async () => {
-    if (
-      !leftSelection ||
-      !rightSelection ||
-      !outputAmount ||
-      !receiverReady ||
-      intentLoading
-    ) {
+    if (!leftSelection || !rightSelection || !outputAmount || intentLoading) {
       return;
     }
+    if (!receiveSpec || !receiverValid) {
+      setRecipientError(true);
+      return;
+    }
+    setRecipientError(false);
     setIntentMessage(null);
     setIntentLoading(true);
     try {
@@ -157,7 +153,7 @@ export function TransferContainer() {
           t_chain_slug: String(rightSelection.chain.id),
           t_token: rightSelection.token.symbol,
           t_amount: outputAmount,
-          receiver_address: effectiveReceiverAddress.trim(),
+          receiver_address: trimmedReceiver,
         }),
       });
       const json: unknown = await res.json().catch(() => ({}));
@@ -284,74 +280,55 @@ export function TransferContainer() {
             label="You send"
             amount={leftAmount}
             onAmountChange={setLeftAmount}
-            footer={
-              receiverSummary ? `${sendRowFooter} · ${receiverSummary}` : sendRowFooter
-            }
+            footer={`${sendRowFooter}${deliveryLine}`}
             ariaLabel="Amount you send"
             variant="transfer"
           />
 
           {rightSelection && receiveSpec ? (
-            <div className="rounded-xl border border-border/60 bg-muted/20 px-3 py-2">
-              <button
-                type="button"
-                onClick={() => setReceiverOpen((o) => !o)}
-                className="flex w-full items-center justify-between gap-2 text-left"
-              >
-                <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Receiver
-                </span>
-                {receiverOpen ? (
-                  <ChevronUp className="size-4 shrink-0 text-muted-foreground" />
-                ) : (
-                  <ChevronDown className="size-4 shrink-0 text-muted-foreground" />
-                )}
-              </button>
-              {receiverOpen ? (
-                <div className="mt-3 space-y-3">
-                  {!receiverUseCustom && receiveSpec.format === "evm" ? (
-                    <p className="text-xs text-muted-foreground">
-                      {defaultReceiverAddress
-                        ? `Using your connected wallet: ${shortAddr(defaultReceiverAddress)}`
-                        : "Connect your wallet to use your address as the receiver."}
-                    </p>
-                  ) : null}
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      id="transfer-custom-receiver"
-                      checked={receiverUseCustom}
-                      onChange={(e) => setReceiverUseCustom(e.target.checked)}
-                      className="rounded border-input"
-                    />
-                    <Label htmlFor="transfer-custom-receiver" className="text-sm font-normal">
-                      Send to a different address
-                    </Label>
-                  </div>
-                  {receiverUseCustom || receiveSpec.format !== "evm" ? (
-                    <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">
-                        {receiveSpec.addressLabel}
-                      </Label>
-                      <Input
-                        value={customReceiverAddress}
-                        onChange={(e) => setCustomReceiverAddress(e.target.value)}
-                        placeholder={receiveSpec.inputPlaceholder}
-                        className={cn(
-                          "font-mono text-sm",
-                          receiverUseCustom &&
-                            customReceiverAddress.trim() !== "" &&
-                            !isValidReceiveAddress(customReceiverAddress, receiveSpec.format) &&
-                            "border-destructive"
-                        )}
-                        autoComplete="off"
-                      />
-                      {receiveSpec.helperText ? (
-                        <p className="text-xs text-muted-foreground">{receiveSpec.helperText}</p>
-                      ) : null}
-                    </div>
-                  ) : null}
-                </div>
+            <div className="space-y-2 rounded-xl border border-border/60 bg-muted/20 px-3 py-3">
+              <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Receiver
+              </Label>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
+                <Input
+                  value={receiverAddress}
+                  onChange={(e) => {
+                    setReceiverAddress(e.target.value);
+                    if (recipientError) setRecipientError(false);
+                  }}
+                  placeholder={receiveSpec.inputPlaceholder}
+                  aria-invalid={recipientError && !receiverValid}
+                  className={cn(
+                    "font-mono text-sm sm:min-w-0 sm:flex-1",
+                    ((recipientError && !receiverValid) ||
+                      (trimmedReceiver !== "" &&
+                        !isValidReceiveAddress(trimmedReceiver, receiveSpec.format))) &&
+                      "border-destructive"
+                  )}
+                  autoComplete="off"
+                />
+                {receiveSpec.format === "evm" ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="shrink-0 whitespace-nowrap"
+                    onClick={handleUseConnectedWallet}
+                    disabled={!isConnected || !evmAddress}
+                  >
+                    Use connected wallet
+                  </Button>
+                ) : null}
+              </div>
+              {recipientError ? (
+                <p className="text-sm text-destructive" role="alert">
+                  {trimmedReceiver === ""
+                    ? "Provide a recipient address to confirm this transfer."
+                    : "Enter a valid address for this network."}
+                </p>
+              ) : receiveSpec.helperText ? (
+                <p className="text-xs text-muted-foreground">{receiveSpec.helperText}</p>
               ) : null}
             </div>
           ) : null}
@@ -365,16 +342,7 @@ export function TransferContainer() {
           <Button
             size="lg"
             className="w-full rounded-xl py-6 text-base font-semibold bg-black"
-            disabled={
-              intentLoading ||
-              !leftSelection ||
-              !rightSelection ||
-              !outputAmount ||
-              !receiverReady ||
-              (receiverUseCustom &&
-                (!customReceiverAddress.trim() ||
-                  !isValidReceiveAddress(customReceiverAddress, receiveSpec?.format ?? "evm")))
-            }
+            disabled={intentLoading || !leftSelection || !rightSelection || !outputAmount}
             onClick={() => void handleConfirm()}
           >
             {intentLoading ? "Creating…" : "Confirm"}
