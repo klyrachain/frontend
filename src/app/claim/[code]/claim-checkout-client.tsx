@@ -283,7 +283,7 @@ export function ClaimCheckoutClient() {
                 <Input
                   value={bankCode}
                   onChange={(e) => setBankCode(e.target.value)}
-                  placeholder="e.g. MTN or bank code"
+                  placeholder=""
                 />
               </div>
             </div>

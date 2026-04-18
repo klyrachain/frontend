@@ -43,6 +43,8 @@ export function TransferContainer() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [intentLoading, setIntentLoading] = useState(false);
   const [intentMessage, setIntentMessage] = useState<string | null>(null);
+  /** Avoid SSR/client mismatch: `useAccount().isConnected` differs after hydration. */
+  const [walletCtaReady, setWalletCtaReady] = useState(false);
 
   const usedEntries = useAppSelector((s) => s.usedTokens.entries);
   const deferredUsedEntries = useDeferredValue(usedEntries);
@@ -75,6 +77,10 @@ export function TransferContainer() {
       setCustomReceiverAddress("");
     }
   }, [receiverUseCustom]);
+
+  useEffect(() => {
+    setWalletCtaReady(true);
+  }, []);
 
   const effectiveReceiverAddress = receiverUseCustom
     ? customReceiverAddress.trim()
@@ -189,7 +195,9 @@ export function TransferContainer() {
               variant="outline"
               size="sm"
               className="rounded-full px-3 text-xs sm:text-sm"
-              label={isConnected ? "Wallet" : "Connect"}
+              label={
+                walletCtaReady && isConnected ? "Wallet" : "Connect"
+              }
             />
             <div className="relative">
               <Button

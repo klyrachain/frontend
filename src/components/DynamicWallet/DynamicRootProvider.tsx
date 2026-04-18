@@ -5,9 +5,10 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { WagmiProvider, createConfig, http } from "wagmi";
 import { DynamicContextProvider } from "@dynamic-labs/sdk-react-core";
 import { DynamicWagmiConnector } from "@dynamic-labs/wagmi-connector";
-import { klyraEvmChains } from "@/lib/dynamic/evm-chains";
+import { klyraDynamicEvmNetworks, klyraEvmChains } from "@/lib/dynamic/evm-chains";
 import { getWalletConnectors } from "@/lib/dynamic/wallet-connectors";
 import { getDynamicEnvironmentId } from "@/lib/dynamic/dynamic-app-config";
+import { DynamicDebugWalletList } from "@/components/DynamicWallet/DynamicDebugWalletList";
 
 type KlyraChain = (typeof klyraEvmChains)[number];
 
@@ -47,11 +48,17 @@ export function DynamicRootProvider({ children }: { children: ReactNode }) {
         defaultNumberOfWalletsToShow: 60,
         initialAuthenticationMode: "connect-only",
         enableConnectOnlyFallback: true,
+        overrides: {
+          evmNetworks: klyraDynamicEvmNetworks,
+        },
       }}
     >
       <WagmiProvider config={wagmiConfig}>
         <QueryClientProvider client={queryClient}>
-          <DynamicWagmiConnector>{children}</DynamicWagmiConnector>
+          <DynamicWagmiConnector>
+            {children}
+            <DynamicDebugWalletList />
+          </DynamicWagmiConnector>
         </QueryClientProvider>
       </WagmiProvider>
     </DynamicContextProvider>
