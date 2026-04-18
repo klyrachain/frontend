@@ -251,7 +251,7 @@ export function BusinessSigninFlow() {
                 name="password"
                 type="password"
                 autoComplete="current-password"
-                placeholder="Your password"
+                placeholder="********"
                 value={password}
                 onChange={(e) => {
                   setPassword(e.target.value);

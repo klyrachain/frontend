@@ -31,6 +31,8 @@ import {
   CheckoutQuoteRow,
   emptyCheckoutQuote,
 } from "@/components/checkout/CheckoutQuoteRow";
+import { CheckoutNonEvmLinkedAddresses } from "@/components/checkout/CheckoutNonEvmLinkedAddresses";
+import { isNonEvmCheckoutChainId } from "@/lib/checkout-chain-family";
 import type { TokenSelection } from "@/components/Exchange/TokenChainSelectModal";
 
 const SOLANA_CHAIN_ICON =
@@ -233,6 +235,13 @@ export function CheckoutTokenQuoteRows({
   const displayRowsResolved = useMemo(() => {
     return rowSpecs.map((spec) => specToDisplayRow(spec, tokens));
   }, [rowSpecs, tokens]);
+
+  const selectedDisplayRow = useMemo(() => {
+    const id = selectedRowId ?? displayRowsResolved[0]?.id;
+    if (!id) return null;
+    return displayRowsResolved.find((r) => r.id === id) ?? null;
+  }, [displayRowsResolved, selectedRowId]);
+
   const quoteChainForFiat = useMemo(() => {
     const baseRow = displayRowsResolved.find((row) => row.id === "base-usdc");
     const chainId = baseRow?.balanceChainId?.trim() ?? "";
@@ -700,7 +709,7 @@ export function CheckoutTokenQuoteRows({
         type="email"
         name="payer-email"
         autoComplete="email"
-        placeholder="Email for receipt"
+        placeholder="user@email.com"
         value={morapayEmail}
         onChange={(e) => setMorapayEmail(e.target.value)}
         disabled={morapayLoading}
@@ -754,6 +763,15 @@ export function CheckoutTokenQuoteRows({
             }}
           />
         ))}
+        {paymentFlow === "token" &&
+        selectedDisplayRow &&
+        isNonEvmCheckoutChainId(selectedDisplayRow.balanceChainId) ? (
+          <CheckoutNonEvmLinkedAddresses
+            balanceChainId={selectedDisplayRow.balanceChainId}
+            chainName={chainFromList(chains, selectedDisplayRow.balanceChainId)?.name}
+            className="mt-2"
+          />
+        ) : null}
         <Button
           type="button"
           variant="outline"

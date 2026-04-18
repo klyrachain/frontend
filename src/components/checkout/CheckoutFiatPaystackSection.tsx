@@ -51,7 +51,7 @@ export function CheckoutFiatPaystackSection({
         type="email"
         name="payer-email"
         autoComplete="email"
-        placeholder="Email for receipt"
+        placeholder="user@email.com"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         disabled={disabled || loading}
