@@ -543,14 +543,10 @@ export function BusinessSignupFlow() {
 
       const optionsJSON = await fetchBusinessPasskeyRegistrationOptions(token);
 
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const { startRegistration } = require("@simplewebauthn/browser") as {
-        startRegistration: (opts: {
-          optionsJSON: typeof optionsJSON;
-        }) => Promise<unknown>;
-      };
-
-      const credential = await startRegistration({ optionsJSON });
+      const { startRegistration } = await import("@simplewebauthn/browser");
+      const credential = await startRegistration(
+        optionsJSON as unknown as Parameters<typeof startRegistration>[0]
+      );
 
       await registerBusinessPasskey(token, {
         response: credential,

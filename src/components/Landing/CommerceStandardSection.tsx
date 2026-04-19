@@ -29,7 +29,7 @@ export function CommerceStandardSection() {
           style={{ marginBottom: "var(--g4)", lineHeight: 1.4 }}
         >
           Traditional paymment rails are slow. Cryto rails are complex.{" "}
-          <span className="font-shinier">morapay</span> is the <br/> bridge. We've built a framework that treats digital assets and fiat as one
+          <span className="font-shinier">morapay</span> is the <br/> bridge. We&apos;ve built a framework that treats digital assets and fiat as one
           <br/>providing a high-speed lane for global value exchange.
         </p>
         <LaunchAppButton>Learn More</LaunchAppButton>
