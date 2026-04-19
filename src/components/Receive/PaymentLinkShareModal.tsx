@@ -194,7 +194,7 @@ export function PaymentLinkShareModal({
         </DialogDescription>
 
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-8 sm:px-6">
-          <p className="mb-4 text-lg font-semibold text-foreground">Share payment link</p>
+          <p className="mb-4 text-lg font-semibold text-card-foreground">Share payment link</p>
           <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
             <div className="flex shrink-0 justify-center sm:justify-start">
               {qrDataUrl ? (
@@ -223,7 +223,7 @@ export function PaymentLinkShareModal({
                 </label>
                 <output
                   id={linkFieldId}
-                  className="block max-h-40 overflow-y-auto rounded-xl border border-border bg-muted/20 px-3 py-3 font-mono text-xs leading-relaxed text-foreground sm:text-sm"
+                  className="block max-h-40 overflow-y-auto rounded-xl border border-border bg-muted/20 px-3 py-3 font-mono text-xs leading-relaxed text-card-foreground sm:text-sm"
                   aria-live="polite"
                 >
                   {paymentLink}

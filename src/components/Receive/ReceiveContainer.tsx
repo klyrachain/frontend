@@ -4,7 +4,6 @@ import { useState, useMemo, useDeferredValue, useEffect } from "react";
 import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { cn } from "@/lib/utils";
 import { TransferSelectModal } from "@/components/Transfer/TransferSelectModal";
 import {
   TokenSelectField,
@@ -12,6 +11,7 @@ import {
   ContactIdentifierField,
   WalletReceiveField,
   WalletReceiveFieldPlaceholder,
+  FlagSelect,
 } from "@/components/flows";
 import type { TokenSelection } from "@/components/Exchange/TokenChainSelectModal";
 import { useAppSelector } from "@/store/hooks";
@@ -27,6 +27,7 @@ import {
   isValidReceiveAddress,
 } from "@/lib/receiveAccountByChain";
 import { PaymentLinkShareModal } from "@/components/Receive/PaymentLinkShareModal";
+import { FlowsWalletHeaderAction } from "@/app/(flows)/FlowsWalletHeaderAction";
 
 const SuggestedTokensRow = dynamic(
   () =>
@@ -178,6 +179,16 @@ export function ReceiveContainer() {
     [fiatCountries, selectedCountryId]
   );
 
+  const fiatCountryFlagItems = useMemo(
+    () =>
+      fiatCountries.map((c) => ({
+        value: c.id,
+        label: `${c.name} (${c.code}) — ${c.currency}`,
+        flagCode: c.code,
+      })),
+    [fiatCountries]
+  );
+
   const addressValid =
     accountSpec != null &&
     isValidReceiveAddress(receiveAddress, accountSpec.format);
@@ -226,17 +237,23 @@ export function ReceiveContainer() {
     <div className="flex flex-col duration-300 ease-out relative w-full items-center justify-center">
       <article className="glass-card overflow-hidden p-2 shadow-xl shrink-0 min-w-0 transition-all duration-300 ease-out h-fit">
         <header className="mb-6 space-y-4 pl-2">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <h1 className="text-2xl text-primary font-semibold">I want to receive</h1>
-            <div
-              className="flex w-full gap-2 sm:w-auto"
-              role="tablist"
-              aria-label="Receive as crypto or fiat"
-            >
+          <div className="flex flex-row items-center justify-between gap-3">
+            <h1 className="text-2xl font-semibold text-card-foreground">I want to receive</h1>
+            <FlowsWalletHeaderAction />
+          </div>
+          <div
+            className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-start"
+            role="tablist"
+            aria-label="Receive as crypto or fiat"
+          >
               <Button
                 type="button"
                 variant={receiveTab === "crypto" ? "default" : "outline"}
-                className="flex-1 rounded-xl sm:flex-none"
+                className={
+                  receiveTab === "crypto"
+                    ? "flex-1 rounded-xl sm:flex-none"
+                    : "flex-1 rounded-xl border-border bg-card text-card-foreground hover:bg-muted/70 sm:flex-none"
+                }
                 onClick={() => setReceiveTab("crypto")}
               >
                 Crypto
@@ -244,15 +261,18 @@ export function ReceiveContainer() {
               <Button
                 type="button"
                 variant={receiveTab === "fiat" ? "default" : "outline"}
-                className="flex-1 rounded-xl sm:flex-none"
+                className={
+                  receiveTab === "fiat"
+                    ? "flex-1 rounded-xl sm:flex-none"
+                    : "flex-1 rounded-xl border-border bg-card text-card-foreground hover:bg-muted/70 sm:flex-none"
+                }
                 onClick={() => setReceiveTab("fiat")}
               >
                 Fiat
               </Button>
-            </div>
           </div>
           {receiveTab === "fiat" ? (
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-card-foreground/70">
               Payer completes with card or mobile money (no gas). You share a Pay link
               aligned with platform settlement.
             </p>
@@ -318,34 +338,27 @@ export function ReceiveContainer() {
                 ariaLabel="Amount to receive in fiat"
               />
               <div className="space-y-2 px-1">
-                <Label htmlFor="receive-fiat-country">Country</Label>
-                <select
+                <Label id="receive-fiat-country-label" htmlFor="receive-fiat-country">
+                  Country
+                </Label>
+                <FlagSelect
                   id="receive-fiat-country"
+                  labelId="receive-fiat-country-label"
+                  items={fiatCountryFlagItems}
                   value={selectedCountryId}
-                  onChange={(e) => setSelectedCountryId(e.target.value)}
+                  onChange={setSelectedCountryId}
                   disabled={fiatCountriesLoading}
-                  className={cn(
-                    "flex h-12 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground ring-offset-background",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                    "disabled:cursor-not-allowed disabled:opacity-50"
-                  )}
-                >
-                  <option value="">
-                    {fiatCountriesLoading ? "Loading countries…" : "Select country"}
-                  </option>
-                  {fiatCountries.map((country) => (
-                    <option key={country.id} value={country.id}>
-                      {country.name} ({country.code}) — {country.currency}
-                    </option>
-                  ))}
-                </select>
+                  loading={fiatCountriesLoading}
+                  placeholder="Select country"
+                  loadingPlaceholder="Loading countries…"
+                />
                 {fiatCountriesError ? (
                   <p className="text-xs text-destructive">{fiatCountriesError}</p>
                 ) : null}
                 {selectedFiatCountry ? (
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-card-foreground/70">
                     Paystack settlement currency:{" "}
-                    <span className="font-medium text-foreground">
+                    <span className="font-medium text-card-foreground">
                       {selectedFiatCountry.currency}
                     </span>
                   </p>

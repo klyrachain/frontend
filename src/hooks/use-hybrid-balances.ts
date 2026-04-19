@@ -169,6 +169,8 @@ export function useHybridBalances({
   const [backendItems, setBackendItems] = useState<BalanceItem[]>([]);
   const [backendLoading, setBackendLoading] = useState(false);
   const [backendError, setBackendError] = useState<string | null>(null);
+  /** Dynamic multichain fetch can hang; stop blocking UI after a grace period. */
+  const [dynamicGraceExpired, setDynamicGraceExpired] = useState(false);
 
   useEffect(() => {
     if (!walletSig) {
@@ -228,6 +230,15 @@ export function useHybridBalances({
     enabled: walletSig.length > 0,
   });
 
+  useEffect(() => {
+    if (!dynamic.loading) {
+      setDynamicGraceExpired(false);
+      return;
+    }
+    const t = window.setTimeout(() => setDynamicGraceExpired(true), 12_000);
+    return () => window.clearTimeout(t);
+  }, [dynamic.loading]);
+
   const items = useMemo(
     () => mergeBalanceItems(backendItems, dynamic.items),
     [backendItems, dynamic.items]
@@ -245,9 +256,11 @@ export function useHybridBalances({
     console.debug("[balances] hybrid source counts", sourceCounts);
   }, [walletSig, items]);
 
+  const dynamicBlocksUi = dynamic.loading && !dynamicGraceExpired;
+
   return {
     items,
-    loading: backendLoading || dynamic.loading,
+    loading: backendLoading || dynamicBlocksUi,
     error: backendError ?? dynamic.error,
   };
 }

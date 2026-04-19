@@ -21,6 +21,7 @@ import { CHAINS, TOKENS } from "@/config/chainsAndTokens";
 import { buildSuggestedTokenSelections } from "@/lib/flowTokens";
 import { useClientMounted } from "@/hooks/use-client-mounted";
 import type { PublicCommercePaymentLink } from "@/types/checkout-public.types";
+import { FlowsWalletHeaderAction } from "@/app/(flows)/FlowsWalletHeaderAction";
 
 const SuggestedTokensRow = dynamic(
   () =>
@@ -460,8 +461,9 @@ export function PayContainer() {
         </p>
       ) : null}
       <article className="glass-card overflow-hidden p-2 shadow-xl shrink-0 min-w-0 transition-all duration-300 ease-out h-fit">
-        <header className="mb-6 pl-2">
-          <h1 className="text-2xl text-primary font-semibold">I want to send</h1>
+        <header className="mb-6 flex flex-row items-center justify-between gap-3 pl-2">
+          <h1 className="text-2xl font-semibold text-card-foreground">I want to send</h1>
+          <FlowsWalletHeaderAction />
         </header>
 
         <section className="flex flex-col gap-2">
@@ -492,7 +494,7 @@ export function PayContainer() {
                 value={fiatCurrencyInput}
                 onChange={(e) => setFiatCurrencyInput(e.target.value)}
                 placeholder="GHS, NGN, …"
-                className="rounded-xl"
+                className="rounded-xl bg-card text-card-foreground placeholder:text-muted-foreground"
                 autoCapitalize="characters"
               />
             </div>

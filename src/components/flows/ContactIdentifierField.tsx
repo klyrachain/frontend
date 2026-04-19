@@ -24,12 +24,12 @@ export function ContactIdentifierField({
   return (
     <div className="rounded-xl border border-border bg-muted/10 p-4">
       <p
-        className={`text-xs text-muted-foreground ${hasDescription ? "mb-1" : "mb-2"}`}
+        className={`text-xs text-card-foreground/70 ${hasDescription ? "mb-1" : "mb-2"}`}
       >
         {label}
       </p>
       {hasDescription && (
-        <p className="mb-3 text-sm text-muted-foreground">{description}</p>
+        <p className="mb-3 text-sm text-card-foreground/70">{description}</p>
       )}
       <ContactIdentifierInput
         value={value}

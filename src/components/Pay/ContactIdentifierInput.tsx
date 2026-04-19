@@ -39,7 +39,7 @@ export function ContactIdentifierInput({
     <div className="relative flex items-center">
       {showIcon && (
         <span
-          className="pointer-events-none absolute left-3 flex shrink-0 text-muted-foreground"
+          className="pointer-events-none absolute left-3 flex shrink-0 text-card-foreground/55"
           aria-hidden
         >
           {type === "email" && <Mail className="size-5" />}
@@ -53,7 +53,7 @@ export function ContactIdentifierInput({
         placeholder={placeholder}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className={`h-12 border-0 shadow-none font-medium focus-visible:ring-0 text-3xl text-black ${showIcon ? "pl-10" : ""}`}
+        className={`h-12 border-0 bg-transparent shadow-none font-medium text-3xl text-card-foreground placeholder:text-muted-foreground focus-visible:ring-0 ${showIcon ? "pl-10" : ""}`}
         aria-label={ariaLabel}
       />
     </div>

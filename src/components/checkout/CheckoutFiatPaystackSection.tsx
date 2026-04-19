@@ -55,7 +55,7 @@ export function CheckoutFiatPaystackSection({
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         disabled={disabled || loading}
-        className="border-white/15 bg-background/40"
+        className="border-border bg-card/90 text-card-foreground placeholder:text-muted-foreground"
       />
       {error ? (
         <p className="text-xs text-destructive" role="alert">

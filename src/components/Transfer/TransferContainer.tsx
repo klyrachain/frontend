@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useDeferredValue, useEffect } from "react";
 import Link from "next/link";
-import { useAccount } from "wagmi";
+import { usePrimaryEvmWallet } from "@/hooks/use-primary-evm-wallet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,12 +15,12 @@ import { CHAINS, TOKENS } from "@/config/chainsAndTokens";
 import { useTransferQuote } from "@/hooks/useTransferQuote";
 import { TransferTokenColumn, AmountField } from "@/components/flows";
 import { buildSuggestedTokenSelections } from "@/lib/flowTokens";
-import { DynamicConnectTrigger } from "@/components/DynamicWallet/DynamicConnectTrigger";
 import {
   getReceiveAccountSpec,
   isValidReceiveAddress,
 } from "@/lib/receiveAccountByChain";
 import { cn } from "@/lib/utils";
+import { FlowsWalletHeaderAction } from "@/app/(flows)/FlowsWalletHeaderAction";
 
 const PRICE_PREVIEW_DEFAULT = "≈ $0.00";
 
@@ -31,7 +31,7 @@ function shortAddr(a: string): string {
 }
 
 export function TransferContainer() {
-  const { address: evmAddress, isConnected } = useAccount();
+  const { address: evmAddress, isConnected } = usePrimaryEvmWallet();
   const [leftAmount, setLeftAmount] = useState("");
   const [leftSelection, setLeftSelection] = useState<TokenSelection | null>(null);
   const [rightSelection, setRightSelection] = useState<TokenSelection | null>(null);
@@ -42,8 +42,6 @@ export function TransferContainer() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [intentLoading, setIntentLoading] = useState(false);
   const [intentMessage, setIntentMessage] = useState<string | null>(null);
-  /** Avoid SSR/client mismatch: `useAccount().isConnected` differs after hydration. */
-  const [walletCtaReady, setWalletCtaReady] = useState(false);
 
   const usedEntries = useAppSelector((s) => s.usedTokens.entries);
   const deferredUsedEntries = useDeferredValue(usedEntries);
@@ -64,10 +62,6 @@ export function TransferContainer() {
       rightSelection.chain.name
     );
   }, [rightSelection]);
-
-  useEffect(() => {
-    setWalletCtaReady(true);
-  }, []);
 
   useEffect(() => {
     setReceiverAddress("");
@@ -185,27 +179,20 @@ export function TransferContainer() {
     <div className="flex flex-col duration-300 ease-out relative w-full items-center justify-center">
       <article className="glass-card overflow-hidden p-2 shadow-xl shrink-0 min-w-0 transition-all duration-300 ease-out h-fit">
         <header className="mb-6 flex flex-row items-center justify-between gap-2 pl-2">
-          <h3 className="text-xl text-primary font-semibold">Transfer</h3>
-          <div className="flex shrink-0 items-center gap-1 sm:gap-2">
-            <DynamicConnectTrigger
-              variant="outline"
-              size="sm"
-              className="rounded-full px-3 text-xs sm:text-sm"
-              label={
-                walletCtaReady && isConnected ? "Wallet" : "Connect"
-              }
-            />
-            <div className="relative">
+          <h3 className="text-xl font-semibold text-card-foreground">Transfer</h3>
+          <div className="flex shrink-0 items-center gap-2">
+            <FlowsWalletHeaderAction />
+            <div className="relative shrink-0">
               <Button
                 type="button"
-                variant="ghost"
+                variant="outline"
                 size="icon"
                 onClick={() => setSettingsOpen((o) => !o)}
-                className="cursor-pointer rounded-full"
+                className="cursor-pointer rounded-full border-border bg-card text-card-foreground shadow-sm hover:bg-muted"
                 aria-label="Settings"
                 aria-expanded={settingsOpen}
               >
-                <Settings className="size-5" />
+                <Settings className="size-5" aria-hidden />
               </Button>
               {settingsOpen ? (
                 <>
@@ -216,10 +203,10 @@ export function TransferContainer() {
                     onClick={() => setSettingsOpen(false)}
                   />
                   <div
-                    className="absolute right-0 top-full z-50 mt-1 min-w-[11rem] rounded-lg border border-border bg-popover p-1 text-sm shadow-md"
+                    className="absolute right-0 top-full z-50 mt-1 min-w-44 rounded-lg border border-border bg-popover p-1 text-sm shadow-md"
                     role="menu"
                   >
-                    <p className="px-2 py-1.5 text-xs text-muted-foreground">Preferences</p>
+                    <p className="px-2 py-1.5 text-xs text-card-foreground/70">Preferences</p>
                     <button
                       type="button"
                       className="w-full rounded-md px-2 py-1.5 text-left text-muted-foreground hover:bg-muted"
@@ -257,10 +244,10 @@ export function TransferContainer() {
             <div className="absolute left-1/2 top-1/2 z-10 -my-1 flex -translate-x-1/2 -translate-y-1/2 justify-center">
               <button
                 type="button"
-                className="rounded-full border-2 border-card bg-card p-2 shadow-md transition-colors hover:bg-muted"
+                className="rounded-full border-2 border-card bg-card p-[0.45rem] shadow-md transition-colors hover:bg-muted"
                 aria-label="Swap direction"
               >
-                <ArrowRight className="size-5 text-muted-foreground" />
+                <ArrowRight className="size-[1.1875rem] shrink-0 text-muted-foreground" />
               </button>
             </div>
 
@@ -287,7 +274,7 @@ export function TransferContainer() {
 
           {rightSelection && receiveSpec ? (
             <div className="space-y-2 rounded-xl border border-border/60 bg-muted/20 px-3 py-3">
-              <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              <Label className="text-xs font-semibold uppercase tracking-wide text-card-foreground/70">
                 Receiver
               </Label>
               <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
@@ -300,7 +287,7 @@ export function TransferContainer() {
                   placeholder={receiveSpec.inputPlaceholder}
                   aria-invalid={recipientError && !receiverValid}
                   className={cn(
-                    "font-mono text-sm sm:min-w-0 sm:flex-1",
+                    "bg-card font-mono text-sm text-card-foreground placeholder:text-muted-foreground sm:min-w-0 sm:flex-1",
                     ((recipientError && !receiverValid) ||
                       (trimmedReceiver !== "" &&
                         !isValidReceiveAddress(trimmedReceiver, receiveSpec.format))) &&
@@ -311,7 +298,7 @@ export function TransferContainer() {
                 {receiveSpec.format === "evm" ? (
                   <Button
                     type="button"
-                    variant="outline"
+                    variant="default"
                     size="sm"
                     className="shrink-0 whitespace-nowrap"
                     onClick={handleUseConnectedWallet}
@@ -328,20 +315,20 @@ export function TransferContainer() {
                     : "Enter a valid address for this network."}
                 </p>
               ) : receiveSpec.helperText ? (
-                <p className="text-xs text-muted-foreground">{receiveSpec.helperText}</p>
+                <p className="text-xs text-card-foreground/70">{receiveSpec.helperText}</p>
               ) : null}
             </div>
           ) : null}
 
           {intentMessage ? (
-            <p className="rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-xs text-muted-foreground">
+            <p className="rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-xs text-card-foreground/75">
               {intentMessage}
             </p>
           ) : null}
 
           <Button
             size="lg"
-            className="w-full rounded-xl py-6 text-base font-semibold bg-black"
+            className="w-full rounded-xl py-6 text-base font-semibold"
             disabled={intentLoading || !leftSelection || !rightSelection || !outputAmount}
             onClick={() => void handleConfirm()}
           >

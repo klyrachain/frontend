@@ -9,6 +9,7 @@ import { klyraDynamicEvmNetworks, klyraEvmChains } from "@/lib/dynamic/evm-chain
 import { getWalletConnectors } from "@/lib/dynamic/wallet-connectors";
 import { getDynamicEnvironmentId } from "@/lib/dynamic/dynamic-app-config";
 import { DynamicDebugWalletList } from "@/components/DynamicWallet/DynamicDebugWalletList";
+import { DynamicWalletIdentityProvider } from "@/components/DynamicWallet/dynamic-wallet-identity-provider";
 
 type KlyraChain = (typeof klyraEvmChains)[number];
 
@@ -56,8 +57,10 @@ export function DynamicRootProvider({ children }: { children: ReactNode }) {
       <WagmiProvider config={wagmiConfig}>
         <QueryClientProvider client={queryClient}>
           <DynamicWagmiConnector>
-            {children}
-            <DynamicDebugWalletList />
+            <DynamicWalletIdentityProvider>
+              {children}
+              <DynamicDebugWalletList />
+            </DynamicWalletIdentityProvider>
           </DynamicWagmiConnector>
         </QueryClientProvider>
       </WagmiProvider>

@@ -27,7 +27,7 @@ export function FlowsNav() {
               "rounded-lg px-4 py-2 text-sm font-medium transition-colors",
               isActive
                 ? "bg-primary text-primary-foreground shadow-sm"
-                : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                : "border border-transparent bg-transparent text-card-foreground/90 hover:border-border hover:bg-muted/70 hover:text-card-foreground"
             )}
           >
             {label}

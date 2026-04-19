@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useAccount, useDisconnect } from "wagmi";
-import { DynamicConnectButton } from "@dynamic-labs/sdk-react-core";
+import { useDisconnect } from "wagmi";
+import { DynamicConnectButton, useDynamicContext } from "@dynamic-labs/sdk-react-core";
+import { usePrimaryEvmWallet } from "@/hooks/use-primary-evm-wallet";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { getDynamicEnvironmentId } from "@/lib/dynamic/dynamic-app-config";
@@ -33,8 +34,9 @@ function CheckoutWalletHeaderInner() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const { address, isConnected } = useAccount();
+  const { address, isConnected } = usePrimaryEvmWallet();
   const { disconnect } = useDisconnect();
+  const { handleLogOut } = useDynamicContext();
   const walletInUrl = searchParams.get("wallet")?.trim() ?? "";
   const menuRef = useRef<HTMLDivElement | null>(null);
   const [copyStatus, setCopyStatus] = useState<"idle" | "copied">("idle");
@@ -108,7 +110,7 @@ function CheckoutWalletHeaderInner() {
         type="button"
         size="sm"
         variant="outline"
-        className="rounded-xl border-white/15 bg-background/40 text-xs tabular-nums"
+        className="rounded-xl border-border bg-background text-xs font-medium tabular-nums text-foreground shadow-sm hover:bg-muted/80"
         aria-haspopup="menu"
         aria-expanded={menuOpen}
         aria-label="Wallet menu"
@@ -161,8 +163,20 @@ function CheckoutWalletHeaderInner() {
           size="sm"
           className="h-9 w-full justify-start rounded-lg text-xs text-destructive hover:text-destructive"
           onClick={() => {
-            disconnect();
-            setMenuOpen(false);
+            void (async () => {
+              try {
+                await handleLogOut();
+              } catch {
+                /* still try wagmi */
+              }
+              try {
+                disconnect();
+              } catch {
+                /* noop */
+              }
+              syncWalletQuery(undefined);
+              setMenuOpen(false);
+            })();
           }}
         >
           Disconnect

@@ -5,26 +5,26 @@
 - ✅ #Frontend Signup & Signin process is flawless (passkey, magic link, password )
 - ✅ #Frontend Payment link working... 
 - #Frontend Chain is Required for ONRAMP
-- #Frontend  Change "Prepare on-chain payment"  -> "Confirm Payment" -> with a bigger button
+- ✅ #Frontend  Change "Prepare on-chain payment"  -> "Confirm Payment" -> with a bigger button
 - #Frontend  After continue to Pay, a new tab showing "Pay with your wallet"  
-- #Frontend  Checkout Disconnect wallet not working.
-- #Frontend Balance never finish loading.
+- ✅ #Frontend  Checkout Disconnect wallet not working.
+- ✅ #Frontend Balance never finish loading.
 - #Frontend RECEIVER: Payer transfers from his wallet instead of transferring to his own wallet 
-- #Frontend Placeholder too LARGE, input text proportionally small
-- #Frontend Placeholder & input text color not visible
+- ✅ #Frontend Placeholder too LARGE, input text proportionally small
+- ✅ #Frontend Placeholder & input text color not visible
 - #Frontend Generate link, no need for user to select Send link options. 
 - #Frontend bottom sheet border needs to be removed. 
-- #Frontend Select token modal too big for desktop screen. (*max width:* )
+- ✅ #Frontend Select token modal too big for desktop screen. (*max width:* )
 - #Frontend Fiat tab revamp
 - #Frontend Close Button for bottom sheet not working. 
 - #Frontend Preparing an onchain transaction & Sign & Send to pool -> can be one process (one button click). 
-- #LightMode #Frontend. Balance, Chain name, and amount text color in light mode not visible.
-- Wallet name, and actions not visible
+- ✅ #LightMode #Frontend. Balance, Chain name, and amount text color in light mode not visible.
+- ✅ Wallet name, and actions not visible
 - Price to company name not visible
-- Transfer page amount, Receiver, 
-- #Frontend "More tokens" button hover color doesn't follow page format
+- ✅ Transfer page amount, Receiver, 
+- ✅ #Frontend "More tokens" button hover color doesn't follow page format
 - #Frontend Chain listing in select token modal should be a horizontal scroll only. 
-- #LightMode #Frontend Selected text on "Receive" page's "I want to receive" not visible. 
+- ✅ #LightMode #Frontend Selected text on "Receive" page's "I want to receive" not visible. 
 - #BusinessPage Settlement / Payout page not loading. 
 - #BusinessPage  Merchant API mode (Test, live) toggle is confusing to me. 
 - #BusinessPage NO Notification page 

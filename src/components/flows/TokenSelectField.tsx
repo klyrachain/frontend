@@ -25,7 +25,7 @@ export function TokenSelectField({
 
   return (
     <div className="rounded-xl border border-border bg-muted/30 p-4">
-      <p className="mb-2 text-xs text-muted-foreground">{label}</p>
+      <p className="mb-2 text-xs text-card-foreground/70">{label}</p>
       <button
         type="button"
         onClick={onOpenSelect}
@@ -46,12 +46,12 @@ export function TokenSelectField({
             <span className="min-w-0 truncate font-medium text-primary">
               {selection.token.name}
             </span>
-            <span className="shrink-0 text-xs text-primary">
+            <span className="shrink-0 text-xs font-medium text-card-foreground/90">
               {selection.chain.name}
             </span>
           </>
         ) : (
-          <span className="text-muted-foreground">{emptyLabel}</span>
+          <span className="text-card-foreground/60">{emptyLabel}</span>
         )}
       </button>
     </div>

@@ -26,13 +26,13 @@ export function AmountField({
 }: AmountFieldProps) {
   const inputClass =
     variant === "transfer"
-      ? "input-text h-12 max-w-full border-0 shadow-none text-[var(--text-3xl-size)] font-medium focus-visible:ring-0"
+      ? "input-amount-transfer h-12 max-w-full border-0 shadow-none !text-card-foreground placeholder:text-muted-foreground focus-visible:ring-0 md:text-[2.5rem] md:leading-none"
       : "input-text h-12 border-0 shadow-none text-[var(--text-3xl-size)] font-medium focus-visible:ring-0";
 
   return (
     <div className="rounded-xl border border-border bg-muted/10 p-4">
-      <p className="mb-2 text-xs text-muted-foreground">{label}</p>
-      <div className="flex items-center justify-between gap-2 text-foreground">
+      <p className="mb-2 text-xs text-card-foreground/70">{label}</p>
+      <div className="flex items-center justify-between gap-2 text-card-foreground">
         <Input
           type="text"
           inputMode="decimal"
@@ -47,7 +47,7 @@ export function AmountField({
         />
       </div>
       {footer != null && footer !== "" && (
-        <div className="mt-2 text-sm text-muted-foreground">{footer}</div>
+        <div className="mt-2 text-sm text-card-foreground/70">{footer}</div>
       )}
     </div>
   );

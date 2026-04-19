@@ -24,7 +24,7 @@ const MODAL_MAX_HEIGHT_CLASS = "max-h-[85vh]";
 
 /** Desktop: center in viewport (base DialogContent is centered; these overrides previously used top-4, which hugged the top). */
 const DESKTOP_MODAL_CLASSES =
-  "sm:fixed sm:inset-auto sm:left-1/2 sm:top-1/2 sm:w-full sm:max-w-[var(--modal-width)] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:data-[state=open]:zoom-in-95";
+  "sm:fixed sm:inset-auto sm:left-1/2 sm:top-1/2 sm:w-full sm:max-w-[min(36rem,calc(100vw-2rem))] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:data-[state=open]:zoom-in-95";
 const DRAG_CLOSE_THRESHOLD_PX = 80;
 
 interface TransferSelectModalProps {
