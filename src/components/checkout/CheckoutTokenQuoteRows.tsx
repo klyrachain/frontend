@@ -5,7 +5,6 @@ import { useSearchParams } from "next/navigation";
 import { useAccount, useSwitchChain } from "wagmi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ChevronDown } from "lucide-react";
 import { initializePaystackCheckout } from "@/lib/paystack-checkout";
 import type { AggregateAllocation } from "@/lib/aggregate-payment-plan";
 import type { OnrampDestination } from "@/components/Transfer/TransferOnrampTab";
@@ -16,6 +15,7 @@ import {
 import { useCheckoutBalances } from "@/hooks/use-checkout-balances";
 import { useGetChainsQuery, useGetTokensQuery } from "@/store/api/squidApi";
 import { TransferSelectModal } from "@/components/Transfer/TransferSelectModal";
+import { FlagSelect } from "@/components/flows";
 import type { Chain, Token } from "@/types/token";
 import { getChainById as getStaticChainById } from "@/config/chainsAndTokens";
 import { DEFAULT_CHECKOUT_ROW_SPECS } from "@/types/checkout-row-spec";
@@ -414,11 +414,14 @@ export function CheckoutTokenQuoteRows({
           )
         );
         if (availableCurrencies.length === 0) return;
-        if (invoiceCurrencyUpper && availableCurrencies.includes(invoiceCurrencyUpper)) {
-          setSelectedFiatCurrency(invoiceCurrencyUpper);
-          return;
-        }
-        setSelectedFiatCurrency((prev) => (prev ? prev : availableCurrencies[0]));
+        const selectable =
+          chargeKindNormalized === "FIAT" && invoiceCurrencyUpper
+            ? availableCurrencies.filter((c) => c !== invoiceCurrencyUpper)
+            : availableCurrencies;
+        if (selectable.length === 0) return;
+        setSelectedFiatCurrency((prev) =>
+          prev && selectable.includes(prev) ? prev : selectable[0]
+        );
       } catch {
         if (!cancelled) {
           setFiatQuoteError("Unable to load fiat currencies right now.");
@@ -432,14 +435,32 @@ export function CheckoutTokenQuoteRows({
   }, [enabled, payPageId, paystackCountries.length, invoiceCurrencyUpper]);
 
   const fiatCurrencyOptions = useMemo(() => {
-    return Array.from(
+    const raw = Array.from(
       new Set(
         paystackCountries
           .map((country) => country.currency?.trim().toUpperCase())
           .filter((currency) => currency && currency.length === 3)
       )
     );
-  }, [paystackCountries]);
+    /** Fiat-denominated invoice: payer must use a **different** fiat than the invoice (no same-currency fiat-to-fiat). */
+    if (chargeKindNormalized === "FIAT" && invoiceCurrencyUpper) {
+      return raw.filter((c) => c !== invoiceCurrencyUpper);
+    }
+    return raw;
+  }, [paystackCountries, chargeKindNormalized, invoiceCurrencyUpper]);
+
+  const fiatCurrencyFlagItems = useMemo(() => {
+    return fiatCurrencyOptions.map((currency) => {
+      const country = paystackCountries.find(
+        (c) => c.currency?.trim().toUpperCase() === currency
+      );
+      return {
+        value: currency,
+        label: country ? `${currency} · ${country.name}` : currency,
+        flagCode: country?.code?.trim() ?? "",
+      };
+    });
+  }, [fiatCurrencyOptions, paystackCountries]);
 
   useEffect(() => {
     if (!selectedFiatCurrency) return;
@@ -450,15 +471,49 @@ export function CheckoutTokenQuoteRows({
       setFiatQuoteError(null);
       setFiatQuoteAmount("");
       if (chargeKindNormalized === "FIAT") {
-        if (selectedFiatCurrency === invoiceCurrencyUpper) {
-          setFiatQuoteAmount(fiatAmount);
+        if (!selectedFiatCurrency || selectedFiatCurrency === invoiceCurrencyUpper) {
+          setFiatQuoteError(
+            "Choose a payer currency different from the invoice currency. Same-currency fiat checkout is not available here."
+          );
           setFiatQuoteLoading(false);
           return;
         }
-        setFiatQuoteError(
-          `Selected currency ${selectedFiatCurrency} is not supported for this fiat link.`
-        );
-        setFiatQuoteLoading(false);
+        try {
+          const res = await fetch("/api/core/v1/quotes", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              action: "ONRAMP",
+              inputAmount: fiatAmount,
+              inputCurrency: selectedFiatCurrency,
+              outputCurrency: "USDC",
+              inputSide: "to",
+              chain: quoteChainForFiat,
+            }),
+          });
+          const json = (await res.json().catch(() => ({}))) as {
+            success?: boolean;
+            data?: { input?: { amount?: string } };
+            error?: string;
+          };
+          if (cancelled) return;
+          if (!res.ok || json.success !== true) {
+            setFiatQuoteError(json.error ?? "Unable to quote this currency pair right now.");
+            return;
+          }
+          const quoted = json.data?.input?.amount?.trim() ?? "";
+          if (!quoted) {
+            setFiatQuoteError("Fiat quote was empty. Try another currency.");
+            return;
+          }
+          setFiatQuoteAmount(quoted);
+        } catch {
+          if (!cancelled) {
+            setFiatQuoteError("Unable to fetch fiat quote right now.");
+          }
+        } finally {
+          if (!cancelled) setFiatQuoteLoading(false);
+        }
         return;
       }
       try {
@@ -590,11 +645,17 @@ export function CheckoutTokenQuoteRows({
     chargeKindNormalized,
     fiatAmount,
     connectedEvmAddress,
+    evmFromAddress,
   ]);
 
   const handleContinue = useCallback(async () => {
     setPaymentError(null);
-    if (paymentFlow === "morapay") {
+    if (
+      paymentFlow === "morapay" ||
+      (paymentFlow === "onramp" &&
+        onrampDestination === "pay-business" &&
+        chargeKindNormalized === "FIAT")
+    ) {
       await submitMorapay();
       return;
     }
@@ -669,35 +730,27 @@ export function CheckoutTokenQuoteRows({
   const morapayFields = (idSuffix: string) => (
     <div className="mt-3 space-y-2 text-left">
       <label
+        id={`checkout-fiat-currency-label-${idSuffix}`}
         htmlFor={`checkout-fiat-currency-${idSuffix}`}
-        className="text-xs text-muted-foreground"
+        className="text-xs text-card-foreground/70"
       >
         Currency
       </label>
-      <div className="relative">
-        <select
-          id={`checkout-fiat-currency-${idSuffix}`}
-          value={selectedFiatCurrency}
-          onChange={(e) =>
-            setSelectedFiatCurrency(e.target.value.trim().toUpperCase())
-          }
-          disabled={morapayLoading || fiatCurrencyOptions.length === 0}
-          className="h-10 w-full appearance-none rounded-md border border-white/15 bg-background/40 px-3 pr-10 text-sm"
-        >
-          <option value="">Select currency</option>
-          {fiatCurrencyOptions.map((currencyOption) => (
-            <option key={currencyOption} value={currencyOption}>
-              {currencyOption}
-            </option>
-          ))}
-        </select>
-        <ChevronDown className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-      </div>
+      <FlagSelect
+        id={`checkout-fiat-currency-${idSuffix}`}
+        labelId={`checkout-fiat-currency-label-${idSuffix}`}
+        items={fiatCurrencyFlagItems}
+        value={selectedFiatCurrency}
+        onChange={(v) => setSelectedFiatCurrency(v.trim().toUpperCase())}
+        disabled={morapayLoading || fiatCurrencyOptions.length === 0}
+        placeholder="Select currency"
+        className="[&_button]:h-10 [&_button]:rounded-md"
+      />
       {fiatQuoteLoading ? (
-        <p className="text-xs text-muted-foreground">Fetching quote…</p>
+        <p className="text-xs text-card-foreground/70">Fetching quote…</p>
       ) : null}
       {!fiatQuoteLoading && fiatQuoteAmount ? (
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs text-card-foreground/70">
           You will pay about {fiatQuoteAmount} {selectedFiatCurrency}.
         </p>
       ) : null}
@@ -713,7 +766,7 @@ export function CheckoutTokenQuoteRows({
         value={morapayEmail}
         onChange={(e) => setMorapayEmail(e.target.value)}
         disabled={morapayLoading}
-        className="border-white/15 bg-background/40"
+        className="border-border bg-card/90 text-card-foreground placeholder:text-muted-foreground"
       />
       {morapayError ? (
         <p className="text-xs text-destructive" role="alert">
@@ -733,8 +786,15 @@ export function CheckoutTokenQuoteRows({
     payPageId?.trim() && chargeKindNormalized === "CRYPTO";
   const showCryptoFiatFields =
     paymentFlow === "morapay" && fiatExpanded;
+  /** Fiat invoice + “settle through business checkout”: same payer fields as card/MoMo, without the crypto collapsible. */
+  const showFiatOnrampBusinessFields =
+    chargeKindNormalized === "FIAT" &&
+    !!payPageId?.trim() &&
+    paymentFlow === "onramp" &&
+    onrampDestination === "pay-business";
+  const showFiatPayerFields = showCryptoFiatFields || showFiatOnrampBusinessFields;
   const showBottomMorapayButton =
-    paymentFlow === "morapay" && fiatExpanded;
+    (paymentFlow === "morapay" && fiatExpanded) || showFiatOnrampBusinessFields;
 
   return (
     <>
@@ -776,7 +836,7 @@ export function CheckoutTokenQuoteRows({
           type="button"
           variant="outline"
           size="sm"
-          className="mt-2 w-full border-white/15"
+          className="mt-2 w-full border-border bg-card text-card-foreground hover:border-primary/40 hover:bg-muted/60"
           onClick={() => setModalOpen(true)}
         >
           More tokens
@@ -802,14 +862,7 @@ export function CheckoutTokenQuoteRows({
             </Button>
           </div>
         ) : null}
-        {showCryptoFiatFields ? morapayFields("crypto") : null}
-        {paymentFlow === "onramp" && onrampDestination ? (
-          <p className="mt-2 text-center text-xs text-muted-foreground">
-            {onrampDestination === "pay-business"
-              ? "Onramp selected: settle through business checkout."
-              : "Onramp selected: fund wallet first, then pay with your selected token."}
-          </p>
-        ) : null}
+        {showFiatPayerFields ? morapayFields(showFiatOnrampBusinessFields ? "fiat-onramp" : "crypto") : null}
         {paymentFlow === "aggregate" && aggregateAllocations?.length ? (
           <p className="mt-2 text-center text-xs text-muted-foreground">
             Aggregate split ready ({aggregateAllocations.length} legs). Wallet

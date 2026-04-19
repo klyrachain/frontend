@@ -33,8 +33,10 @@ export default function FlowsLayout({
             className="relative z-10 flex min-h-screen flex-col items-center justify-start bg-transparent pb-[var(--g10)] pt-8 sm:pt-12"
             aria-label="App flows"
           >
-            <div className="relative z-[1] mx-auto flex w-full max-w-6xl flex-col items-center gap-6 bg-transparent px-2 sm:px-4">
-              <FlowsNav />
+            <div className="relative z-[1] mx-auto flex w-full max-w-[83.16rem] flex-col items-center gap-6 bg-transparent px-1.5 sm:px-4">
+              <div className="flex w-full flex-wrap items-center justify-center gap-3">
+                <FlowsNav />
+              </div>
               <FlowsPagePopTransition>{children}</FlowsPagePopTransition>
             </div>
           </section>

@@ -35,7 +35,8 @@ const TAB_IDS = [
   "aggregate",
   "activities",
 ] as const;
-type TabId = (typeof TAB_IDS)[number];
+export type TransferSelectTabId = (typeof TAB_IDS)[number];
+type TabId = TransferSelectTabId;
 
 const MODAL_TAB_CONTENT_BOX =
   "flex flex-1 flex-col overflow-hidden min-h-[50vh] max-h-[60vh]";
@@ -120,8 +121,14 @@ export interface TransferSelectPanelProps {
   priorityChainIds?: string[];
   /** When `resetKey` increments, tokens tab filters to this chain if present. */
   defaultChainFilterId?: string | null;
+  /** When set, switches the active tab (e.g. desktop wallet top-up split opens on Fiat). */
+  forcedActiveTab?: TabId | null;
   /** FIAT-denominated invoice: offramp Morapay is disabled; onramp is for buying crypto to pay. */
   invoiceChargeKind?: "FIAT" | "CRYPTO";
+  /** When true (e.g. fiat checkout), hide “Receive fiat” in the Fiat tab. */
+  hideReceiveFiat?: boolean;
+  /** Highlights / locks onramp rows (e.g. after choosing “Fund your wallet first” in split view). */
+  onrampLockedChoice?: OnrampDestination | null;
   onMorapayOfframpSelect?: () => void;
   onOnrampChoice?: (destination: OnrampDestination) => void;
   onAggregateApply?: (allocations: AggregateAllocation[]) => void;
@@ -214,7 +221,10 @@ export function TransferSelectPanel({
   layout,
   resetKey = 0,
   defaultChainFilterId = null,
+  forcedActiveTab = null,
   invoiceChargeKind = "FIAT",
+  hideReceiveFiat = false,
+  onrampLockedChoice = null,
   onMorapayOfframpSelect,
   onOnrampChoice,
   onAggregateApply,
@@ -240,6 +250,10 @@ export function TransferSelectPanel({
   useEffect(() => {
     if (resetKey > 0) resetUi();
   }, [resetKey, resetUi]);
+
+  useEffect(() => {
+    if (forcedActiveTab) setActiveTab(forcedActiveTab);
+  }, [forcedActiveTab]);
 
   const getChainById = useCallback(
     (chainId: string) =>
@@ -479,6 +493,8 @@ export function TransferSelectPanel({
         {activeTab === "fiat" && (
           <TransferFiatTab
             morapayEnabled={morapayEnabled}
+            hideReceiveFiat={hideReceiveFiat}
+            onrampLockedChoice={onrampLockedChoice}
             onOnrampChoice={(dest) => {
               onOnrampChoice?.(dest);
             }}

@@ -241,6 +241,7 @@ html[data-mono-font="ibmPlexMono"] {
 /* Bento card: opaque base for same look across browsers */
 .glass-card {
   background: oklch(0.98 0.002 286);
+  color: var(--card-foreground);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid oklch(0.92 0.004 286.32);
@@ -319,9 +320,31 @@ html[data-mono-font="ibmPlexMono"] {
   font-weight: var(--font-weight-medium);
   border: var(--border-0);
   /* background: var(--primary); */
-  color: var(--foreground);
+  color: var(--card-foreground);
   padding: var(--p-0);
   margin: var(--m-0);
+}
+
+/* Transfer / Pay amount: large typed value, smaller placeholder (light-mode readability). */
+.input-amount-transfer {
+  font-size: 2.5rem;
+  font-weight: var(--font-weight-medium);
+  border: var(--border-0);
+  color: var(--card-foreground);
+  padding: var(--p-0);
+  margin: var(--m-0);
+}
+.input-amount-transfer::placeholder {
+  font-size: 1.25rem;
+  line-height: 1.35;
+  font-weight: 500;
+  color: color-mix(in oklch, var(--card-foreground) 42%, transparent);
+}
+.input-amount-transfer:placeholder-shown {
+  font-size: 1.25rem;
+}
+.dark .input-amount-transfer::placeholder {
+  color: color-mix(in oklch, var(--card-foreground) 55%, transparent);
 }
 .modal-content {
   width: 100vw;

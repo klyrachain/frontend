@@ -9,14 +9,16 @@ export interface KlyraQuoteRequest {
   inputCurrency: string;
   outputCurrency: string;
   chain: string;
+  /** Destination chain for SWAP (defaults server-side to `chain`). */
+  toChain?: string;
   inputSide?: "from" | "to";
 }
 
 export interface KlyraQuoteResponse {
   quoteId?: string;
   exchangeRate?: number | string;
-  input?: { amount?: string; currency?: string };
-  output?: { amount?: string; currency?: string };
+  input?: { amount?: string; currency?: string; chain?: string };
+  output?: { amount?: string; currency?: string; chain?: string };
   fees?: unknown;
   expiresAt?: string;
   [key: string]: unknown;
@@ -39,6 +41,16 @@ export async function fetchKlyraQuote(
         ? (data as { error: string }).error
         : "Quote request failed";
     throw new Error(message);
+  }
+  if (
+    data &&
+    typeof data === "object" &&
+    (data as { success?: boolean }).success === true &&
+    "data" in data &&
+    (data as { data: unknown }).data != null &&
+    typeof (data as { data: unknown }).data === "object"
+  ) {
+    return (data as { data: KlyraQuoteResponse }).data;
   }
   return data as KlyraQuoteResponse;
 }

@@ -23,13 +23,13 @@ export function WalletReceiveField({
 }: WalletReceiveFieldProps) {
   return (
     <div className="rounded-xl border border-border bg-muted/10 p-4">
-      <p className="mb-2 text-xs text-muted-foreground">On this account</p>
-      <p id="receive-account-hint" className="mb-3 text-sm text-muted-foreground">
+      <p className="mb-2 text-xs text-card-foreground/70">On this account</p>
+      <p id="receive-account-hint" className="mb-3 text-sm text-card-foreground/70">
         {accountSpec.helperText}
       </p>
       <div className="relative flex items-center">
         <span
-          className="pointer-events-none absolute left-3 flex shrink-0 text-muted-foreground"
+          className="pointer-events-none absolute left-3 flex shrink-0 text-card-foreground/55"
           aria-hidden
         >
           <Wallet className="size-5" />
@@ -42,7 +42,7 @@ export function WalletReceiveField({
           placeholder={accountSpec.inputPlaceholder}
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="h-12 border-0 pl-10 font-mono text-3xl font-medium text-black shadow-none focus-visible:ring-0"
+          className="h-12 border-0 bg-transparent pl-10 font-mono text-3xl font-medium text-card-foreground placeholder:text-muted-foreground shadow-none focus-visible:ring-0"
           aria-label={`Your ${accountSpec.addressLabel} on ${chainDisplayName}`}
           aria-describedby="receive-account-hint"
         />
@@ -65,8 +65,8 @@ export function WalletReceiveFieldPlaceholder({
 }) {
   return (
     <div className="rounded-xl border border-border bg-muted/10 p-4">
-      <p className="mb-2 text-xs text-muted-foreground">On this account</p>
-      <p className="text-sm text-muted-foreground">{message}</p>
+      <p className="mb-2 text-xs text-card-foreground/70">On this account</p>
+      <p className="text-sm text-card-foreground/70">{message}</p>
     </div>
   );
 }

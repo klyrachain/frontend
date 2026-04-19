@@ -3,12 +3,18 @@
 import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import { parseUnits, type Address } from "viem";
-import { useAccount, useSwitchChain, useWriteContract } from "wagmi";
+import { useSwitchChain, useWriteContract } from "wagmi";
+import { usePrimaryEvmWallet } from "@/hooks/use-primary-evm-wallet";
 import { Button } from "@/components/ui/button";
 import type { CheckoutContinuePayload } from "@/components/checkout/CheckoutTokenQuoteRows";
 import type { PublicCommercePaymentLink } from "@/types/checkout-public.types";
 import { isNonEvmCheckoutChainId } from "@/lib/checkout-chain-family";
 import { DynamicConnectTrigger } from "@/components/DynamicWallet/DynamicConnectTrigger";
+import type { PaymentInstruction } from "@/types/payment-instruction";
+import {
+  isEvmErc20TransferInstruction,
+  normalizeToEvmInstruction,
+} from "@/types/payment-instruction";
 
 const erc20TransferAbi = [
   {
@@ -23,17 +29,10 @@ const erc20TransferAbi = [
   },
 ] as const;
 
-type CalldataPayload = {
-  toAddress: string;
-  chainId: number;
-  tokenAddress: string;
-  amount: string;
-  decimals: number;
-};
-
 type IntentSuccess = {
   transaction_id: string;
-  calldata: CalldataPayload;
+  calldata: PaymentInstruction;
+  next_step?: string;
 };
 
 export type CommerceCheckoutWalletPayProps = {
@@ -50,7 +49,7 @@ export function CommerceCheckoutWalletPay({
   payload,
   onClose,
 }: CommerceCheckoutWalletPayProps) {
-  const { address, isConnected, chainId } = useAccount();
+  const { address, isConnected, chainId } = usePrimaryEvmWallet();
   const { switchChainAsync } = useSwitchChain();
   const { writeContractAsync, isPending: isSending } = useWriteContract();
 
@@ -132,13 +131,16 @@ export function CommerceCheckoutWalletPay({
         "data" in json
           ? ((json as { data: IntentSuccess }).data ?? null)
           : null;
-      if (
-        !data?.transaction_id ||
-        !data.calldata?.toAddress ||
-        !data.calldata?.tokenAddress
-      ) {
+      if (!data?.transaction_id || !data.calldata) {
         setIntentError("Invalid response from payment service.");
         return;
+      }
+      if (isEvmErc20TransferInstruction(data.calldata)) {
+        const evm = normalizeToEvmInstruction(data.calldata);
+        if (!evm?.toAddress || !evm.tokenAddress) {
+          setIntentError("Invalid response from payment service.");
+          return;
+        }
       }
       setIntentResult(data);
     } catch {
@@ -160,7 +162,11 @@ export function CommerceCheckoutWalletPay({
   const sendToPool = useCallback(async () => {
     setSendError(null);
     if (!intentResult?.calldata || !address) return;
-    const cd = intentResult.calldata;
+    const cd = normalizeToEvmInstruction(intentResult.calldata);
+    if (!cd) {
+      setSendError("Wallet signing in checkout is only available for EVM ERC-20 instructions.");
+      return;
+    }
     const targetChain = cd.chainId;
     if (chainId != null && chainId !== targetChain && switchChainAsync) {
       try {
@@ -192,7 +198,7 @@ export function CommerceCheckoutWalletPay({
         className="mt-4 space-y-3 rounded-lg border border-primary/25 bg-primary/5 p-4 text-left text-sm"
         aria-label="Continue payment"
       >
-        <p className="font-medium text-foreground">Continue on Transfer</p>
+        <p className="font-medium text-card-foreground">Continue on Transfer</p>
         <p className="text-muted-foreground">
           {chargeUpper === "CRYPTO" && isTokenFlow
             ? "Crypto-denominated checkout uses card or mobile money from this page, or complete from the Transfer app. Wallet checkout here is only wired for fiat-denominated invoices (USD, EUR, …)."
@@ -234,17 +240,21 @@ export function CommerceCheckoutWalletPay({
       aria-label="Wallet payment"
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="font-medium text-foreground">Pay with your wallet</p>
+        <p className="font-medium text-card-foreground">Pay with your wallet</p>
         <DynamicConnectTrigger
           variant="outline"
           size="sm"
-          className="rounded-full text-xs"
-          label={isConnected ? "Wallet" : "Connect"}
+          className="rounded-full text-xs tabular-nums"
+          label={
+            isConnected && address
+              ? `${address.slice(0, 6)}…${address.slice(-4)}`
+              : "Connect"
+          }
         />
       </div>
       <p className="text-muted-foreground">
         Send{" "}
-        <span className="font-medium text-foreground">
+        <span className="font-medium text-card-foreground">
           {cryptoAmount || "—"} {cryptoSymbol}
         </span>{" "}
         for {commerce.amount} {commerce.currency}. This creates a linked order and pool
@@ -253,25 +263,42 @@ export function CommerceCheckoutWalletPay({
       {!intentResult ? (
         <Button
           type="button"
-          size="sm"
-          className="w-full sm:w-auto"
+          size="lg"
+          className="w-full rounded-xl py-6 text-base font-semibold"
           disabled={intentLoading || !cryptoAmount}
           onClick={() => void createIntent()}
         >
-          {intentLoading ? "Preparing…" : "Prepare on-chain payment"}
+          {intentLoading ? "Confirming…" : "Confirm Payment"}
         </Button>
+      ) : !isEvmErc20TransferInstruction(intentResult.calldata) ? (
+        <div className="space-y-2 rounded-md border border-amber-500/25 bg-amber-500/10 p-3 text-xs text-muted-foreground">
+          <p className="font-medium text-card-foreground">Instruction prepared (non-EVM)</p>
+          <p>
+            Kind:{" "}
+            <span className="font-mono text-card-foreground">
+              {(intentResult.calldata as { kind?: string }).kind ?? "unknown"}
+            </span>
+            . Sign in wallet from this screen is only wired for{" "}
+            <span className="font-medium text-card-foreground">evm_erc20_transfer</span>. Use the
+            Morapay Transfer app or your wallet for this chain, then confirm with your
+            operator flow if needed.
+          </p>
+          {intentResult.next_step ? (
+            <p className="text-[11px] leading-snug">{intentResult.next_step}</p>
+          ) : null}
+        </div>
       ) : (
         <div className="space-y-2">
           <p className="text-xs text-muted-foreground">
             Order{" "}
-            <span className="font-mono text-foreground">
+            <span className="font-mono text-card-foreground">
               {intentResult.transaction_id.slice(0, 8)}…
             </span>
           </p>
           <Button
             type="button"
-            size="sm"
-            className="w-full sm:w-auto"
+            size="lg"
+            className="w-full rounded-xl py-6 text-base font-semibold"
             disabled={isSending || !isConnected}
             onClick={() => void sendToPool()}
           >

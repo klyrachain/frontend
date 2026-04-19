@@ -48,7 +48,7 @@ export function TransferTokenColumn({
         side={side}
       />
       <div className="flex min-w-0 flex-1 flex-col gap-2 rounded-xl border border-border bg-muted/30 p-4">
-        <p className="text-xs text-muted-foreground">{label}</p>
+        <p className="text-xs font-medium text-card-foreground/70">{label}</p>
         <button
           type="button"
           className="flex cursor-pointer items-center justify-between gap-2 text-left"
@@ -74,17 +74,17 @@ export function TransferTokenColumn({
                 <span className="min-w-0 truncate font-medium text-primary">
                   {selection.token.name}
                 </span>
-                <span className="shrink-0 text-xs text-primary">
+                <span className="shrink-0 text-xs font-medium text-card-foreground/90">
                   {selection.chain.name}
                 </span>
               </>
             ) : (
-              <span className="text-muted-foreground">Select token</span>
+              <span className="text-card-foreground/55">Select token</span>
             )}
           </div>
         </button>
         {showFooter && pricePreview != null && pricePreview !== "" && (
-          <p className="text-xs text-muted-foreground">{pricePreview}</p>
+          <p className="text-xs text-card-foreground/65">{pricePreview}</p>
         )}
       </div>
     </div>

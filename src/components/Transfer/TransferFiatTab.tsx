@@ -1,13 +1,18 @@
 "use client";
 
-import { TransferOnrampTab } from "@/components/Transfer/TransferOnrampTab";
-import type { OnrampDestination } from "@/components/Transfer/TransferOnrampTab";
+import {
+  TransferOnrampTab,
+  type OnrampDestination,
+} from "@/components/Transfer/TransferOnrampTab";
 import { TransferOfframpTab } from "@/components/Transfer/TransferOfframpTab";
 
 export type TransferFiatTabProps = {
   morapayEnabled: boolean;
   onOnrampChoice: (destination: OnrampDestination) => void;
   onSelectMorapay: () => void;
+  /** Checkout (fiat-denominated links): hide receive/offramp — not applicable on that surface. */
+  hideReceiveFiat?: boolean;
+  onrampLockedChoice?: OnrampDestination | null;
 };
 
 /**
@@ -17,6 +22,8 @@ export function TransferFiatTab({
   morapayEnabled,
   onOnrampChoice,
   onSelectMorapay,
+  hideReceiveFiat = false,
+  onrampLockedChoice = null,
 }: TransferFiatTabProps) {
   return (
     <div
@@ -30,18 +37,23 @@ export function TransferFiatTab({
         <p className="text-sm text-muted-foreground">
           Onramp into crypto to complete checkout, or fund your wallet first.
         </p>
-        <TransferOnrampTab onChoose={onOnrampChoice} />
-      </section>
-      <section className="space-y-2 border-t border-border pt-6">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          Receive fiat
-        </h3>
-        <TransferOfframpTab
-          morapayEnabled={morapayEnabled}
-          onSelectMorapay={onSelectMorapay}
-          hideDescription
+        <TransferOnrampTab
+          onChoose={onOnrampChoice}
+          lockedChoice={onrampLockedChoice}
         />
       </section>
+      {!hideReceiveFiat ? (
+        <section className="space-y-2 border-t border-border pt-6">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Receive fiat
+          </h3>
+          <TransferOfframpTab
+            morapayEnabled={morapayEnabled}
+            onSelectMorapay={onSelectMorapay}
+            hideDescription
+          />
+        </section>
+      ) : null}
     </div>
   );
 }

@@ -72,7 +72,7 @@ export function SuggestedTokensRow({
           type="button"
           onClick={() => onSelect(sel)}
           aria-label={`Select ${sel.token.symbol} on ${sel.chain.shortName ?? sel.chain.name}`}
-          className="flex items-center gap-1.5 rounded-full border border-border bg-muted/30 text-sm font-medium text-foreground transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="flex items-center gap-1.5 rounded-full border border-border bg-muted/30 text-sm font-medium text-card-foreground transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <TokenAvatarWithFallback
             logoURI={sel.token.logoURI}
