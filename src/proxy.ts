@@ -32,7 +32,7 @@ function isAppPath(pathname: string): boolean {
   );
 }
 
-export function middleware(request: NextRequest) {
+export default function proxy(request: NextRequest) {
   const host = normalizeHost(request.headers.get("host") ?? "");
   const pathname = request.nextUrl.pathname;
   const webHost = getConfiguredWebHost();
