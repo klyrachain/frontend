@@ -2,6 +2,8 @@
 
 import { Mail, Phone, Wallet } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { FLOW_INPUT_TEXT } from "@/components/flows/flow-field-classes";
+import { cn } from "@/lib/utils";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MIN_PHONE_DIGITS = 7;
@@ -34,26 +36,24 @@ export function ContactIdentifierInput({
   ariaLabel: string;
 }) {
   const type = getContactIdentifierType(value);
-  const showIcon = type !== null;
   return (
-    <div className="relative flex items-center">
-      {showIcon && (
-        <span
-          className="pointer-events-none absolute left-3 flex shrink-0 text-card-foreground/55"
-          aria-hidden
-        >
-          {type === "email" && <Mail className="size-5" />}
-          {type === "phone" && <Phone className="size-5" />}
-          {type === "address" && <Wallet className="size-5" />}
-        </span>
-      )}
+    <div className="flex min-h-12 items-center gap-2">
+      <span
+        className="flex size-5 shrink-0 items-center justify-center text-card-foreground/55"
+        aria-hidden
+      >
+        {type === "email" && <Mail className="size-5" />}
+        {type === "phone" && <Phone className="size-5" />}
+        {type === "address" && <Wallet className="size-5" />}
+        {type === null ? <span className="size-5" /> : null}
+      </span>
       <Input
         type="text"
         inputMode="text"
         placeholder={placeholder}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className={`h-12 border-0 bg-transparent shadow-none font-medium text-3xl text-card-foreground placeholder:text-muted-foreground focus-visible:ring-0 ${showIcon ? "pl-10" : ""}`}
+        className={cn(FLOW_INPUT_TEXT, "flex-1")}
         aria-label={ariaLabel}
       />
     </div>

@@ -55,6 +55,11 @@ function chainIdLooksEvm(chainId: string): boolean {
   return false;
 }
 
+/** True when `chainId` is treated as an EVM settlement chain (same rules as receive-address hints). */
+export function isEvmChainId(chainId: string): boolean {
+  return chainIdLooksEvm(chainId);
+}
+
 export function getReceiveAccountSpec(
   chainId: string,
   chainDisplayName: string

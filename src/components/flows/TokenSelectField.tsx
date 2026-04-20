@@ -2,6 +2,11 @@
 
 import type { TokenSelection } from "@/components/Exchange/TokenChainSelectModal";
 import { TokenAvatarWithFallback } from "@/components/Token/TokenAvatarWithFallback";
+import {
+  FLOW_FIELD_SHELL,
+  FLOW_FIELD_LABEL,
+  FLOW_TOKEN_TRIGGER,
+} from "@/components/flows/flow-field-classes";
 
 export interface TokenSelectFieldProps {
   label: string;
@@ -24,12 +29,12 @@ export function TokenSelectField({
     : (selectAriaLabel ?? emptyLabel);
 
   return (
-    <div className="rounded-xl border border-border bg-muted/30 p-4">
-      <p className="mb-2 text-xs text-card-foreground/70">{label}</p>
+    <div className={FLOW_FIELD_SHELL}>
+      <p className={FLOW_FIELD_LABEL}>{label}</p>
       <button
         type="button"
         onClick={onOpenSelect}
-        className="flex w-full cursor-pointer items-center gap-2 rounded-lg text-left transition-colors hover:bg-muted/50"
+        className={FLOW_TOKEN_TRIGGER}
         aria-label={ariaLabel}
       >
         {selection ? (

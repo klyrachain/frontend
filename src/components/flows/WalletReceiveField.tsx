@@ -3,6 +3,12 @@
 import { Input } from "@/components/ui/input";
 import { Wallet } from "lucide-react";
 import type { ReceiveAccountSpec } from "@/lib/receiveAccountByChain";
+import {
+  FLOW_FIELD_SHELL,
+  FLOW_FIELD_LABEL,
+  FLOW_INPUT_MONO,
+} from "@/components/flows/flow-field-classes";
+import { cn } from "@/lib/utils";
 
 export interface WalletReceiveFieldProps {
   chainDisplayName: string;
@@ -22,14 +28,14 @@ export function WalletReceiveField({
   showError,
 }: WalletReceiveFieldProps) {
   return (
-    <div className="rounded-xl border border-border bg-muted/10 p-4">
-      <p className="mb-2 text-xs text-card-foreground/70">On this account</p>
+    <div className={FLOW_FIELD_SHELL}>
+      <p className={FLOW_FIELD_LABEL}>On this account</p>
       <p id="receive-account-hint" className="mb-3 text-sm text-card-foreground/70">
         {accountSpec.helperText}
       </p>
-      <div className="relative flex items-center">
+      <div className="flex min-h-12 items-center gap-2">
         <span
-          className="pointer-events-none absolute left-3 flex shrink-0 text-card-foreground/55"
+          className="flex size-5 shrink-0 items-center justify-center text-card-foreground/55"
           aria-hidden
         >
           <Wallet className="size-5" />
@@ -42,7 +48,11 @@ export function WalletReceiveField({
           placeholder={accountSpec.inputPlaceholder}
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="h-12 border-0 bg-transparent pl-10 font-mono text-3xl font-medium text-card-foreground placeholder:text-muted-foreground shadow-none focus-visible:ring-0"
+          className={cn(
+            FLOW_INPUT_MONO,
+            "flex-1",
+            showError && value.trim().length > 0 && !addressValid && "ring-2 ring-destructive/60"
+          )}
           aria-label={`Your ${accountSpec.addressLabel} on ${chainDisplayName}`}
           aria-describedby="receive-account-hint"
         />
@@ -64,8 +74,8 @@ export function WalletReceiveFieldPlaceholder({
   message: string;
 }) {
   return (
-    <div className="rounded-xl border border-border bg-muted/10 p-4">
-      <p className="mb-2 text-xs text-card-foreground/70">On this account</p>
+    <div className={FLOW_FIELD_SHELL}>
+      <p className={FLOW_FIELD_LABEL}>On this account</p>
       <p className="text-sm text-card-foreground/70">{message}</p>
     </div>
   );

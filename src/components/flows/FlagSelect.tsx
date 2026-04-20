@@ -30,6 +30,8 @@ export type FlagSelectProps = {
   placeholder?: string;
   loadingPlaceholder?: string;
   className?: string;
+  /** Align trigger with Pay/Receive flow fields (no side padding, no hover fill). */
+  variant?: "default" | "flow";
 };
 
 export function FlagSelect({
@@ -43,6 +45,7 @@ export function FlagSelect({
   placeholder = "Select…",
   loadingPlaceholder = "Loading…",
   className,
+  variant = "default",
 }: FlagSelectProps) {
   const listId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
@@ -87,8 +90,10 @@ export function FlagSelect({
         onClick={() => !disabled && !loading && setOpen((o) => !o)}
         onKeyDown={handleKeyDown}
         className={cn(
-          "flex h-12 w-full items-center gap-2 rounded-xl border border-input bg-card px-3 py-2 text-left text-sm text-card-foreground ring-offset-background",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+          "flex min-h-12 w-full items-center gap-2 text-left text-sm text-card-foreground",
+          variant === "flow"
+            ? "rounded-lg border-0 bg-transparent px-0 py-0 transition-none hover:bg-transparent focus-visible:outline-none focus-visible:ring-0"
+            : "rounded-xl border border-input bg-card px-3 py-2 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
           "disabled:cursor-not-allowed disabled:opacity-50"
         )}
       >

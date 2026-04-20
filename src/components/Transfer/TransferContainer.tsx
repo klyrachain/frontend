@@ -6,7 +6,7 @@ import { usePrimaryEvmWallet } from "@/hooks/use-primary-evm-wallet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Settings, ArrowRight } from "lucide-react";
+import { Settings, ArrowRight, Wallet } from "lucide-react";
 import { TransferSelectModal } from "./TransferSelectModal";
 import type { TokenSelection } from "../Exchange/TokenChainSelectModal";
 import { useAppSelector } from "@/store/hooks";
@@ -21,6 +21,14 @@ import {
 } from "@/lib/receiveAccountByChain";
 import { cn } from "@/lib/utils";
 import { FlowsWalletHeaderAction } from "@/app/(flows)/FlowsWalletHeaderAction";
+import {
+  FLOW_FIELD_SHELL,
+  FLOW_FIELD_LABEL,
+} from "@/components/flows/flow-field-classes";
+import {
+  getTransferConfirmButtonIntent,
+  transferConfirmButtonText,
+} from "@/lib/transferConfirmButtonLabel";
 
 const PRICE_PREVIEW_DEFAULT = "≈ $0.00";
 
@@ -73,6 +81,27 @@ export function TransferContainer() {
     receiveSpec != null &&
     trimmedReceiver !== "" &&
     isValidReceiveAddress(trimmedReceiver, receiveSpec.format);
+
+  const confirmIntent = useMemo(
+    () =>
+      getTransferConfirmButtonIntent({
+        left: leftSelection,
+        right: rightSelection,
+        trimmedReceiver,
+        connectedEvmAddress: evmAddress,
+        receiveFormat: receiveSpec?.format ?? null,
+        receiverValid,
+      }),
+    [
+      leftSelection,
+      rightSelection,
+      trimmedReceiver,
+      evmAddress,
+      receiveSpec?.format,
+      receiverValid,
+    ]
+  );
+  const confirmButtonLabel = transferConfirmButtonText(confirmIntent);
 
   const handleUseConnectedWallet = () => {
     if (!receiveSpec || receiveSpec.format !== "evm") return;
@@ -166,7 +195,8 @@ export function TransferContainer() {
       const tid = data?.transaction_id ?? "";
       const pool = data?.calldata?.toAddress ?? "";
       setIntentMessage(
-        `Order ${tid.slice(0, 8)}… created. Send tokens to pool ${pool.slice(0, 10)}… then confirm in your wallet flow (offramp confirm).`
+        `Order ${tid.slice(0, 8)}… created.
+        Send tokens to pool ${pool.slice(0, 10)}… then confirm in your wallet flow (offramp confirm).`
       );
     } catch {
       setIntentMessage("Network error. Try again.");
@@ -176,8 +206,8 @@ export function TransferContainer() {
   };
 
   return (
-    <div className="flex flex-col duration-300 ease-out relative w-full items-center justify-center">
-      <article className="glass-card overflow-hidden p-2 shadow-xl shrink-0 min-w-0 transition-all duration-300 ease-out h-fit">
+    <div className="relative mx-auto flex w-full max-w-xl flex-col self-stretch duration-300 ease-out">
+      <article className="glass-card h-fit w-full shrink-0 overflow-hidden p-2 shadow-xl transition-all duration-300 ease-out min-w-0">
         <header className="mb-6 flex flex-row items-center justify-between gap-2 pl-2">
           <h3 className="text-xl font-semibold text-card-foreground">Transfer</h3>
           <div className="flex shrink-0 items-center gap-2">
@@ -241,13 +271,13 @@ export function TransferContainer() {
               pricePreview={PRICE_PREVIEW_DEFAULT}
               hideFooterWhenPreviewIs={PRICE_PREVIEW_DEFAULT}
             />
-            <div className="absolute left-1/2 top-1/2 z-10 -my-1 flex -translate-x-1/2 -translate-y-1/2 justify-center">
+            <div className="absolute left-1/2 top-1/2 z-10 -my-1 flex -translate-x-1/2 justify-center">
               <button
                 type="button"
-                className="rounded-full border-2 border-card bg-card p-[0.45rem] shadow-md transition-colors hover:bg-muted"
+                className="rounded-full border-2 border-card bg-green-950/90 p-[0.45rem] shadow-md transition-colors"
                 aria-label="Swap direction"
               >
-                <ArrowRight className="size-[1.1875rem] shrink-0 text-muted-foreground" />
+                <ArrowRight className="size-[1.1875rem] shrink-0 text-foreground" />
               </button>
             </div>
 
@@ -267,17 +297,17 @@ export function TransferContainer() {
             label="You send"
             amount={leftAmount}
             onAmountChange={setLeftAmount}
-            footer={`${sendRowFooter}${deliveryLine}`}
+            footer={`${sendRowFooter}
+            `}
+            // ${deliveryLine}
             ariaLabel="Amount you send"
             variant="transfer"
           />
 
           {rightSelection && receiveSpec ? (
-            <div className="space-y-2 rounded-xl border border-border/60 bg-muted/20 px-3 py-3">
-              <Label className="text-xs font-semibold uppercase tracking-wide text-card-foreground/70">
-                Receiver
-              </Label>
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
+            <div className={FLOW_FIELD_SHELL}>
+              <Label className={FLOW_FIELD_LABEL}>Receiver</Label>
+              <div className="flex flex-row gap-2">
                 <Input
                   value={receiverAddress}
                   onChange={(e) => {
@@ -287,11 +317,12 @@ export function TransferContainer() {
                   placeholder={receiveSpec.inputPlaceholder}
                   aria-invalid={recipientError && !receiverValid}
                   className={cn(
-                    "bg-card font-mono text-sm text-card-foreground placeholder:text-muted-foreground sm:min-w-0 sm:flex-1",
+                    // FLOW_INPUT_MONO,
+                    "sm:min-w-0 sm:flex-1 input-text shadow-none outline-none border-none active:ring-0 focus:ring-0 focus-visible:ring-0 focus-visible:ring-ring/50 ",
                     ((recipientError && !receiverValid) ||
                       (trimmedReceiver !== "" &&
                         !isValidReceiveAddress(trimmedReceiver, receiveSpec.format))) &&
-                      "border-destructive"
+                      "ring-2 ring-destructive/60"
                   )}
                   autoComplete="off"
                 />
@@ -299,12 +330,12 @@ export function TransferContainer() {
                   <Button
                     type="button"
                     variant="default"
-                    size="sm"
+                    // size="sm"
                     className="shrink-0 whitespace-nowrap"
                     onClick={handleUseConnectedWallet}
                     disabled={!isConnected || !evmAddress}
                   >
-                    Use connected wallet
+                    <Wallet className="size-5" />
                   </Button>
                 ) : null}
               </div>
@@ -332,7 +363,7 @@ export function TransferContainer() {
             disabled={intentLoading || !leftSelection || !rightSelection || !outputAmount}
             onClick={() => void handleConfirm()}
           >
-            {intentLoading ? "Creating…" : "Confirm"}
+            {intentLoading ? "Creating…" : confirmButtonLabel}
           </Button>
         </section>
       </article>

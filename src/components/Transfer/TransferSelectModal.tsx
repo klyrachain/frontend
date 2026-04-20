@@ -126,7 +126,7 @@ export function TransferSelectModal({
         )}
       >
         <div
-          className="flex min-h-0 flex-1 flex-col overflow-hidden bg-card border border-border shadow-2xl rounded-t-2xl sm:rounded-2xl"
+          className="flex min-h-0 flex-1 flex-col overflow-hidden bg-card shadow-2xl rounded-t-2xl sm:rounded-2xl"
           style={{
             transform:
               dragOffset > 0 ? `translateY(${dragOffset}px)` : "translateY(0px)",
@@ -145,7 +145,7 @@ export function TransferSelectModal({
             <div className="flex shrink-0 justify-center pt-3 pb-1" aria-hidden>
               <span className="h-1 w-12 shrink-0 rounded-full bg-muted-foreground/30" />
             </div>
-            <DialogHeader className="flex shrink-0 flex-row items-center justify-between space-y-0 border-b border-border px-4 py-3">
+            {/* <DialogHeader className="flex shrink-0 flex-row items-center justify-between space-y-0 border-b border-border px-4 py-3">
               <DialogTitle className="text-lg font-semibold text-card-foreground">
                 Select token
               </DialogTitle>
@@ -157,17 +157,17 @@ export function TransferSelectModal({
               >
                 <X className="size-5" aria-hidden />
               </button>
-            </DialogHeader>
+            </DialogHeader> */}
           </div>
 
-          <DialogHeader className="hidden shrink-0 flex-row items-center justify-between space-y-0 border-b border-border px-4 py-3 sm:flex">
-            <DialogTitle className="text-lg font-semibold text-card-foreground">
+          <DialogHeader className=" shrink-0 flex-row items-center justify-center space-y-0 px-4 mt-4 py-3 sm:flex relative">
+            <DialogTitle className="text-lg font-semibold text-card-foreground ">
               Select token
             </DialogTitle>
             <button
               type="button"
               onClick={() => onOpenChange(false)}
-              className="rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-primary/90"
+              className="rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-primary/90 absolute right-5 top-0"
               aria-label="Close"
             >
               <X className="size-5" aria-hidden />

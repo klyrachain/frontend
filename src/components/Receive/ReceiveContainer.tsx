@@ -12,6 +12,8 @@ import {
   WalletReceiveField,
   WalletReceiveFieldPlaceholder,
   FlagSelect,
+  FLOW_FIELD_SHELL,
+  FLOW_FIELD_LABEL,
 } from "@/components/flows";
 import type { TokenSelection } from "@/components/Exchange/TokenChainSelectModal";
 import { useAppSelector } from "@/store/hooks";
@@ -234,8 +236,8 @@ export function ReceiveContainer() {
   };
 
   return (
-    <div className="flex flex-col duration-300 ease-out relative w-full items-center justify-center">
-      <article className="glass-card overflow-hidden p-2 shadow-xl shrink-0 min-w-0 transition-all duration-300 ease-out h-fit">
+    <div className="relative mx-auto flex w-full max-w-xl flex-col self-stretch duration-300 ease-out">
+      <article className="glass-card h-fit w-full shrink-0 overflow-hidden p-2 shadow-xl transition-all duration-300 ease-out min-w-0">
         <header className="mb-6 space-y-4 pl-2">
           <div className="flex flex-row items-center justify-between gap-3">
             <h1 className="text-2xl font-semibold text-card-foreground">I want to receive</h1>
@@ -273,7 +275,8 @@ export function ReceiveContainer() {
           </div>
           {receiveTab === "fiat" ? (
             <p className="text-xs text-card-foreground/70">
-              Payer completes with card or mobile money (no gas). You share a Pay link
+              Payer completes with card or mobile money (no gas).
+              <br/> You share a Pay link
               aligned with platform settlement.
             </p>
           ) : null}
@@ -337,8 +340,12 @@ export function ReceiveContainer() {
                 onAmountChange={setAmount}
                 ariaLabel="Amount to receive in fiat"
               />
-              <div className="space-y-2 px-1">
-                <Label id="receive-fiat-country-label" htmlFor="receive-fiat-country">
+              <div className={FLOW_FIELD_SHELL}>
+                <Label
+                  id="receive-fiat-country-label"
+                  htmlFor="receive-fiat-country"
+                  className={FLOW_FIELD_LABEL}
+                >
                   Country
                 </Label>
                 <FlagSelect
@@ -351,6 +358,7 @@ export function ReceiveContainer() {
                   loading={fiatCountriesLoading}
                   placeholder="Select country"
                   loadingPlaceholder="Loading countries…"
+                  variant="flow"
                 />
                 {fiatCountriesError ? (
                   <p className="text-xs text-destructive">{fiatCountriesError}</p>

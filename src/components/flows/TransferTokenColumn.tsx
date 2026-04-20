@@ -3,6 +3,11 @@
 import dynamic from "next/dynamic";
 import type { TokenSelection } from "@/components/Exchange/TokenChainSelectModal";
 import { TokenAvatarWithFallback } from "@/components/Token/TokenAvatarWithFallback";
+import {
+  FLOW_FIELD_SHELL,
+  FLOW_FIELD_LABEL,
+  FLOW_TOKEN_TRIGGER,
+} from "@/components/flows/flow-field-classes";
 
 const SuggestedTokensRow = dynamic(
   () =>
@@ -20,7 +25,7 @@ export interface TransferTokenColumnProps {
   onSuggestedSelect: (s: TokenSelection) => void;
   excludeSymbol?: string;
   side: "left" | "right";
-  pricePreview: string;
+  pricePreview?: string | null;
   /** When pricePreview equals this, the footer line is hidden */
   hideFooterWhenPreviewIs?: string;
 }
@@ -47,11 +52,11 @@ export function TransferTokenColumn({
         excludeSymbol={excludeSymbol}
         side={side}
       />
-      <div className="flex min-w-0 flex-1 flex-col gap-2 rounded-xl border border-border bg-muted/30 p-4">
-        <p className="text-xs font-medium text-card-foreground/70">{label}</p>
+      <div className={`flex min-w-0 flex-1 flex-col ${FLOW_FIELD_SHELL} bg-white`}>
+        <p className={`${FLOW_FIELD_LABEL} `}>{label}</p>
         <button
           type="button"
-          className="flex cursor-pointer items-center justify-between gap-2 text-left"
+          // className={`${FLOW_TOKEN_TRIGGER} justify-between`}
           onClick={onSelectClick}
           aria-label={
             selection
@@ -59,7 +64,7 @@ export function TransferTokenColumn({
               : "Select token"
           }
         >
-          <div className="flex min-w-0 flex-1 items-center gap-2">
+          <div className="flex min-w-0 flex-1 items-center gap-2 bg-red-00">
             {selection ? (
               <>
                 <TokenAvatarWithFallback
@@ -83,9 +88,9 @@ export function TransferTokenColumn({
             )}
           </div>
         </button>
-        {showFooter && pricePreview != null && pricePreview !== "" && (
+        {/* {showFooter && pricePreview != null && pricePreview !== "" && (
           <p className="text-xs text-card-foreground/65">{pricePreview}</p>
-        )}
+        )} */}
       </div>
     </div>
   );

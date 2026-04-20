@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { cn } from "@/lib/utils";
@@ -22,6 +23,7 @@ export function SuggestedTokensRow({
   excludeSymbol,
   side,
 }: SuggestedTokensRowProps) {
+  const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
     setMounted(true);
@@ -32,6 +34,16 @@ export function SuggestedTokensRow({
     ? suggestions.filter((s) => s.token.symbol !== excludeSymbol)
     : suggestions;
   const displayList = list.slice(0, SUGGESTED_TOKENS_MAX);
+
+  const suggestionFingerprint = useMemo(() => {
+    const row = excludeSymbol
+      ? suggestions.filter((s) => s.token.symbol !== excludeSymbol)
+      : suggestions;
+    return row
+      .slice(0, SUGGESTED_TOKENS_MAX)
+      .map((s) => `${String(s.chain.id)}:${String(s.token.id)}`)
+      .join("|");
+  }, [suggestions, excludeSymbol]);
 
   useGSAP(
     () => {
@@ -48,7 +60,10 @@ export function SuggestedTokensRow({
         ease: "power2.out",
       });
     },
-    { dependencies: [displayList.length, side], scope: containerRef }
+    {
+      dependencies: [displayList.length, side, pathname, suggestionFingerprint],
+      scope: containerRef,
+    }
   );
 
   // Avoid hydration mismatch: RTK/cache + deferred used-tokens often differ SSR vs first client paint.

@@ -1,6 +1,12 @@
 "use client";
 
 import { Input } from "@/components/ui/input";
+import {
+  FLOW_FIELD_SHELL,
+  FLOW_FIELD_LABEL,
+  FLOW_INPUT_AMOUNT_DEFAULT,
+  FLOW_INPUT_AMOUNT_TRANSFER,
+} from "@/components/flows/flow-field-classes";
 
 export interface AmountFieldProps {
   label: string;
@@ -25,14 +31,11 @@ export function AmountField({
   readOnly = false,
 }: AmountFieldProps) {
   const inputClass =
-    variant === "transfer"
-      ? "input-amount-transfer h-12 max-w-full border-0 shadow-none !text-card-foreground placeholder:text-muted-foreground focus-visible:ring-0 md:text-[2.5rem] md:leading-none"
-      : "input-text h-12 border-0 shadow-none text-[var(--text-3xl-size)] font-medium focus-visible:ring-0";
-
+    variant === "transfer" ? FLOW_INPUT_AMOUNT_TRANSFER : FLOW_INPUT_AMOUNT_DEFAULT;
   return (
-    <div className="rounded-xl border border-border bg-muted/10 p-4">
-      <p className="mb-2 text-xs text-card-foreground/70">{label}</p>
-      <div className="flex items-center justify-between gap-2 text-card-foreground">
+    <div className={`${FLOW_FIELD_SHELL}`}>
+      {/* <p className={FLOW_FIELD_LABEL}>{label}</p> */}
+      <div className="flex items-center justify-between text-card-foreground p-0">
         <Input
           type="text"
           inputMode="decimal"
@@ -42,7 +45,7 @@ export function AmountField({
           onChange={(e) => {
             if (!readOnly) onAmountChange(e.target.value);
           }}
-          className={`${inputClass}${readOnly ? " cursor-default bg-muted/30" : ""}`}
+          className={`${inputClass}${readOnly ? " cursor-default" : "bg-transparent"}`}
           aria-label={ariaLabel ?? label}
         />
       </div>

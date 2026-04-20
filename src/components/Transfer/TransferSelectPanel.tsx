@@ -327,8 +327,8 @@ export function TransferSelectPanel({
 
   const isEmbedded = layout === "embedded";
   const tabNavClass = cn(
-    "checkout-token-scroll-x flex shrink-0 gap-1 overflow-x-auto px-2 py-2 sm:px-4",
-    !isEmbedded && "border-b border-border"
+    "checkout-token-scroll-x flex shrink-0 gap-1 overflow-x-auto px-2 py-2 sm:px-4 w-full bg-red-00 justify-center",
+    // !isEmbedded && "border-b border-border"
   );
 
   const tabContentClass = cn(
@@ -354,9 +354,9 @@ export function TransferSelectPanel({
             type="button"
             onClick={() => setActiveTab(tab)}
             className={cn(
-              "shrink-0 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors sm:px-3",
+              "shrink-0 rounded-lg px-2.5 py-1 text-sm font-medium transition-colors sm:px-3",
               activeTab === tab
-                ? "text-primary"
+                ? "text-foreground bg-green-950/90 rounded-full px-4 py-0"
                 : "text-muted-foreground hover:text-card-foreground"
             )}
           >
@@ -370,17 +370,17 @@ export function TransferSelectPanel({
           <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
             <div className="shrink-0 px-2 pb-2 pt-3 sm:px-4">
               <div className="relative">
-                <Search
+                {/* <Search
                   className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
                   aria-hidden
-                />
+                /> */}
                 <Input
                   type="text"
                   placeholder="Search token or paste address"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className={cn(
-                    "pl-9 rounded-xl shadow-none",
+                    "pl-9 rounded-xl shadow-none text-center bg-green-900/80 text-foreground placeholder:text-muted",
                     isEmbedded ? "border border-border" : "border-none"
                   )}
                 />
@@ -391,7 +391,7 @@ export function TransferSelectPanel({
               className="shrink-0 px-2 pb-2 sm:px-4"
               aria-label="Chains"
             >
-              <ul className="flex flex-wrap gap-2">
+              <ul className="flex overflow-x-auto gap-2">
                 {suggestedChains.map((chip) => {
                   const chain = getChainById(chip.id);
                   if (chain == null) return null;

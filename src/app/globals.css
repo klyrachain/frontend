@@ -240,7 +240,9 @@ html[data-mono-font="ibmPlexMono"] {
 
 /* Bento card: opaque base for same look across browsers */
 .glass-card {
-  background: oklch(0.98 0.002 286);
+  /* background: oklch(1 0 0); */
+  /* background: oklch(0.98 0.002 286); */
+  background: #E8F1F2;
   color: var(--card-foreground);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
@@ -316,7 +318,7 @@ html[data-mono-font="ibmPlexMono"] {
 }
 
 .input-text {
-  font-size: 2.5rem;
+  font-size: 1.2rem;
   font-weight: var(--font-weight-medium);
   border: var(--border-0);
   /* background: var(--primary); */
@@ -327,7 +329,7 @@ html[data-mono-font="ibmPlexMono"] {
 
 /* Transfer / Pay amount: large typed value, smaller placeholder (light-mode readability). */
 .input-amount-transfer {
-  font-size: 2.5rem;
+  font-size: 2rem;
   font-weight: var(--font-weight-medium);
   border: var(--border-0);
   color: var(--card-foreground);
@@ -335,13 +337,13 @@ html[data-mono-font="ibmPlexMono"] {
   margin: var(--m-0);
 }
 .input-amount-transfer::placeholder {
-  font-size: 1.25rem;
+  font-size: 2rem;
   line-height: 1.35;
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
   color: color-mix(in oklch, var(--card-foreground) 42%, transparent);
 }
 .input-amount-transfer:placeholder-shown {
-  font-size: 1.25rem;
+  font-size: 2rem;
 }
 .dark .input-amount-transfer::placeholder {
   color: color-mix(in oklch, var(--card-foreground) 55%, transparent);

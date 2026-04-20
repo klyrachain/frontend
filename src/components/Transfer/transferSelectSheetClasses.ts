@@ -4,7 +4,7 @@
  * TransferSelectModal adds DESKTOP_MODAL_CLASSES on sm+; business sheet uses BUSINESS_PAY_BOTTOM_SHEET_SHELL.
  */
 export const BOTTOM_SHEET_EDGE_CLASSES =
-  "fixed max-sm:left-2 max-sm:right-2 max-sm:bottom-2 max-sm:top-auto max-sm:w-[calc(100%-1rem)] max-sm:max-w-none max-sm:translate-x-0 translate-y-0";
+  "fixed max-sm:left-0 max-sm:right-0 max-sm:bottom-0 max-sm:top-auto max-sm:w-[calc(100%)] max-sm:max-w-none max-sm:translate-x-0 translate-y-0";
 
 /** Mobile-only enter/exit motion (do not apply on sm+ with centered bottom sheets). */
 export const BOTTOM_SHEET_MOBILE_SLIDE_CLASSES =

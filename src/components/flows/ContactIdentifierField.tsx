@@ -1,6 +1,11 @@
 "use client";
 
 import { ContactIdentifierInput } from "@/components/Pay/ContactIdentifierInput";
+import {
+  FLOW_FIELD_SHELL,
+  FLOW_FIELD_LABEL_TEXT,
+} from "@/components/flows/flow-field-classes";
+import { cn } from "@/lib/utils";
 
 export interface ContactIdentifierFieldProps {
   label: string;
@@ -22,9 +27,12 @@ export function ContactIdentifierField({
   const hasDescription = description != null && description !== "";
 
   return (
-    <div className="rounded-xl border border-border bg-muted/10 p-4">
+    <div className={FLOW_FIELD_SHELL}>
       <p
-        className={`text-xs text-card-foreground/70 ${hasDescription ? "mb-1" : "mb-2"}`}
+        className={cn(
+          FLOW_FIELD_LABEL_TEXT,
+          hasDescription ? "mb-1" : "mb-2"
+        )}
       >
         {label}
       </p>

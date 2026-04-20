@@ -22,6 +22,12 @@ import { buildSuggestedTokenSelections } from "@/lib/flowTokens";
 import { useClientMounted } from "@/hooks/use-client-mounted";
 import type { PublicCommercePaymentLink } from "@/types/checkout-public.types";
 import { FlowsWalletHeaderAction } from "@/app/(flows)/FlowsWalletHeaderAction";
+import {
+  FLOW_FIELD_SHELL,
+  FLOW_FIELD_LABEL,
+  FLOW_INPUT_TEXT,
+} from "@/components/flows/flow-field-classes";
+import { cn } from "@/lib/utils";
 
 const SuggestedTokensRow = dynamic(
   () =>
@@ -350,7 +356,7 @@ export function PayContainer() {
   const cryptoStandalone = standalonePay && payMode !== "fiat";
 
   return (
-    <div className="flex flex-col duration-300 ease-out relative w-full items-center justify-center">
+    <div className="relative mx-auto flex w-full max-w-xl flex-col self-stretch duration-300 ease-out">
       {payPageIdInvalid ? (
         <p
           className="mb-4 w-full max-w-md rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive"
@@ -361,7 +367,7 @@ export function PayContainer() {
       ) : null}
       {payPageId ? (
         <section
-          className="mb-4 w-full max-w-md rounded-lg border border-primary/20 bg-primary/5 p-4 text-sm"
+          className="mb-4 w-full rounded-lg border border-primary/20 bg-primary/5 p-4 text-sm"
           role="region"
           aria-label="Linked checkout"
         >
@@ -460,7 +466,7 @@ export function PayContainer() {
           valid recipient identifier and your email for receipts.
         </p>
       ) : null}
-      <article className="glass-card overflow-hidden p-2 shadow-xl shrink-0 min-w-0 transition-all duration-300 ease-out h-fit">
+      <article className="glass-card h-fit w-full shrink-0 overflow-hidden p-2 shadow-xl transition-all duration-300 ease-out min-w-0">
         <header className="mb-6 flex flex-row items-center justify-between gap-3 pl-2">
           <h1 className="text-2xl font-semibold text-card-foreground">I want to send</h1>
           <FlowsWalletHeaderAction />
@@ -485,8 +491,8 @@ export function PayContainer() {
           ) : null}
 
           {fiatStandalone ? (
-            <div className="space-y-2 px-1">
-              <Label htmlFor="fiat-currency" className="text-sm">
+            <div className={FLOW_FIELD_SHELL}>
+              <Label htmlFor="fiat-currency" className={FLOW_FIELD_LABEL}>
                 Fiat currency
               </Label>
               <Input
@@ -494,7 +500,7 @@ export function PayContainer() {
                 value={fiatCurrencyInput}
                 onChange={(e) => setFiatCurrencyInput(e.target.value)}
                 placeholder="GHS, NGN, …"
-                className="rounded-xl bg-card text-card-foreground placeholder:text-muted-foreground"
+                className={cn(FLOW_INPUT_TEXT, "uppercase")}
                 autoCapitalize="characters"
               />
             </div>
