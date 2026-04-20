@@ -914,10 +914,10 @@ export function CheckoutTokenQuoteRows({
                   onClick={() => setModalOpen(true)}
                 >
                   <ChevronDown size={7} />
-                  More tokens
+                  3,400+ tokens
                 </Button>
                 {showCryptoFiatCollapsible ? (
-                  <div className="mt-2 rounded-lg border border-white/10">
+                  <div className="rounded-lg border border-white/10">
                     <Button
                       type="button"
                       variant="outline"

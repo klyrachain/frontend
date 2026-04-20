@@ -451,7 +451,7 @@ export function PayContainer() {
           </p>
         </section>
       ) : null}
-      {receiveMode ? (
+      {/* {receiveMode ? (
         <p
           className="mb-4 w-full max-w-md rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-xs text-muted-foreground"
           role="status"
@@ -465,7 +465,7 @@ export function PayContainer() {
           Fiat: payer completes with card or mobile money (Paystack). You still need a
           valid recipient identifier and your email for receipts.
         </p>
-      ) : null}
+      ) : null} */}
       <article className="glass-card h-fit w-full shrink-0 overflow-hidden p-2 shadow-xl transition-all duration-300 ease-out min-w-0">
         <header className="mb-6 flex flex-row items-center justify-between gap-3 pl-2">
           <h1 className="text-2xl font-semibold text-card-foreground">I want to send</h1>
