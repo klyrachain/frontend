@@ -53,10 +53,10 @@ export function CheckoutQuoteRow({
   return (
     <article
       className={cn(
-        "rounded-lg border px-3 py-2.5 transition-colors",
+        "rounded-lg px-3 py-2.5 transition-colors",
         selected
-          ? "border-primary bg-primary/15 ring-2 ring-primary/40"
-          : "border-white/10 bg-white/5"
+          ? "border border-primary bg-primary/15 ring-2 ring-primary/40"
+          : ""
       )}
     >
       <button
@@ -74,7 +74,7 @@ export function CheckoutQuoteRow({
           />
           <div className="min-w-0 flex-1">
             <p
-              className="truncate text-sm font-medium text-foreground"
+              className="truncate text-sm font-medium text-card-foreground"
               title={label.length > 40 ? label : undefined}
             >
               {label}
@@ -85,7 +85,7 @@ export function CheckoutQuoteRow({
             {balanceLoading ? (
               <Skeleton className="mt-0.5 h-4 w-24" />
             ) : (
-              <p className="text-xs tabular-nums text-foreground">
+              <p className="text-xs tabular-nums text-card-foreground">
                 {balanceLabel}
               </p>
             )}
@@ -97,7 +97,7 @@ export function CheckoutQuoteRow({
           ) : state.error && !state.cryptoAmount ? (
             <p className="max-w-40 text-xs text-destructive">{state.error}</p>
           ) : state.cryptoAmount != null ? (
-            <p className="text-base font-semibold tabular-nums text-foreground">
+            <p className="text-base font-semibold tabular-nums text-card-foreground">
               {state.cryptoAmount}{" "}
               <span className="text-sm font-normal text-muted-foreground">
                 {state.cryptoSymbol ?? ""}

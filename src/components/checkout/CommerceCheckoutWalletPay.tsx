@@ -15,6 +15,7 @@ import {
   isEvmErc20TransferInstruction,
   normalizeToEvmInstruction,
 } from "@/types/payment-instruction";
+import { ArrowLeftIcon, ChevronLeftIcon } from "@dynamic-labs/sdk-react-core";
 
 const erc20TransferAbi = [
   {
@@ -236,29 +237,29 @@ export function CommerceCheckoutWalletPay({
 
   return (
     <section
-      className="mt-4 space-y-3 rounded-lg border border-primary/25 bg-primary/5 p-4 text-left text-sm"
+      className="mt-4 space-y-4 rounded-lg border border-primary/25 bg-primary/5 p-4 text-left text-sm"
       aria-label="Wallet payment"
     >
-      <div className="flex flex-wrap items-center justify-between gap-2">
+      <div className="flex flex-wrap items-center justify-center gap-2">
         <p className="font-medium text-card-foreground">Pay with your wallet</p>
-        <DynamicConnectTrigger
+        {/* <DynamicConnectTrigger
           variant="outline"
           size="sm"
-          className="rounded-full text-xs tabular-nums"
+          className="rounded-full text-xs tabular-nums text-foreground"
           label={
             isConnected && address
               ? `${address.slice(0, 6)}…${address.slice(-4)}`
               : "Connect"
           }
-        />
+        /> */}
       </div>
-      <p className="text-muted-foreground">
-        Send{" "}
+      <p className="text-muted-foreground text-center">
+        Continue to send{" "}
         <span className="font-medium text-card-foreground">
           {cryptoAmount || "—"} {cryptoSymbol}
         </span>{" "}
-        for {commerce.amount} {commerce.currency}. This creates a linked order and pool
-        transfer on-chain.
+        for {commerce.amount} {commerce.currency}.
+
       </p>
       {!intentResult ? (
         <Button
@@ -321,11 +322,11 @@ export function CommerceCheckoutWalletPay({
           {sendError}
         </p>
       ) : null}
-      <p className="text-[0.7rem] leading-snug text-muted-foreground">
-        After the transfer confirms, complete settlement using your operator flow (e.g.
-        offramp confirm) if required.
+      <p className="text-[0.7rem] leading-snug text-muted-foreground text-center">
+        Complete settlement using your operator.
       </p>
       <Button type="button" size="sm" variant="ghost" className="px-0" onClick={onClose}>
+        <ChevronLeftIcon className="size-4" />
         Back to quotes
       </Button>
     </section>

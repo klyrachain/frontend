@@ -34,6 +34,7 @@ import {
 import { CheckoutNonEvmLinkedAddresses } from "@/components/checkout/CheckoutNonEvmLinkedAddresses";
 import { isNonEvmCheckoutChainId } from "@/lib/checkout-chain-family";
 import type { TokenSelection } from "@/components/Exchange/TokenChainSelectModal";
+import { ChevronDown } from "lucide-react";
 
 const SOLANA_CHAIN_ICON =
   "https://assets.coingecko.com/coins/images/4128/small/solana.png";
@@ -202,6 +203,8 @@ export function CheckoutTokenQuoteRows({
   >("token");
   const [morapayEmail, setMorapayEmail] = useState("");
   const [fiatExpanded, setFiatExpanded] = useState(false);
+  /** CRYPTO invoice + Paystack: exclusive "crypto quotes" vs "fiat / Morapay" panel (no accordion). */
+  const [cryptoFiatTab, setCryptoFiatTab] = useState<"crypto" | "fiat">("crypto");
   const [onrampDestination, setOnrampDestination] =
     useState<OnrampDestination | null>(null);
   const [aggregateAllocations, setAggregateAllocations] = useState<
@@ -220,6 +223,12 @@ export function CheckoutTokenQuoteRows({
     invoiceChargeKind.toUpperCase() === "CRYPTO" ? "CRYPTO" : "FIAT";
   const invoiceCurrencyUpper = (fiatCurrency ?? "").trim().toUpperCase();
   const invoiceAmountNumber = Number.parseFloat((fiatAmount ?? "").trim());
+
+  useEffect(() => {
+    if (!payPageId?.trim() || chargeKindNormalized !== "CRYPTO") {
+      setCryptoFiatTab("crypto");
+    }
+  }, [payPageId, chargeKindNormalized]);
 
   const quotes = useCheckoutPayoutQuotes(
     enabled,
@@ -575,7 +584,11 @@ export function CheckoutTokenQuoteRows({
     setPaymentFlow("token");
     setAggregateAllocations(null);
     setPaymentError(null);
-  }, []);
+    if (payPageId?.trim() && chargeKindNormalized === "CRYPTO") {
+      setCryptoFiatTab("crypto");
+      setFiatExpanded(false);
+    }
+  }, [payPageId, chargeKindNormalized]);
 
   const submitMorapay = useCallback(async () => {
     setPaymentError(null);
@@ -784,8 +797,12 @@ export function CheckoutTokenQuoteRows({
   /** Card/mobile (Morapay) only when the link is charged in crypto — never for FIAT-denominated links. */
   const showCryptoFiatCollapsible =
     payPageId?.trim() && chargeKindNormalized === "CRYPTO";
+  const showCryptoMorapayFiatTab =
+    showCryptoFiatCollapsible && cryptoFiatTab === "fiat";
+  const showCryptoQuotesBlock =
+    !showCryptoFiatCollapsible || cryptoFiatTab === "crypto";
   const showCryptoFiatFields =
-    paymentFlow === "morapay" && fiatExpanded;
+    paymentFlow === "morapay" && fiatExpanded && !showCryptoFiatCollapsible;
   /** Fiat invoice + “settle through business checkout”: same payer fields as card/MoMo, without the crypto collapsible. */
   const showFiatOnrampBusinessFields =
     chargeKindNormalized === "FIAT" &&
@@ -796,110 +813,171 @@ export function CheckoutTokenQuoteRows({
   const showBottomMorapayButton =
     (paymentFlow === "morapay" && fiatExpanded) || showFiatOnrampBusinessFields;
 
+  const fiatMorapaySwitchButtonClass =
+    "w-full justify-center px-1 text-muted-foreground bg-white p-4 border-none hover:bg-white/40";
+
   return (
     <>
       <section
         className="mt-4 space-y-2 text-left"
-        aria-label="Estimated amounts by token"
+        aria-label={
+          showCryptoMorapayFiatTab
+            ? "Pay with card or mobile money"
+            : "Estimated amounts by token"
+        }
       >
-        <p className="text-center text-xs font-medium text-muted-foreground">
-          Pay with crypto (estimates)
-        </p>
-        {displayRowsResolved.map((row) => (
-          <CheckoutQuoteRow
-            key={row.id}
-            label={row.label}
-            iconSymbol={row.iconSymbol}
-            invoiceLabel={invoiceLabel}
-            state={quotes[row.id] ?? emptyCheckoutQuote()}
-            balanceLabel={byRowId[row.id] ?? "—"}
-            balanceLoading={balLoading && walletParam.length > 0}
-            token={tokenByRow.get(row.id) ?? null}
-            chain={chainFromList(chains, row.balanceChainId)}
-            selected={selectedRowId === row.id}
-            onSelect={() => {
-              setSelectedRowId(row.id);
-              setPaymentFlow("token");
-            }}
-          />
-        ))}
-        {paymentFlow === "token" &&
-        selectedDisplayRow &&
-        isNonEvmCheckoutChainId(selectedDisplayRow.balanceChainId) ? (
-          <CheckoutNonEvmLinkedAddresses
-            balanceChainId={selectedDisplayRow.balanceChainId}
-            chainName={chainFromList(chains, selectedDisplayRow.balanceChainId)?.name}
-            className="mt-2"
-          />
-        ) : null}
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="mt-2 w-full border-border bg-card text-card-foreground hover:border-primary/40 hover:bg-muted/60"
-          onClick={() => setModalOpen(true)}
-        >
-          More tokens
-        </Button>
-        {showCryptoFiatCollapsible ? (
-          <div className="mt-2 rounded-lg border border-white/10 bg-white/5 p-3">
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="w-full justify-between px-1 text-xs text-muted-foreground"
-              onClick={() => {
-                setFiatExpanded((prev) => {
-                  const next = !prev;
-                  setPaymentFlow(next ? "morapay" : "token");
-                  if (!next) setMorapayError(null);
-                  return next;
-                });
-              }}
-            >
-              <span>Pay with fiat</span>
-              <span>{fiatExpanded ? "Hide" : "Show"}</span>
-            </Button>
+        {showCryptoMorapayFiatTab ? (
+          <div className="space-y-2">
+            <p className="text-center text-xs font-medium text-muted-foreground">
+              Pay with fiat
+            </p>
+            <div className="rounded-lg border border-white/10">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className={fiatMorapaySwitchButtonClass}
+                onClick={() => {
+                  setCryptoFiatTab("crypto");
+                  setPaymentFlow("token");
+                  setFiatExpanded(false);
+                  setMorapayError(null);
+                }}
+              >
+                Pay with crypto
+              </Button>
+            </div>
+            {morapayFields("crypto")}
+            {showBottomMorapayButton ? (
+              <Button
+                type="button"
+                size="lg"
+                className="mt-3 w-full rounded-xl py-6 font-semibold"
+                disabled={
+                  morapayLoading ||
+                  !selectedFiatCurrency ||
+                  fiatQuoteLoading ||
+                  !!fiatQuoteError
+                }
+                onClick={() => void handleContinue()}
+              >
+                {morapayLoading ? "Redirecting…" : "Continue to pay"}
+              </Button>
+            ) : null}
+            {paymentError ? (
+              <p className="text-center text-xs text-destructive" role="alert">
+                {paymentError}
+              </p>
+            ) : null}
           </div>
-        ) : null}
-        {showFiatPayerFields ? morapayFields(showFiatOnrampBusinessFields ? "fiat-onramp" : "crypto") : null}
-        {paymentFlow === "aggregate" && aggregateAllocations?.length ? (
-          <p className="mt-2 text-center text-xs text-muted-foreground">
-            Aggregate split ready ({aggregateAllocations.length} legs). Wallet
-            signing will be added with your provider.
-          </p>
-        ) : null}
-        {showBottomMorapayButton ? (
-          <Button
-            type="button"
-            size="lg"
-            className="mt-3 w-full rounded-xl py-6 font-semibold"
-            disabled={
-              morapayLoading ||
-              !selectedFiatCurrency ||
-              fiatQuoteLoading ||
-              !!fiatQuoteError
-            }
-            onClick={() => void handleContinue()}
-          >
-            {morapayLoading ? "Redirecting…" : "Continue to pay"}
-          </Button>
         ) : (
-          <Button
-            type="button"
-            size="lg"
-            className="mt-3 w-full rounded-xl py-6 font-semibold"
-            disabled={morapayLoading}
-            onClick={() => void handleContinue()}
-          >
-            Continue to pay
-          </Button>
+          <>
+            {showCryptoQuotesBlock ? (
+              <>
+                <p className="text-center text-xs font-medium text-muted-foreground">
+                  Pay with crypto
+                </p>
+                {displayRowsResolved.map((row) => (
+                  <CheckoutQuoteRow
+                    key={row.id}
+                    label={row.label}
+                    iconSymbol={row.iconSymbol}
+                    invoiceLabel={invoiceLabel}
+                    state={quotes[row.id] ?? emptyCheckoutQuote()}
+                    balanceLabel={byRowId[row.id] ?? "—"}
+                    balanceLoading={balLoading && walletParam.length > 0}
+                    token={tokenByRow.get(row.id) ?? null}
+                    chain={chainFromList(chains, row.balanceChainId)}
+                    selected={selectedRowId === row.id}
+                    onSelect={() => {
+                      setSelectedRowId(row.id);
+                      setPaymentFlow("token");
+                    }}
+                  />
+                ))}
+                {paymentFlow === "token" &&
+                selectedDisplayRow &&
+                isNonEvmCheckoutChainId(selectedDisplayRow.balanceChainId) ? (
+                  <CheckoutNonEvmLinkedAddresses
+                    balanceChainId={selectedDisplayRow.balanceChainId}
+                    chainName={
+                      chainFromList(chains, selectedDisplayRow.balanceChainId)?.name
+                    }
+                    className="mt-2"
+                  />
+                ) : null}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="w-full justify-center px-1 text-muted-foreground bg-white p-4 border-none hover:bg-white/40"
+                  onClick={() => setModalOpen(true)}
+                >
+                  <ChevronDown size={7} />
+                  More tokens
+                </Button>
+                {showCryptoFiatCollapsible ? (
+                  <div className="mt-2 rounded-lg border border-white/10">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className={fiatMorapaySwitchButtonClass}
+                      onClick={() => {
+                        setCryptoFiatTab("fiat");
+                        setPaymentFlow("morapay");
+                        setFiatExpanded(true);
+                        setMorapayError(null);
+                      }}
+                    >
+                      Pay with fiat
+                    </Button>
+                  </div>
+                ) : null}
+              </>
+            ) : null}
+            {showFiatPayerFields ? morapayFields(showFiatOnrampBusinessFields ? "fiat-onramp" : "crypto") : null}
+            {showCryptoQuotesBlock &&
+            paymentFlow === "aggregate" &&
+            aggregateAllocations?.length ? (
+              <p className="mt-2 text-center text-xs text-muted-foreground">
+                Aggregate split ready ({aggregateAllocations.length} legs). Wallet
+                signing will be added with your provider.
+              </p>
+            ) : null}
+            {showBottomMorapayButton ? (
+              <Button
+                type="button"
+                size="lg"
+                className="mt-3 w-full rounded-xl py-6 font-semibold"
+                disabled={
+                  morapayLoading ||
+                  !selectedFiatCurrency ||
+                  fiatQuoteLoading ||
+                  !!fiatQuoteError
+                }
+                onClick={() => void handleContinue()}
+              >
+                {morapayLoading ? "Redirecting…" : "Continue to pay"}
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                size="lg"
+                className="mt-3 w-full rounded-xl py-6 font-semibold"
+                disabled={morapayLoading}
+                onClick={() => void handleContinue()}
+              >
+                Continue to pay
+              </Button>
+            )}
+            {paymentError ? (
+              <p className="text-center text-xs text-destructive" role="alert">
+                {paymentError}
+              </p>
+            ) : null}
+          </>
         )}
-        {paymentError ? (
-          <p className="text-center text-xs text-destructive" role="alert">
-            {paymentError}
-          </p>
-        ) : null}
       </section>
       <TransferSelectModal
         open={modalOpen}
@@ -920,6 +998,10 @@ export function CheckoutTokenQuoteRows({
           setPaymentFlow("morapay");
           setMorapayError(null);
           setAggregateAllocations(null);
+          if (payPageId?.trim() && chargeKindNormalized === "CRYPTO") {
+            setCryptoFiatTab("fiat");
+            setFiatExpanded(true);
+          }
         }}
         onOnrampChoice={(dest) => {
           setPaymentFlow("onramp");

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import Image from "next/image";
 import { Copy, Download, Mail } from "lucide-react";
 import { domToBlob, waitUntilLoad } from "modern-screenshot";
@@ -16,7 +17,22 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { buildReceiveShareMessage } from "@/config/paymentLinkShare";
-import { SupportedNetworksCarousel } from "@/components/Receive/supported-networks-carousel";
+
+const SupportedNetworksCarousel = dynamic(
+  () =>
+    import("@/components/Receive/supported-networks-carousel").then(
+      (m) => m.SupportedNetworksCarousel
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <div
+        className="h-[96px] w-full max-w-full shrink-0 animate-pulse rounded-xl bg-black/5"
+        aria-hidden
+      />
+    ),
+  }
+);
 
 export interface PaymentLinkShareModalProps {
   open: boolean;

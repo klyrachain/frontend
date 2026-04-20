@@ -6,6 +6,7 @@ import dynamic from "next/dynamic";
 import { useParams, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 import { isRequestLinkIdHex } from "@/lib/checkout-link-code";
 import type { PublicCommercePaymentLink } from "@/types/checkout-public.types";
 import {
@@ -86,6 +87,9 @@ export function CheckoutCodeClient({
     useState<RequestByLinkPayload | null>(null);
   const [walletPayPayload, setWalletPayPayload] =
     useState<CheckoutContinuePayload | null>(null);
+  const [checkoutPayTab, setCheckoutPayTab] = useState<"methods" | "wallet">(
+    "methods"
+  );
   /** Fixed-amount links: FIAT or CRYPTO — both get token quotes + modal (offramp Morapay only for CRYPTO). */
   const shouldShowCheckoutTokenQuotes = useMemo(() => {
     if (!commerce || commerce.amount == null) {
@@ -115,6 +119,7 @@ export function CheckoutCodeClient({
       setCommerce(null);
       setRequestPayload(null);
       setWalletPayPayload(null);
+      setCheckoutPayTab("methods");
 
       const hex = isRequestLinkIdHex(code);
       const wallet = searchParams.get("wallet")?.trim() ?? "";
@@ -172,9 +177,9 @@ export function CheckoutCodeClient({
   const payHrefRequest = `/pay?requestLinkId=${encodeURIComponent(code.trim())}`;
 
   return (
-    <article className="glass-card w-full max-w-md overflow-visible p-6 shadow-xl">
-      <header className="mb-4 flex flex-wrap items-start justify-between gap-3 border-b border-white/10 pb-3">
-        <h1 className="text-xl font-semibold text-primary">Checkout</h1>
+    <article className="glass-card w-full max-w-lg overflow-visible p-6 shadow-xl">
+      <header className="mb-4 flex flex-wrap items-start justify-between gap-3 pb-3">
+        <h1 className="text-xl font-semibold text-card-foreground">Checkout</h1>
         <CheckoutWalletHeaderAction />
       </header>
 
@@ -203,50 +208,105 @@ export function CheckoutCodeClient({
 
       {!loading && commerce ? (
         <section className="space-y-4 text-center" aria-label="Payment details">
-          <div className="space-y-2">
-            <p className="text-[1.65rem] font-semibold leading-tight tabular-nums sm:text-[1.8rem]">
-              {commerce.type === "open" ? (
-                <span className="text-base font-normal text-muted-foreground">
-                  Amount set by payer
-                </span>
-              ) : (
-                <>
-                  {commerce.amount} {commerce.currency}
-                </>
-              )}
-            </p>
-            <p className="text-sm text-muted-foreground">
-              to{" "}
-              <span className="font-medium text-foreground">
-                {commerce.businessName}
-              </span>
-            </p>
-          </div>
+          
           {shouldShowCheckoutTokenQuotes ? (
-            <>
-              <CheckoutTokenQuoteRows
-                enabled={shouldShowCheckoutTokenQuotes}
-                fiatAmount={commerce.amount}
-                fiatCurrency={commerce.currency}
-                invoiceLabel={invoiceLabel}
-                invoiceChargeKind={commerce.chargeKind}
-                payPageId={commerce.id}
-                onContinueToPay={(payload) => {
-                  if (payload.flow === "morapay") return;
-                  setWalletPayPayload(payload);
-                }}
-              />
-              {walletPayPayload ? (
-                <CommerceCheckoutWalletPay
-                  commerce={commerce}
-                  payload={walletPayPayload}
-                  onClose={() => setWalletPayPayload(null)}
+            <div className="w-full space-y-3 text-left">
+              {/* <div
+                className="flex w-full gap-1 rounded-xl border border-border/60 bg-background/40 p-1"
+                role="tablist"
+                aria-label="Checkout payment steps"
+              >
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={checkoutPayTab === "methods"}
+                  className={cn(
+                    "min-h-10 flex-1 rounded-lg px-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                    checkoutPayTab === "methods"
+                      ? "bg-card text-card-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                  onClick={() => setCheckoutPayTab("methods")}
+                >
+                  Payment methods
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={checkoutPayTab === "wallet"}
+                  disabled={!walletPayPayload}
+                  className={cn(
+                    "min-h-10 flex-1 rounded-lg px-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-45",
+                    checkoutPayTab === "wallet"
+                      ? "bg-card text-card-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                  onClick={() => {
+                    if (walletPayPayload) setCheckoutPayTab("wallet");
+                  }}
+                >
+                  Wallet checkout
+                </button>
+              </div> */}
+              <div
+                className={cn(checkoutPayTab !== "methods" && "hidden")}
+                aria-hidden={checkoutPayTab !== "methods"}
+              >
+                <div className="space-y-2 flex flex-col justify-center items-center">
+                  <p className="text-[1.65rem] font-semibold leading-tight tabular-nums sm:text-[1.8rem]">
+                    {commerce.type === "open" ? (
+                      <span className="text-base font-normal text-muted-foreground">
+                        Amount set by payer
+                      </span>
+                    ) : (
+                      <>
+                        {commerce.amount} {commerce.currency}
+                      </>
+                    )}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    to{" "}
+                    <span className="font-medium text-card-foreground">
+                      {commerce.businessName}
+                    </span>
+                  </p>
+                </div>
+                <CheckoutTokenQuoteRows
+                  enabled={shouldShowCheckoutTokenQuotes}
+                  fiatAmount={commerce.amount}
+                  fiatCurrency={commerce.currency}
+                  invoiceLabel={invoiceLabel}
+                  invoiceChargeKind={commerce.chargeKind}
+                  payPageId={commerce.id}
+                  onContinueToPay={(payload) => {
+                    if (payload.flow === "morapay") return;
+                    setWalletPayPayload(payload);
+                    setCheckoutPayTab("wallet");
+                  }}
                 />
-              ) : null}
-            </>
+              </div>
+              <div
+                className={cn(
+                  checkoutPayTab !== "wallet" && "hidden",
+                  !walletPayPayload && "hidden"
+                )}
+                aria-hidden={checkoutPayTab !== "wallet" || !walletPayPayload}
+              >
+                {walletPayPayload ? (
+                  <CommerceCheckoutWalletPay
+                    commerce={commerce}
+                    payload={walletPayPayload}
+                    onClose={() => {
+                      setWalletPayPayload(null);
+                      setCheckoutPayTab("methods");
+                    }}
+                  />
+                ) : null}
+              </div>
+            </div>
           ) : null}
           {commerce.isOneTime && commerce.isPaid ? (
-            <div className="rounded-md border border-white/10 bg-background/40 p-3 text-left text-sm">
+            <div className="rounded-md bg-background/40 p-3 text-left text-sm">
               {commerce.alreadyPaidVerifiedByConnectedWallet ? (
                 <p className="text-primary">
                   This one-time payment link is already paid and verified for your connected wallet.
@@ -287,7 +347,7 @@ export function CheckoutCodeClient({
         </section>
       ) : null}
 
-      <footer className="mt-8 border-t border-white/10 pt-4 text-center text-xs text-muted-foreground">
+      <footer className="mt-8 pt-4 text-center text-xs text-muted-foreground">
         Powered by Morapay
       </footer>
     </article>

@@ -1,6 +1,25 @@
-import { HeroShaderBackground } from "@/components/Landing/HeroShaderBackground";
+"use client";
+import dynamic from "next/dynamic";
 import { HERO_CONFIG } from "@/config/hero";
 import { DynamicRootProvider } from "@/components/DynamicWallet/DynamicRootProvider";
+import { PaintedBackground } from "@/components/Landing/Paintedbackground";
+
+/** WebGL / R3F stack in HeroShaderBackground is not safe to run during SSR (window / canvas). */
+const HeroShaderBackground = dynamic(
+  () =>
+    import("@/components/Landing/HeroShaderBackground").then(
+      (m) => m.HeroShaderBackground
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <div
+        className="fixed inset-0 z-0 bg-gradient-to-b from-[#023436] via-[#034d4f] to-[#037971]"
+        aria-hidden
+      />
+    ),
+  }
+);
 
 export default function CheckoutLayout({
   children,
@@ -10,14 +29,15 @@ export default function CheckoutLayout({
   return (
     <DynamicRootProvider>
     <div className="landing-page relative min-h-screen bg-transparent text-foreground">
-      <HeroShaderBackground
+      {/* <HeroShaderBackground
         embeddedText={HERO_CONFIG.embeddedText}
         embeddedTextAnimation="pop"
         embeddedTextPosition="bottom"
         embeddedTextOpacity={0.12}
         embeddedImages={[...HERO_CONFIG.embeddedImages]}
         embeddedImageDefaultSize={HERO_CONFIG.embeddedImageDefaultSize}
-      />
+      /> */}
+      <PaintedBackground />
       <div className="relative z-20">
         <a
           href="#checkout-main"
@@ -29,7 +49,7 @@ export default function CheckoutLayout({
           id="checkout-main"
           role="main"
           tabIndex={-1}
-          className="flex min-h-screen flex-col items-center justify-center px-4 py-12"
+          className="flex min-h-screen flex-col items-center justify-center px-1 py-12"
         >
           {children}
         </main>
