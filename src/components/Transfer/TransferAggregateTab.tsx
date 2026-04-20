@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useEffect, useCallback } from "react";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
   computeAggregatePlan,
@@ -11,6 +11,7 @@ import {
 } from "@/lib/aggregate-payment-plan";
 import type { Chain, Token } from "@/types/token";
 import { TokenIconWithChainBadge } from "@/components/Token/TokenIconWithChainBadge";
+import { DynamicConnectButton } from "@dynamic-labs/sdk-react-core";
 
 const INITIAL_VISIBLE = 4;
 
@@ -140,12 +141,19 @@ export function TransferAggregateTab({
   if (!walletAddress?.trim()) {
     return (
       <section
-        className="flex min-h-0 flex-1 flex-col px-4 py-6"
+        className="flex min-h-0 flex-1 flex-col px-4 py-6 justify-center gap-2 items-center"
         aria-label="Aggregate"
       >
-        <p className="text-sm text-muted-foreground">
-          Add <span className="font-mono text-xs">?wallet=0x…</span> or your
-          Solana address to the page URL to load balances for aggregation.
+        <p className="text-sm text-muted-foreground text-center">
+          Please connect your wallet to load balances <br />for aggregation.
+          <DynamicConnectButton
+            buttonClassName={cn(
+              buttonVariants({ variant: "outline", size: "sm" }),
+              "rounded-xl border-border bg-card text-xs font-medium text-card-foreground shadow-sm hover:bg-muted/80 mt-2"
+            )}
+          >
+            Connect wallet
+          </DynamicConnectButton>
         </p>
       </section>
     );

@@ -118,7 +118,7 @@ export function TransferSelectModal({
         aria-describedby={undefined}
         contentAnimation="gsap-pop"
         className={cn(
-          "z-[var(--z-modal)] flex flex-col p-0 bg-transparent border-none shadow-none focus:outline-none !duration-300 min-h-0 overflow-hidden",
+          "z-[var(--z-modal)] flex flex-col p-0 bg-transparent border-none shadow-none focus:outline-none !duration-300 min-h-0 overflow-hidden rounded-b-none",
           BOTTOM_SHEET_EDGE_CLASSES,
           BOTTOM_SHEET_MOBILE_SLIDE_CLASSES,
           DESKTOP_MODAL_CLASSES,
@@ -126,12 +126,12 @@ export function TransferSelectModal({
         )}
       >
         <div
-          className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[var(--glass-card)] shadow-2xl rounded-t-2xl sm:rounded-2xl"
-          style={{
-            transform:
-              dragOffset > 0 ? `translateY(${dragOffset}px)` : "translateY(0px)",
-            transition: dragOffset === 0 ? "transform 250ms ease-out" : "none",
-          }}
+          className="flex min-h-0 flex-1 flex-col overflow-hidden bg-(--glass-card) shadow-2xl rounded-t-2xl sm:rounded-t-2xl"
+          // style={{
+          //   transform:
+          //     dragOffset > 0 ? `translateY(${dragOffset}px)` : "translateY(0px)",
+          //   transition: dragOffset === 0 ? "transform 250ms ease-out" : "none",
+          // }}
         >
           <div
             className="sm:hidden flex shrink-0 cursor-grab select-none flex-col touch-none bg-transparent active:cursor-grabbing"
