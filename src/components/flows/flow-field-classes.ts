@@ -7,7 +7,7 @@ export const FLOW_FIELD_SHELL =
   "rounded-xl border border-border bg-white dark:bg-primary/40 p-3 px-4";
 
 export const FLOW_FIELD_LABEL_TEXT =
-  "text-xs font-medium text-card-foreground/70";
+  "text-xs font-medium text-card-foreground/70 flex items-center gap-2";
 
 export const FLOW_FIELD_LABEL = `mb-2 ${FLOW_FIELD_LABEL_TEXT}`;
 
@@ -22,17 +22,17 @@ export const FLOW_INPUT_BASE =
   "w-full min-w-0 border-0 px-0 py-0 shadow-none outline-none transition-none hover:bg-transparent focus-visible:border-transparent focus-visible:ring-0";
 
 export const FLOW_INPUT_TEXT =
-  `${FLOW_INPUT_BASE} text-xl font-medium text-card-foreground placeholder:text-muted-foreground`;
+  `${FLOW_INPUT_BASE} text-base font-base text-card-foreground input-text`;
 
 export const FLOW_INPUT_MONO =
-  `${FLOW_INPUT_BASE} font-mono text-base font-medium leading-normal text-card-foreground placeholder:text-muted-foreground`;
+  `${FLOW_INPUT_BASE} font-mono text-base font-medium leading-normal text-card-foreground  input-text`;
 
 /** Transfer / Pay amount row (large value; placeholder handled in globals). */
 export const FLOW_INPUT_AMOUNT_TRANSFER =
-  `${FLOW_INPUT_BASE} !text-card-foreground placeholder:text-muted-foreground input-amount-transfer max-w-full md:text-[0.5rem] md:leading-none`;
+  `${FLOW_INPUT_BASE} !text-card-foreground  input-amount-transfer max-w-full md:text-[0.5rem] md:leading-none`;
 
-export const FLOW_INPUT_AMOUNT_DEFAULT =
-  `${FLOW_INPUT_BASE} text-xl font-medium text-card-foreground placeholder:text-muted-foreground`;
+// export const FLOW_INPUT_AMOUNT_DEFAULT =
+//   `${FLOW_INPUT_BASE} text-xl font-medium text-card-foreground placeholder:text-muted-foreground`;
 
 /** Token “select” rows (From / To / Select token) */
 export const FLOW_TOKEN_TRIGGER =

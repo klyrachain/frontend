@@ -29,17 +29,16 @@ export function WalletReceiveField({
 }: WalletReceiveFieldProps) {
   return (
     <div className={FLOW_FIELD_SHELL}>
-      <p className={FLOW_FIELD_LABEL}>On this account</p>
+      <p className={cn(FLOW_FIELD_LABEL, "flex items-center gap-2")}>
+        <span className="flex size-5 shrink-0 items-center justify-center text-card-foreground/55" aria-hidden>
+          <Wallet className="size-5" />
+        </span>
+        On this account
+      </p>
       <p id="receive-account-hint" className="mb-3 text-sm text-card-foreground/70">
         {accountSpec.helperText}
       </p>
-      <div className="flex min-h-12 items-center gap-2">
-        <span
-          className="flex size-5 shrink-0 items-center justify-center text-card-foreground/55"
-          aria-hidden
-        >
-          <Wallet className="size-5" />
-        </span>
+      <div className="flex min-h-12 items-center">
         <Input
           type="text"
           inputMode="text"
@@ -60,7 +59,7 @@ export function WalletReceiveField({
       {showError && value.trim().length > 0 && !addressValid && (
         <p className="mt-2 text-sm text-destructive" role="alert">
           {accountSpec.format === "evm"
-            ? "Enter a valid EVM address (0x + 40 hex characters)."
+            ? "Enter a valid EVM address."
             : "Enter a valid wallet address for this network."}
         </p>
       )}

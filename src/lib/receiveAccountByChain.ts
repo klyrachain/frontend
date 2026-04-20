@@ -70,7 +70,7 @@ export function getReceiveAccountSpec(
     return {
       format: "evm",
       addressLabel: "EVM address",
-      inputPlaceholder: "0x…",
+      inputPlaceholder: "0x092…99093",
       helperText: ``,
     };
   }

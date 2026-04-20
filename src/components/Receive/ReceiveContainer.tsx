@@ -324,7 +324,7 @@ export function ReceiveContainer() {
               {coreReceiveDetailsComplete && (
                 <ContactIdentifierField
                   label="From"
-                  description="Restrict the payment link to a known payer"
+                  // description="Restrict the payment link to a known payer"
                   value={fromContact}
                   onChange={setFromContact}
                   placeholder="Email, phone or wallet of sender"
@@ -374,7 +374,7 @@ export function ReceiveContainer() {
               </div>
               <ContactIdentifierField
                 label="From"
-                description="Optional: restrict the link to a known payer"
+                // description="Optional: restrict the link to a known payer"
                 value={fromContact}
                 onChange={setFromContact}
                 placeholder="Email, phone or wallet of sender"
@@ -386,7 +386,7 @@ export function ReceiveContainer() {
           <Button
             type="button"
             size="lg"
-            className="w-full rounded-xl py-6 text-base font-semibold bg-black"
+            className="w-full rounded-xl py-6 text-base font-semibold"
             disabled={!canContinue}
             onClick={handleContinue}
           >

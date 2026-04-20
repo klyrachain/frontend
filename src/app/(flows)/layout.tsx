@@ -11,15 +11,15 @@ export default function FlowsLayout({
 }) {
   return (
     <DynamicRootProvider>
-    <div className="landing-page relative min-h-screen bg-transparent text-foreground">
-      <HeroShaderBackground
+    <div className="landing-page relative min-h-screen bg-white text-foreground">
+      {/* <HeroShaderBackground
         embeddedText={HERO_CONFIG.embeddedText}
         embeddedTextAnimation="pop"
         embeddedTextPosition="bottom"
         embeddedTextOpacity={0.12}
         embeddedImages={[...HERO_CONFIG.embeddedImages]}
         embeddedImageDefaultSize={HERO_CONFIG.embeddedImageDefaultSize}
-      />
+      /> */}
       <div className="relative z-20">
         <a
           href="#main-content"

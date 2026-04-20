@@ -56,7 +56,7 @@ export function TransferTokenColumn({
         <p className={`${FLOW_FIELD_LABEL} `}>{label}</p>
         <button
           type="button"
-          // className={`${FLOW_TOKEN_TRIGGER} justify-between`}
+          className={`${FLOW_TOKEN_TRIGGER} justify-between`}
           onClick={onSelectClick}
           aria-label={
             selection

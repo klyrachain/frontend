@@ -30,11 +30,12 @@ export function AmountField({
   variant = "default",
   readOnly = false,
 }: AmountFieldProps) {
-  const inputClass =
-    variant === "transfer" ? FLOW_INPUT_AMOUNT_TRANSFER : FLOW_INPUT_AMOUNT_DEFAULT;
+  // const inputClass =
+  //   variant === "transfer" ? FLOW_INPUT_AMOUNT_TRANSFER : FLOW_INPUT_AMOUNT_DEFAULT;
+  const inputClass = FLOW_INPUT_AMOUNT_TRANSFER;
   return (
     <div className={`${FLOW_FIELD_SHELL}`}>
-      {/* <p className={FLOW_FIELD_LABEL}>{label}</p> */}
+      <p className={FLOW_FIELD_LABEL}>{label}</p>
       <div className="flex items-center justify-between text-card-foreground p-0">
         <Input
           type="text"

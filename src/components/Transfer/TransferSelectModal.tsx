@@ -118,7 +118,7 @@ export function TransferSelectModal({
         aria-describedby={undefined}
         contentAnimation="gsap-pop"
         className={cn(
-          "z-[var(--z-modal)] flex flex-col p-0 bg-transparent border-none shadow-none focus:outline-none !duration-300 min-h-0 overflow-hidden rounded-b-none",
+          "z-[var(--z-modal)] flex flex-col p-0 bg-transparent border-none shadow-none focus:outline-none !duration-300 min-h-0 overflow-hidden max-sm:rounded-b-none",
           BOTTOM_SHEET_EDGE_CLASSES,
           BOTTOM_SHEET_MOBILE_SLIDE_CLASSES,
           DESKTOP_MODAL_CLASSES,

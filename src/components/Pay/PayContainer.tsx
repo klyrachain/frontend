@@ -510,6 +510,7 @@ export function PayContainer() {
             label="Amount"
             amount={amount}
             onAmountChange={setAmount}
+            variant="transfer"
             readOnly={amountLocked}
             footer={
               amountLocked && commerceSummary
@@ -545,7 +546,7 @@ export function PayContainer() {
           {cryptoStandalone ? (
             <Button
               size="lg"
-              className="w-full rounded-xl py-6 text-base font-semibold bg-black"
+              className="w-full rounded-xl py-6 text-base font-semibold"
               disabled={
                 sendLoading ||
                 !sendSelection ||
@@ -561,7 +562,7 @@ export function PayContainer() {
           {fiatStandalone ? (
             <Button
               size="lg"
-              className="w-full rounded-xl py-6 text-base font-semibold bg-black"
+              className="w-full rounded-xl py-6 text-base font-semibold"
               disabled={
                 sendLoading ||
                 !amount.trim() ||

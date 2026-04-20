@@ -321,7 +321,7 @@ html[data-mono-font="ibmPlexMono"] {
 }
 
 .input-text {
-  font-size: 1.2rem;
+  font-size: var(--text-base-size);
   font-weight: var(--font-weight-medium);
   border: var(--border-0);
   /* background: var(--primary); */
