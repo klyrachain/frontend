@@ -57,6 +57,7 @@
   --duration-slow: var(--duration-slow-token);
   --ease-default: var(--ease-token);
   --width-modal: var(--modal-width);
+  --glass-card: var(--glass-card);
 }
 
 :root {
@@ -152,6 +153,7 @@
   --sidebar-accent-foreground: #023436;
   --sidebar-border: oklch(0.92 0.004 286.32);
   --sidebar-ring: #037971;
+  --glass-card: #E8F1F2;
 }
 
 .dark {
@@ -186,6 +188,7 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: #037971;
+  --glass-card: oklch(0.22 0.008 285);
 }
 
 /* Configurable font selection (data-sans-font / data-mono-font set by ThemeSync) */
@@ -242,7 +245,7 @@ html[data-mono-font="ibmPlexMono"] {
 .glass-card {
   /* background: oklch(1 0 0); */
   /* background: oklch(0.98 0.002 286); */
-  background: #E8F1F2;
+  background: var(--glass-card);
   color: var(--card-foreground);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
@@ -250,7 +253,7 @@ html[data-mono-font="ibmPlexMono"] {
   border-radius: 16px;
 }
 .dark .glass-card {
-  background: oklch(0.22 0.008 285);
+  background: var(--glass-card);
   border-color: oklch(1 0 0 / 0.08);
 }
 

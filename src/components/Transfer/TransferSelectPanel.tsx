@@ -356,7 +356,7 @@ export function TransferSelectPanel({
             className={cn(
               "shrink-0 rounded-lg px-2.5 py-1 text-sm font-medium transition-colors sm:px-3",
               activeTab === tab
-                ? "text-foreground bg-green-950/90 rounded-full px-4 py-0"
+                ? "text-foreground bg-primary rounded-full px-4 py-0"
                 : "text-muted-foreground hover:text-card-foreground"
             )}
           >
@@ -380,7 +380,7 @@ export function TransferSelectPanel({
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className={cn(
-                    "pl-9 rounded-xl shadow-none text-center bg-green-900/80 text-foreground placeholder:text-muted",
+                    "pl-9 rounded-xl shadow-none text-center bg-primary/80 text-foreground placeholder:text-muted",
                     isEmbedded ? "border border-border" : "border-none"
                   )}
                 />
@@ -391,7 +391,7 @@ export function TransferSelectPanel({
               className="shrink-0 px-2 pb-2 sm:px-4"
               aria-label="Chains"
             >
-              <ul className="flex overflow-x-auto gap-2">
+              <div className="flex overflow-x-auto gap-2">
                 {suggestedChains.map((chip) => {
                   const chain = getChainById(chip.id);
                   if (chain == null) return null;
@@ -402,7 +402,7 @@ export function TransferSelectPanel({
                     fallbackIcon ||
                     dicebearTokenAvatarUrl(`chain:${chain.id}`);
                   return (
-                    <li key={chain.id}>
+                    <div key={chain.id} className="shrink-0 w-auto">
                       <button
                         type="button"
                         onClick={() =>
@@ -434,10 +434,10 @@ export function TransferSelectPanel({
                         />
                         <span>{chip.label}</span>
                       </button>
-                    </li>
+                    </div>
                   );
                 })}
-              </ul>
+              </div>
             </section>
 
             <section
@@ -466,7 +466,7 @@ export function TransferSelectPanel({
                               chain={chain ?? undefined}
                             />
                             <span className="min-w-0 flex-1">
-                              <span className="block truncate text-sm font-medium text-primary">
+                              <span className="block truncate text-sm font-medium text-card-foreground">
                                 {token.name}
                               </span>
                               <span className="flex items-center gap-1.5 truncate text-xs text-muted-foreground">
@@ -477,7 +477,7 @@ export function TransferSelectPanel({
                                 </span>
                               </span>
                             </span>
-                            <span className="modal-balance tabular-nums text-sm font-semibold text-primary">
+                            <span className="modal-balance tabular-nums text-sm font-semibold text-muted-foreground">
                               {(tokenBalanceByTokenId?.[token.id] ?? "0")} {token.symbol}
                             </span>
                           </button>

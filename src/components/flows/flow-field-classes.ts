@@ -4,7 +4,7 @@
  */
 
 export const FLOW_FIELD_SHELL =
-  "rounded-xl border border-border bg-white p-3 px-4";
+  "rounded-xl border border-border bg-white dark:bg-primary/40 p-3 px-4";
 
 export const FLOW_FIELD_LABEL_TEXT =
   "text-xs font-medium text-card-foreground/70";
