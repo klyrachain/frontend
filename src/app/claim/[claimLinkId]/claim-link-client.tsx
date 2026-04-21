@@ -61,6 +61,35 @@ function unwrapData<T>(raw: unknown): T | null {
   return null;
 }
 
+/** Maps Core/BFF errors to a clearer line for the claim UI (see `code` on 500 responses). */
+function claimApiErrorMessage(
+  status: number,
+  json: unknown,
+  fallback: string
+): string {
+  const o = json && typeof json === "object" ? (json as { error?: string; code?: string }) : {};
+  const err = o.error?.trim();
+  if (status === 503 && o.code === "BACKEND_NOT_CONFIGURED") {
+    return err || "Payment API is not configured for this deployment.";
+  }
+  if (status === 502) {
+    return err || "Could not reach the payment service. Check your network or try again.";
+  }
+  if (status === 500 && o.code === "CLAIM_LINK_LOOKUP_FAILED") {
+    return err || "Could not load this claim page. Try again in a moment.";
+  }
+  if (status === 500 && o.code === "CLAIM_UNLOCK_LOAD_FAILED") {
+    return err || "Could not load claim details after verification. Try again in a moment.";
+  }
+  if (status === 404) {
+    return err || "Claim not found or no longer available.";
+  }
+  if (status === 400) {
+    return err || fallback;
+  }
+  return err || fallback;
+}
+
 function OtpSixBoxes({
   value,
   onChange,
@@ -335,7 +364,7 @@ export function ClaimLinkClient() {
     const res = await fetch(`/api/core/claims/unlocked/${encodeURIComponent(token)}`, { cache: "no-store" });
     const json: unknown = await res.json().catch(() => ({}));
     if (!res.ok) {
-      setError((json as { error?: string })?.error ?? "Could not load claim details.");
+      setError(claimApiErrorMessage(res.status, json, "Could not load claim details."));
       return null;
     }
     const data = unwrapData<UnlockedDetails>(json);
@@ -363,7 +392,7 @@ export function ClaimLinkClient() {
         const json: unknown = await res.json().catch(() => ({}));
         if (cancelled) return;
         if (!res.ok) {
-          setError((json as { error?: string })?.error ?? "Claim not found.");
+          setError(claimApiErrorMessage(res.status, json, "Claim not found."));
           setLinkOk(false);
           return;
         }

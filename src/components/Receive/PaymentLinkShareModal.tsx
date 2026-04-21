@@ -340,7 +340,7 @@ export function PaymentLinkShareModal({
                 <h3 className="text-lg font-semibold tracking-tight text-black wrap-break-word">
                   {headline}
                 </h3>
-                <p className="mt-0 text-xs text-black/70">{subtitle}</p>
+                <p className="sr-only">{subtitle}</p>
               </div>
               <div className="flex shrink-0 items-center gap-2">
                 <p className="hidden text-sm font-medium text-black sm:block">
@@ -390,24 +390,15 @@ export function PaymentLinkShareModal({
 
             <div className="mb-1 mt-3 flex w-full min-w-0 max-w-full flex-col items-center gap-4 sm:mt-4">
               {receiveMode === "CRYPTO" ? (
-                <>
-                  <p className="px-1 text-center text-xs font-medium text-black/70">
-                    Pay with tokens from supported networks
-                  </p>
-                  <SupportedNetworksCarousel
-                    enabled={open}
-                    itemPx={64}
-                    gapPx={16}
-                    iconSize={48}
-                    showCenterFrame
-                    showEdgeGradient
-                  />
-                </>
-              ) : (
-                <p className="text-center text-xs font-medium text-black/70">
-                  Payer completes with card or mobile money (Paystack).
-                </p>
-              )}
+                <SupportedNetworksCarousel
+                  enabled={open}
+                  itemPx={64}
+                  gapPx={16}
+                  iconSize={48}
+                  showCenterFrame
+                  showEdgeGradient
+                />
+              ) : null}
             </div>
 
             <div className="mt-2 flex w-full min-w-0 max-w-full flex-col gap-3">
@@ -457,7 +448,6 @@ export function PaymentLinkShareModal({
               ) : null}
             </div>
 
-            <p className="mt-4 text-sm text-black/80 text-center">Powered by morapay</p>
           </div>
 
           {/* <div className="w-full min-w-0 max-w-full rounded-2xl border border-border/60 bg-card/90 p-3 shadow-lg backdrop-blur-md dark:bg-card/70 sm:p-4 md:p-5">
