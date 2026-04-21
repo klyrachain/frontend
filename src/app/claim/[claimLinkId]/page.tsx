@@ -10,9 +10,7 @@ export default function ClaimByLinkPage() {
         </div>
       }
     >
-      <div className="flex min-h-[60vh] items-start justify-center px-4 py-10">
-        <ClaimLinkClient />
-      </div>
+      <ClaimLinkClient />
     </Suspense>
   );
 }

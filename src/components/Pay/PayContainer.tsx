@@ -663,6 +663,7 @@ export function PayContainer() {
       }
 
       const tChain = chainSlugToCore(sendSelection.chain.name);
+      const sendSym = sendSelection.token.symbol.trim();
       const res = await fetch("/api/core/requests", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -670,11 +671,11 @@ export function PayContainer() {
           payerEmail: payerEmail.trim(),
           t_amount: amt,
           t_chain: tChain,
-          t_token: sendSelection.token.symbol,
+          t_token: sendSym,
           toIdentifier: to.trim(),
-          receiveSummary: `${amount.trim()} ${sendSelection.token.symbol} on ${sendSelection.chain.name}`,
+          receiveSummary: `${amount.trim()} ${sendSym} on ${sendSelection.chain.name} (beneficiary picks receive asset on claim)`,
           f_chain: tChain,
-          f_token: sendSelection.token.symbol,
+          f_token: sendSym,
           f_amount: amt,
           channels: ["EMAIL"],
           skipPaymentRequestNotification: standalonePay && !receiveMode,

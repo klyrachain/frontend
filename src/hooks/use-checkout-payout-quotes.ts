@@ -26,12 +26,16 @@ function emptyRowState(): PayoutQuoteRowState {
   };
 }
 
+export type CheckoutQuoteInputBasis = "fiat" | "crypto";
+
 export function useCheckoutPayoutQuotes(
   enabled: boolean,
   fiatAmount: string | null,
   fiatCurrency: string | null,
   evmWalletAddress: string | null,
-  rowSpecs: CheckoutRowSpec[]
+  rowSpecs: CheckoutRowSpec[],
+  /** When `crypto`, `fiatAmount` / `fiatCurrency` are treated as crypto invoice amount + symbol (Core checkout quotes). */
+  quoteInputBasis: CheckoutQuoteInputBasis = "fiat"
 ): Record<string, PayoutQuoteRowState> {
   const [rows, setRows] = useState<Record<string, PayoutQuoteRowState>>({});
 
@@ -46,7 +50,7 @@ export function useCheckoutPayoutQuotes(
       ].join(":")
     )
     .join("|");
-  const fiatSig = `${fiatAmount?.trim() ?? ""}|${fiatCurrency?.trim() ?? ""}|${evmWalletAddress ?? ""}`;
+  const invoiceSig = `${quoteInputBasis}|${fiatAmount?.trim() ?? ""}|${fiatCurrency?.trim() ?? ""}|${evmWalletAddress ?? ""}`;
 
   const run = useCallback(
     async (partialRefetchIds: string[] | null) => {
@@ -178,26 +182,26 @@ export function useCheckoutPayoutQuotes(
         });
       }
     },
-    [fiatAmount, fiatCurrency, evmWalletAddress, rowSpecs]
+    [fiatAmount, fiatCurrency, evmWalletAddress, rowSpecs, quoteInputBasis]
   );
 
   const runRef = useRef(run);
   runRef.current = run;
 
-  const prevFiatSigRef = useRef<string | null>(null);
+  const prevInvoiceSigRef = useRef<string | null>(null);
   const prevRowSigRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!enabled || !fiatAmount?.trim() || !fiatCurrency?.trim()) {
       setRows({});
-      prevFiatSigRef.current = null;
+      prevInvoiceSigRef.current = null;
       prevRowSigRef.current = null;
       return;
     }
 
     const fiatChanged =
-      prevFiatSigRef.current !== null && prevFiatSigRef.current !== fiatSig;
-    prevFiatSigRef.current = fiatSig;
+      prevInvoiceSigRef.current !== null && prevInvoiceSigRef.current !== invoiceSig;
+    prevInvoiceSigRef.current = invoiceSig;
 
     const prevRow = prevRowSigRef.current;
     const rowChanged = prevRow !== null && prevRow !== rowSig;
@@ -230,7 +234,7 @@ export function useCheckoutPayoutQuotes(
     } else {
       void runRef.current(null);
     }
-  }, [enabled, fiatAmount, fiatCurrency, fiatSig, rowSig, rowSpecs]);
+  }, [enabled, fiatAmount, fiatCurrency, invoiceSig, rowSig, rowSpecs, quoteInputBasis]);
 
   useEffect(() => {
     if (!enabled || !fiatAmount?.trim() || !fiatCurrency?.trim()) {
@@ -245,7 +249,7 @@ export function useCheckoutPayoutQuotes(
     };
     const id = window.setInterval(tick, intervalMs);
     return () => window.clearInterval(id);
-  }, [enabled, fiatAmount, fiatCurrency, fiatSig]);
+  }, [enabled, fiatAmount, fiatCurrency, invoiceSig, quoteInputBasis]);
 
   return rows;
 }

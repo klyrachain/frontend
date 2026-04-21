@@ -14,11 +14,16 @@ function truncateAddress(addr: string): string {
   return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
 }
 
+export type CheckoutWalletHeaderActionProps = {
+  /** Shown on the primary Dynamic connect control (default: checkout copy). */
+  connectButtonLabel?: string;
+};
+
 /**
  * Checkout header: branded link to pay + URL `wallet` sync for quotes and balances.
  * Requires Dynamic env for connect UI; Wagmi is always available on checkout layout.
  */
-export function CheckoutWalletHeaderAction() {
+export function CheckoutWalletHeaderAction({ connectButtonLabel }: CheckoutWalletHeaderActionProps = {}) {
   const envId = getDynamicEnvironmentId();
   if (!envId) {
     return (
@@ -27,10 +32,10 @@ export function CheckoutWalletHeaderAction() {
       </p>
     );
   }
-  return <CheckoutWalletHeaderInner />;
+  return <CheckoutWalletHeaderInner connectButtonLabel={connectButtonLabel} />;
 }
 
-function CheckoutWalletHeaderInner() {
+function CheckoutWalletHeaderInner({ connectButtonLabel }: CheckoutWalletHeaderActionProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -88,6 +93,8 @@ function CheckoutWalletHeaderInner() {
     };
   }, [menuOpen]);
 
+  const primaryConnectLabel = connectButtonLabel ?? "Link wallet to pay";
+
   if (!isConnected || !address) {
     return (
       <DynamicConnectButton
@@ -96,7 +103,7 @@ function CheckoutWalletHeaderInner() {
           "rounded-xl font-medium"
         )}
       >
-        Link wallet to pay
+        {primaryConnectLabel}
       </DynamicConnectButton>
     );
   }

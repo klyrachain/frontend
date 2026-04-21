@@ -18,7 +18,7 @@ import { TransferSelectModal } from "@/components/Transfer/TransferSelectModal";
 import { FlagSelect } from "@/components/flows";
 import type { Chain, Token } from "@/types/token";
 import { getChainById as getStaticChainById } from "@/config/chainsAndTokens";
-import { DEFAULT_CHECKOUT_ROW_SPECS } from "@/types/checkout-row-spec";
+import { DEFAULT_CHECKOUT_ROW_SPECS, type CheckoutRowSpec } from "@/types/checkout-row-spec";
 import type { CheckoutPayoutRowConfig } from "@/lib/checkout-payout-options";
 import {
   buildRowsAfterTokenPick,
@@ -42,6 +42,19 @@ const SOLANA_CHAIN_ICON =
 const BITCOIN_TOKEN_ICON =
   "https://assets.coingecko.com/coins/images/1/standard/bitcoin.png?1696501400";
 const DEFAULT_FIAT_QUOTE_CHAIN = "BASE";
+
+function checkoutRowMatchesPayerSend(
+  spec: CheckoutRowSpec,
+  sendChain: string,
+  sendToken: string
+): boolean {
+  const fc = sendChain.trim().toUpperCase();
+  const ft = sendToken.trim().toUpperCase();
+  if (spec.kind === "composite_wxrp") {
+    return fc === "ETHEREUM" && (ft === "WXRP" || ft === "XRP");
+  }
+  return spec.chain.trim().toUpperCase() === fc && spec.symbol.trim().toUpperCase() === ft;
+}
 
 function parseCheckoutPreferredFiatCodes(): string[] {
   const raw =
@@ -103,6 +116,21 @@ export type CheckoutTokenQuoteRowsProps = {
   /** Commerce payment link id for Morapay / card flow. */
   payPageId?: string;
   onContinueToPay?: (payload: CheckoutContinuePayload) => void;
+  /** Claim payout: reuse quote rows without Morapay pay wiring. */
+  variant?: "checkout" | "claim_receive";
+  onContinueToClaim?: (payload: CheckoutContinuePayload) => void;
+  onReceiveFiatInstead?: () => void;
+  /** Payer on-chain leg (`f_*`) — row matching this asset is hidden on the claim page. */
+  claimSendChain?: string | null;
+  claimSendToken?: string | null;
+  /** Disables “Continue to claim” while parent persists settlement. */
+  claimExternallyBusy?: boolean;
+  /** Hide the primary row CTA so the parent can own a single Claim action. */
+  claimSuppressPrimaryCta?: boolean;
+  onClaimQuoteContextChange?: (ctx: {
+    selectedRow: CheckoutDisplayRow | null;
+    quotes: Record<string, PayoutQuoteRowState>;
+  }) => void;
 };
 
 type PaystackCountry = {
@@ -222,15 +250,27 @@ export function CheckoutTokenQuoteRows({
   invoiceChargeKind = "FIAT",
   payPageId,
   onContinueToPay,
+  variant = "checkout",
+  onContinueToClaim,
+  onReceiveFiatInstead,
+  claimSendChain,
+  claimSendToken,
+  claimExternallyBusy,
+  claimSuppressPrimaryCta = false,
+  onClaimQuoteContextChange,
 }: CheckoutTokenQuoteRowsProps) {
   const searchParams = useSearchParams();
   const walletParam = searchParams.get("wallet")?.trim() ?? "";
-  const evmFromAddress =
-    walletParam.startsWith("0x") && walletParam.length >= 42
-      ? walletParam
-      : null;
 
   const { chainId: walletChainId, address: connectedEvmAddress } = useAccount();
+  const evmFromAddress =
+    variant === "claim_receive" &&
+    connectedEvmAddress?.startsWith("0x") &&
+    connectedEvmAddress.length >= 42
+      ? connectedEvmAddress
+      : walletParam.startsWith("0x") && walletParam.length >= 42
+        ? walletParam
+        : null;
   const { switchChainAsync } = useSwitchChain();
   const userCustomizedRowsRef = useRef(false);
 
@@ -265,6 +305,7 @@ export function CheckoutTokenQuoteRows({
     invoiceChargeKind.toUpperCase() === "CRYPTO" ? "CRYPTO" : "FIAT";
   const invoiceCurrencyUpper = (fiatCurrency ?? "").trim().toUpperCase();
   const invoiceAmountNumber = Number.parseFloat((fiatAmount ?? "").trim());
+  const isClaimReceive = variant === "claim_receive";
 
   useEffect(() => {
     if (!payPageId?.trim() || chargeKindNormalized !== "CRYPTO") {
@@ -272,12 +313,25 @@ export function CheckoutTokenQuoteRows({
     }
   }, [payPageId, chargeKindNormalized]);
 
+  const claimReceiveRowSpecs = useMemo(() => {
+    if (!isClaimReceive) return null;
+    const c = claimSendChain?.trim() ?? "";
+    const t = claimSendToken?.trim() ?? "";
+    const base =
+      c && t
+        ? DEFAULT_CHECKOUT_ROW_SPECS.filter((s) => !checkoutRowMatchesPayerSend(s, c, t))
+        : DEFAULT_CHECKOUT_ROW_SPECS;
+    const nonempty = base.length > 0 ? base : DEFAULT_CHECKOUT_ROW_SPECS;
+    return reorderCheckoutRowsForEvmChain(nonempty, walletChainId);
+  }, [isClaimReceive, claimSendChain, claimSendToken, walletChainId]);
+
   const quotes = useCheckoutPayoutQuotes(
     enabled,
     fiatAmount,
     fiatCurrency,
     evmFromAddress,
-    rowSpecs
+    rowSpecs,
+    isClaimReceive ? "crypto" : "fiat"
   );
 
   const { data: chains = [] } = useGetChainsQuery(undefined);
@@ -292,6 +346,14 @@ export function CheckoutTokenQuoteRows({
     if (!id) return null;
     return displayRowsResolved.find((r) => r.id === id) ?? null;
   }, [displayRowsResolved, selectedRowId]);
+
+  useEffect(() => {
+    if (!isClaimReceive || !onClaimQuoteContextChange) return;
+    onClaimQuoteContextChange({
+      selectedRow: selectedDisplayRow,
+      quotes,
+    });
+  }, [isClaimReceive, onClaimQuoteContextChange, selectedDisplayRow, quotes]);
 
   const quoteChainForFiat = useMemo(() => {
     const baseRow = displayRowsResolved.find((row) => row.id === "base-usdc");
@@ -326,9 +388,14 @@ export function CheckoutTokenQuoteRows({
 
   useEffect(() => {
     if (userCustomizedRowsRef.current) return;
+    if (isClaimReceive && claimReceiveRowSpecs && claimReceiveRowSpecs.length > 0) {
+      setRowSpecs(claimReceiveRowSpecs);
+      setSelectedRowId(claimReceiveRowSpecs[0]?.id ?? null);
+      return;
+    }
     setRowSpecs(reorderedDefaults);
     setSelectedRowId(reorderedDefaults[0]?.id ?? null);
-  }, [reorderedDefaults]);
+  }, [isClaimReceive, claimReceiveRowSpecs, reorderedDefaults]);
 
   const { byRowId, loading: balLoading, items: allBalanceItems } = useCheckoutBalances(
     walletParam.length > 0 ? walletParam : null,
@@ -744,6 +811,16 @@ export function CheckoutTokenQuoteRows({
     if (!id) return;
     const row = displayRowsResolved.find((r) => r.id === id);
     if (!row) return;
+
+    if (isClaimReceive) {
+      if (!onContinueToClaim) {
+        setPaymentError("Claim flow is not wired on this page.");
+        return;
+      }
+      onContinueToClaim({ flow: "token", selectedRow: row, quotes });
+      return;
+    }
+
     const targetCid = Number.parseInt(row.balanceChainId, 10);
     if (Number.isNaN(targetCid)) {
       setPaymentError(
@@ -782,6 +859,8 @@ export function CheckoutTokenQuoteRows({
     displayRowsResolved,
     walletChainId,
     switchChainAsync,
+    isClaimReceive,
+    onContinueToClaim,
   ]);
 
   const morapayFields = (idSuffix: string) => (
@@ -841,7 +920,7 @@ export function CheckoutTokenQuoteRows({
 
   /** Card/mobile (Morapay) only when the link is charged in crypto — never for FIAT-denominated links. */
   const showCryptoFiatCollapsible =
-    payPageId?.trim() && chargeKindNormalized === "CRYPTO";
+    !isClaimReceive && payPageId?.trim() && chargeKindNormalized === "CRYPTO";
   const showCryptoMorapayFiatTab =
     showCryptoFiatCollapsible && cryptoFiatTab === "fiat";
   const showCryptoQuotesBlock =
@@ -857,6 +936,17 @@ export function CheckoutTokenQuoteRows({
   const showFiatPayerFields = showCryptoFiatFields || showFiatOnrampBusinessFields;
   const showBottomMorapayButton =
     (paymentFlow === "morapay" && fiatExpanded) || showFiatOnrampBusinessFields;
+
+  const selectedQuoteState = selectedRowId ? quotes[selectedRowId] : null;
+  const claimContinueBlocked =
+    Boolean(claimExternallyBusy) ||
+    (isClaimReceive &&
+      (selectedQuoteState?.loading ||
+        Boolean(selectedQuoteState?.error) ||
+        !selectedQuoteState?.cryptoAmount?.trim() ||
+        !selectedQuoteState?.cryptoSymbol?.trim()));
+
+  const cryptoQuotesSectionTitle = isClaimReceive ? "Choose receive asset" : "Pay with crypto";
 
   const fiatMorapaySwitchButtonClass =
     "w-full justify-center px-1 text-muted-foreground bg-white p-4 border-none hover:bg-white/40";
@@ -920,7 +1010,7 @@ export function CheckoutTokenQuoteRows({
             {showCryptoQuotesBlock ? (
               <>
                 <p className="text-center text-xs font-medium text-muted-foreground">
-                  Pay with crypto
+                  {cryptoQuotesSectionTitle}
                 </p>
                 {displayRowsResolved.map((row) => (
                   <CheckoutQuoteRow
@@ -961,6 +1051,19 @@ export function CheckoutTokenQuoteRows({
                   <ChevronDown size={7} />
                   3,400+ tokens
                 </Button>
+                {isClaimReceive && onReceiveFiatInstead ? (
+                  <div className="rounded-lg border border-white/10">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className={fiatMorapaySwitchButtonClass}
+                      onClick={() => onReceiveFiatInstead()}
+                    >
+                      Receive fiat
+                    </Button>
+                  </div>
+                ) : null}
                 {showCryptoFiatCollapsible ? (
                   <div className="rounded-lg border border-white/10">
                     <Button
@@ -1005,15 +1108,15 @@ export function CheckoutTokenQuoteRows({
               >
                 {morapayLoading ? "Redirecting…" : "Continue to pay"}
               </Button>
-            ) : (
+            ) : isClaimReceive && claimSuppressPrimaryCta ? null : (
               <Button
                 type="button"
                 size="lg"
                 className="mt-3 w-full rounded-xl py-6 font-semibold"
-                disabled={morapayLoading}
+                disabled={morapayLoading || claimContinueBlocked}
                 onClick={() => void handleContinue()}
               >
-                Continue to pay
+                {isClaimReceive ? "Continue to claim" : "Continue to pay"}
               </Button>
             )}
             {paymentError ? (
@@ -1038,7 +1141,7 @@ export function CheckoutTokenQuoteRows({
         }
         defaultChainFilterId={null}
         onSelect={handleModalSelect}
-        invoiceChargeKind={chargeKindNormalized}
+        invoiceChargeKind={isClaimReceive ? "CRYPTO" : chargeKindNormalized}
         onMorapayOfframpSelect={() => {
           setPaymentFlow("morapay");
           setMorapayError(null);
