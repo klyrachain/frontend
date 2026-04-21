@@ -50,25 +50,45 @@ export async function initializePaystackCheckout(
   const path = input.callbackPath ?? "/checkout/payment/return";
   const callback_url = `${origin}${path.startsWith("/") ? path : `/${path}`}`;
 
+  const amount = input.amount;
+  const currencyRaw = input.currency?.trim();
+  if (
+    amount != null &&
+    Number.isFinite(amount) &&
+    amount > 0 &&
+    (!currencyRaw || !/^[A-Za-z]{3}$/.test(currencyRaw))
+  ) {
+    return {
+      ok: false,
+      error:
+        "Pick a payer currency in checkout before continuing (card / mobile money).",
+      code: "PAYSTACK_FIAT_QUOTE_REQUIRED",
+    };
+  }
+
+  const body: Record<string, unknown> = {
+    payment_link_id: input.paymentLinkId,
+    callback_url,
+    ...(trimmed ? { customer_email: trimmed } : {}),
+    ...(input.payer_wallet?.trim()
+      ? { payer_wallet: input.payer_wallet.trim() }
+      : {}),
+    ...(amount != null && Number.isFinite(amount) ? { amount } : {}),
+    ...(currencyRaw && /^[A-Za-z]{3}$/.test(currencyRaw)
+      ? { currency: currencyRaw.toUpperCase() }
+      : {}),
+    ...(input.settlement_crypto_amount != null &&
+    Number.isFinite(input.settlement_crypto_amount) &&
+    input.settlement_crypto_amount > 0
+      ? { settlement_crypto_amount: input.settlement_crypto_amount }
+      : {}),
+    ...(input.channels?.length ? { channels: input.channels } : {}),
+  };
+
   const res = await fetch("/api/klyra/paystack/payments/initialize", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      ...(trimmed ? { customer_email: trimmed } : {}),
-      ...(input.payer_wallet?.trim()
-        ? { payer_wallet: input.payer_wallet.trim() }
-        : {}),
-      payment_link_id: input.paymentLinkId,
-      amount: input.amount,
-      currency: input.currency,
-      ...(input.settlement_crypto_amount != null &&
-      Number.isFinite(input.settlement_crypto_amount) &&
-      input.settlement_crypto_amount > 0
-        ? { settlement_crypto_amount: input.settlement_crypto_amount }
-        : {}),
-      channels: input.channels,
-      callback_url,
-    }),
+    body: JSON.stringify(body),
   });
   const json = (await res.json()) as {
     success?: boolean;

@@ -17,6 +17,18 @@ import {
 } from "@/types/payment-instruction";
 import { ArrowLeftIcon, ChevronLeftIcon } from "@dynamic-labs/sdk-react-core";
 
+function evmChainShortLabel(chainId: number): string {
+  const m: Record<number, string> = {
+    1: "Ethereum",
+    8453: "Base",
+    42161: "Arbitrum",
+    10: "Optimism",
+    137: "Polygon",
+    56: "BNB Chain",
+  };
+  return m[chainId] ?? `chain ${chainId}`;
+}
+
 const erc20TransferAbi = [
   {
     type: "function",
@@ -91,8 +103,8 @@ export function CommerceCheckoutWalletPay({
       setIntentError("Quote is not ready. Wait for amounts or pick another token.");
       return;
     }
-    if (!address?.startsWith("0x") || address.length !== 42) {
-      setIntentError("Connect an EVM wallet to continue.");
+    if (!isConnected || !address?.startsWith("0x") || address.length !== 42) {
+      setIntentError("Connect an EVM wallet (e.g. MetaMask) on the same network as this token.");
       return;
     }
     if (!tAmountForIntent || Number.parseFloat(tAmountForIntent) <= 0) {
@@ -101,6 +113,23 @@ export function CommerceCheckoutWalletPay({
     }
     setIntentLoading(true);
     try {
+      if (chainId != null && chainId !== evmChainId) {
+        if (!switchChainAsync) {
+          setIntentError(
+            `Switch your wallet to ${evmChainShortLabel(evmChainId)} — this token pays on that network only.`
+          );
+          return;
+        }
+        try {
+          await switchChainAsync({ chainId: evmChainId });
+        } catch {
+          setIntentError(
+            `Could not switch networks. Open your wallet and select ${evmChainShortLabel(evmChainId)}, then try again.`
+          );
+          return;
+        }
+      }
+
       const res = await fetch("/api/core/app-transfer/intent", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -151,12 +180,15 @@ export function CommerceCheckoutWalletPay({
     }
   }, [
     address,
+    chainId,
     commerce.id,
     cryptoAmount,
     evmChainId,
+    isConnected,
     isTokenFlow,
     nonEvm,
     row,
+    switchChainAsync,
     tAmountForIntent,
   ]);
 
@@ -261,15 +293,30 @@ export function CommerceCheckoutWalletPay({
         for {commerce.amount} {commerce.currency}.
 
       </p>
+      {evmChainId != null &&
+      isConnected &&
+      chainId != null &&
+      chainId !== evmChainId &&
+      !intentResult ? (
+        <p
+          className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-center text-xs text-amber-950 dark:text-amber-100"
+          role="status"
+        >
+          Your wallet is on {evmChainShortLabel(chainId)}; this payment uses{" "}
+          {evmChainShortLabel(evmChainId)}.{" "}
+          <span className="font-medium">Confirm Payment</span> will prompt you to switch
+          first.
+        </p>
+      ) : null}
       {!intentResult ? (
         <Button
           type="button"
           size="lg"
           className="w-full rounded-xl py-6 text-base font-semibold"
-          disabled={intentLoading || !cryptoAmount}
+          disabled={intentLoading || !cryptoAmount || !isConnected}
           onClick={() => void createIntent()}
         >
-          {intentLoading ? "Confirming…" : "Confirm Payment"}
+          {intentLoading ? "Preparing…" : "Confirm Payment"}
         </Button>
       ) : !isEvmErc20TransferInstruction(intentResult.calldata) ? (
         <div className="space-y-2 rounded-md border border-amber-500/25 bg-amber-500/10 p-3 text-xs text-muted-foreground">
@@ -303,7 +350,7 @@ export function CommerceCheckoutWalletPay({
             disabled={isSending || !isConnected}
             onClick={() => void sendToPool()}
           >
-            {isSending ? "Confirm in wallet…" : "Sign & send to pool"}
+            {isSending ? "Approving…" : "Approve"}
           </Button>
           {txHash ? (
             <p className="text-xs text-primary">

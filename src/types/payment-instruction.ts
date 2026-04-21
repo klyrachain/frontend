@@ -58,6 +58,13 @@ export type PaymentInstruction =
   | BitcoinUtxoInstruction
   | UnsupportedPaymentInstruction;
 
+export function isSolanaSplTransferInstruction(
+  c: PaymentInstruction | Record<string, unknown> | null | undefined
+): c is SolanaSplTransferInstruction {
+  if (!c || typeof c !== "object") return false;
+  return (c as { kind?: string }).kind === "solana_spl_transfer";
+}
+
 export function isEvmErc20TransferInstruction(
   c: PaymentInstruction | Record<string, unknown> | null | undefined
 ): c is EvmErc20TransferInstruction {

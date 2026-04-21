@@ -33,6 +33,7 @@ import {
 } from "@/components/checkout/CheckoutQuoteRow";
 import { CheckoutNonEvmLinkedAddresses } from "@/components/checkout/CheckoutNonEvmLinkedAddresses";
 import { isNonEvmCheckoutChainId } from "@/lib/checkout-chain-family";
+import { resolveCheckoutPaystackFiat } from "@/lib/paystack-market-fiat";
 import type { TokenSelection } from "@/components/Exchange/TokenChainSelectModal";
 import { ChevronDown } from "lucide-react";
 
@@ -41,6 +42,47 @@ const SOLANA_CHAIN_ICON =
 const BITCOIN_TOKEN_ICON =
   "https://assets.coingecko.com/coins/images/1/standard/bitcoin.png?1696501400";
 const DEFAULT_FIAT_QUOTE_CHAIN = "BASE";
+
+function parseCheckoutPreferredFiatCodes(): string[] {
+  const raw =
+    (typeof process !== "undefined"
+      ? process.env.NEXT_PUBLIC_CHECKOUT_DEFAULT_FIAT_CURRENCY
+      : undefined) ?? "GHS";
+  return raw
+    .split(",")
+    .map((s) => s.trim().toUpperCase())
+    .filter((c) => /^[A-Z]{3}$/.test(c));
+}
+
+function pickDefaultSelectableFiat(selectable: string[]): string {
+  if (selectable.length === 0) return "";
+  const preferred = parseCheckoutPreferredFiatCodes();
+  for (const p of preferred) {
+    if (selectable.includes(p)) return p;
+  }
+  const sorted = [...selectable].sort((a, b) => a.localeCompare(b));
+  return sorted[0] ?? selectable[0];
+}
+
+function formatCheckoutFiatMajorDisplay(
+  amountStr: string,
+  currencyCode: string
+): string {
+  const n = Number.parseFloat(amountStr.trim());
+  const code = currencyCode.trim().toUpperCase();
+  if (!Number.isFinite(n) || code.length !== 3) {
+    return `${amountStr.trim()} ${code}`.trim();
+  }
+  try {
+    return new Intl.NumberFormat(undefined, {
+      style: "currency",
+      currency: code,
+      maximumFractionDigits: 2,
+    }).format(n);
+  } catch {
+    return `${amountStr.trim()} ${code}`;
+  }
+}
 
 export type CheckoutContinuePayload = {
   quotes: Record<string, PayoutQuoteRowState>;
@@ -418,7 +460,7 @@ export function CheckoutTokenQuoteRows({
         const availableCurrencies = Array.from(
           new Set(
             countries
-              .map((country) => country.currency?.trim().toUpperCase())
+              .map((country) => resolveCheckoutPaystackFiat(country))
               .filter((currency) => currency && currency.length === 3)
           )
         );
@@ -429,7 +471,9 @@ export function CheckoutTokenQuoteRows({
             : availableCurrencies;
         if (selectable.length === 0) return;
         setSelectedFiatCurrency((prev) =>
-          prev && selectable.includes(prev) ? prev : selectable[0]
+          prev && selectable.includes(prev)
+            ? prev
+            : pickDefaultSelectableFiat(selectable)
         );
       } catch {
         if (!cancelled) {
@@ -447,7 +491,7 @@ export function CheckoutTokenQuoteRows({
     const raw = Array.from(
       new Set(
         paystackCountries
-          .map((country) => country.currency?.trim().toUpperCase())
+          .map((country) => resolveCheckoutPaystackFiat(country))
           .filter((currency) => currency && currency.length === 3)
       )
     );
@@ -461,7 +505,7 @@ export function CheckoutTokenQuoteRows({
   const fiatCurrencyFlagItems = useMemo(() => {
     return fiatCurrencyOptions.map((currency) => {
       const country = paystackCountries.find(
-        (c) => c.currency?.trim().toUpperCase() === currency
+        (c) => resolveCheckoutPaystackFiat(c) === currency
       );
       return {
         value: currency,
@@ -764,7 +808,8 @@ export function CheckoutTokenQuoteRows({
       ) : null}
       {!fiatQuoteLoading && fiatQuoteAmount ? (
         <p className="text-xs text-card-foreground/70">
-          You will pay about {fiatQuoteAmount} {selectedFiatCurrency}.
+          You will pay about{" "}
+          {formatCheckoutFiatMajorDisplay(fiatQuoteAmount, selectedFiatCurrency)}.
         </p>
       ) : null}
       <label className="sr-only" htmlFor={`checkout-morapay-email-${idSuffix}`}>

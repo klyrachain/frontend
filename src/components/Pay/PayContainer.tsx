@@ -1,9 +1,12 @@
 "use client";
 
-import { useState, useMemo, useDeferredValue, useEffect, useCallback } from "react";
+import { useState, useMemo, useDeferredValue, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
+import { parseUnits, type Address } from "viem";
+import { useSwitchChain, useWriteContract, usePublicClient } from "wagmi";
+import { ArrowLeftRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,6 +22,12 @@ import { useAppSelector } from "@/store/hooks";
 import { useGetChainsQuery, useGetTokensQuery } from "@/store/api/squidApi";
 import { CHAINS, TOKENS } from "@/config/chainsAndTokens";
 import { buildSuggestedTokenSelections } from "@/lib/flowTokens";
+import {
+  getReceiveAccountSpec,
+  isValidReceiveAddress,
+} from "@/lib/receiveAccountByChain";
+import { parseTokenAddressFromSquidId } from "@/lib/checkout-display-rows";
+import { isNativeTokenAddress, NATIVE_TOKEN_SEND_BLOCKED } from "@/lib/native-token";
 import { useClientMounted } from "@/hooks/use-client-mounted";
 import type { PublicCommercePaymentLink } from "@/types/checkout-public.types";
 import { FlowsWalletHeaderAction } from "@/app/(flows)/FlowsWalletHeaderAction";
@@ -28,6 +37,100 @@ import {
   FLOW_INPUT_TEXT,
 } from "@/components/flows/flow-field-classes";
 import { cn } from "@/lib/utils";
+import {
+  usePayCryptoDualAmount,
+  type PayAmountFieldMode,
+} from "@/hooks/use-pay-crypto-dual-amount";
+import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
+import { usePrimaryEvmWallet } from "@/hooks/use-primary-evm-wallet";
+import { getDynamicEnvironmentId } from "@/lib/dynamic/dynamic-app-config";
+import type { PaymentInstruction } from "@/types/payment-instruction";
+import {
+  isEvmErc20TransferInstruction,
+  isSolanaSplTransferInstruction,
+  normalizeToEvmInstruction,
+} from "@/types/payment-instruction";
+
+const erc20TransferAbi = [
+  {
+    type: "function",
+    name: "transfer",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "to", type: "address" },
+      { name: "value", type: "uint256" },
+    ],
+    outputs: [{ type: "bool" }],
+  },
+] as const;
+
+const erc20DecimalsAbi = [
+  {
+    type: "function",
+    name: "decimals",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ type: "uint8" }],
+  },
+] as const;
+
+/** Loose email check aligned with standalone “To” field. */
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const EVM_ADDRESS_RE = /^0x[a-fA-F0-9]{40}$/i;
+
+function isPhoneRecipient(value: string): boolean {
+  const t = value.trim();
+  if (!t || EMAIL_RE.test(t) || EVM_ADDRESS_RE.test(t)) return false;
+  if (!/^[\d\s+()-]+$/.test(t)) return false;
+  const digits = t.replace(/\D/g, "");
+  return digits.length >= 10 && digits.length <= 15;
+}
+
+function guessTokenDecimals(symbol: string, chainIdStr: string): number {
+  const u = symbol.toUpperCase();
+  if (u === "USDC" || u === "USDT" || u === "USDC.E") return 6;
+  if (chainIdStr.trim() === "101") return 9;
+  return 18;
+}
+
+type AppTransferIntentSuccess = {
+  transaction_id: string;
+  calldata: PaymentInstruction;
+  next_step?: string;
+};
+
+/** Subset of Dynamic `Wallet` used for sends (multi-chain). */
+type PrimaryWalletLike = {
+  address?: string;
+  sync?: () => Promise<void>;
+  sendBalance: (p: {
+    amount: string;
+    toAddress: string;
+    token: { address: string; decimals: number };
+  }) => Promise<string | undefined>;
+};
+
+/** Only mounts under DynamicContextProvider — avoids useDynamicContext when env is unset. */
+function DynamicPrimaryWalletCapture({ onWallet }: { onWallet: (w: PrimaryWalletLike | null) => void }) {
+  const env = getDynamicEnvironmentId();
+  useEffect(() => {
+    if (!env) onWallet(null);
+  }, [env, onWallet]);
+  if (!env) return null;
+  return <DynamicPrimaryWalletCaptureInner onWallet={onWallet} />;
+}
+
+function DynamicPrimaryWalletCaptureInner({
+  onWallet,
+}: {
+  onWallet: (w: PrimaryWalletLike | null) => void;
+}) {
+  const { primaryWallet } = useDynamicContext();
+  useEffect(() => {
+    onWallet((primaryWallet ?? null) as PrimaryWalletLike | null);
+  }, [primaryWallet, onWallet]);
+  return null;
+}
 
 const SuggestedTokensRow = dynamic(
   () =>
@@ -58,6 +161,13 @@ type CommercePayPageSummary = Pick<
 
 export function PayContainer() {
   const searchParams = useSearchParams();
+  const primaryWalletRef = useRef<PrimaryWalletLike | null>(null);
+  const onPrimaryWallet = useCallback((w: PrimaryWalletLike | null) => {
+    primaryWalletRef.current = w;
+  }, []);
+  const { address: walletAddr, isConnected, chainId } = usePrimaryEvmWallet();
+  const { switchChainAsync } = useSwitchChain();
+  const { writeContractAsync, isPending: walletWritePending } = useWriteContract();
   const payPageIdRaw = searchParams.get("payPageId")?.trim() ?? "";
   const payPageId = PAY_PAGE_UUID_RE.test(payPageIdRaw) ? payPageIdRaw : "";
   const payPageIdInvalid =
@@ -90,6 +200,9 @@ export function PayContainer() {
   const [sendLoading, setSendLoading] = useState(false);
   const [sendResult, setSendResult] = useState<string | null>(null);
   const [fiatCurrencyInput, setFiatCurrencyInput] = useState("GHS");
+  const [payAmountFieldMode, setPayAmountFieldMode] =
+    useState<PayAmountFieldMode>("token");
+  const [usdAmount, setUsdAmount] = useState("");
 
   const amountLocked =
     commerceSummary?.type === "fixed" && commerceSummary.amount != null;
@@ -237,18 +350,319 @@ export function PayContainer() {
     commerceSummary?.publicCode?.trim() || commerceSummary?.slug?.trim() || "";
 
   const standalonePay = !payPageId && !requestLinkId;
+  const fiatStandalone = standalonePay && payMode === "fiat";
+  const cryptoStandalone = standalonePay && payMode !== "fiat";
+
+  const sendEvmChainId = useMemo(() => {
+    if (!sendSelection) return undefined;
+    const n = Number.parseInt(String(sendSelection.chain.id).trim(), 10);
+    return Number.isFinite(n) && !Number.isNaN(n) ? n : undefined;
+  }, [sendSelection]);
+
+  const publicClient = usePublicClient({ chainId: sendEvmChainId });
+
+  const recvSpecForPayerRule = sendSelection
+    ? getReceiveAccountSpec(String(sendSelection.chain.id), sendSelection.chain.name)
+    : null;
+  const toTrimUi = to.trim();
+  const isPlatformRecipientUi =
+    EMAIL_RE.test(toTrimUi) || isPhoneRecipient(toTrimUi);
+  const isDirectAddressUi =
+    !!recvSpecForPayerRule &&
+    !isPlatformRecipientUi &&
+    isValidReceiveAddress(toTrimUi, recvSpecForPayerRule.format);
+  const payerEmailOk = EMAIL_RE.test(payerEmail.trim()) || isDirectAddressUi;
 
   const handleSendRequest = useCallback(async () => {
     if (!sendSelection) return;
     setSendLoading(true);
     setSendResult(null);
     try {
-      const tChain = chainSlugToCore(sendSelection.chain.name);
-      const amt = Number(amount.trim());
+      const amtStr = amount.trim();
+      const amt = Number(amtStr);
       if (!Number.isFinite(amt) || amt <= 0) {
         setSendResult("Enter a valid amount.");
         return;
       }
+
+      const recipient = to.trim();
+      if (!recipient) {
+        setSendResult("Enter recipient.");
+        return;
+      }
+
+      if (standalonePay && !receiveMode && cryptoStandalone) {
+        const recvSpec = getReceiveAccountSpec(
+          String(sendSelection.chain.id),
+          sendSelection.chain.name
+        );
+        const chainIdStr = String(sendSelection.chain.id).trim();
+        const isSolanaChain = chainIdStr === "101";
+        const emailTo = EMAIL_RE.test(recipient);
+        const phoneTo = isPhoneRecipient(recipient);
+        const addressTo =
+          !emailTo && !phoneTo && isValidReceiveAddress(recipient, recvSpec.format);
+
+        if (!emailTo && !phoneTo && !addressTo) {
+          setSendResult("Invalid recipient.");
+          return;
+        }
+
+        const dynamicEnv = getDynamicEnvironmentId();
+
+        if (emailTo || phoneTo) {
+          if (!EMAIL_RE.test(payerEmail.trim())) {
+            setSendResult("Enter your email.");
+            return;
+          }
+
+          let receiverAddressForIntent: string;
+          if (isSolanaChain) {
+            if (!dynamicEnv || !primaryWalletRef.current?.address) {
+              setSendResult("Connect wallet.");
+              return;
+            }
+            receiverAddressForIntent = primaryWalletRef.current.address.trim();
+          } else if (recvSpec.format === "evm") {
+            if (!isConnected || !EVM_ADDRESS_RE.test(walletAddr ?? "")) {
+              setSendResult("Connect wallet.");
+              return;
+            }
+            receiverAddressForIntent = walletAddr!.trim();
+          } else {
+            setSendResult("Unsupported network.");
+            return;
+          }
+
+          if (!isSolanaChain && recvSpec.format === "evm") {
+            const evmChainIdEmail = Number.parseInt(chainIdStr, 10);
+            if (!Number.isFinite(evmChainIdEmail) || Number.isNaN(evmChainIdEmail)) {
+              setSendResult("Invalid chain.");
+              return;
+            }
+            if (chainId != null && chainId !== evmChainIdEmail) {
+              if (!switchChainAsync) {
+                setSendResult("Switch network in your wallet.");
+                return;
+              }
+              try {
+                await switchChainAsync({ chainId: evmChainIdEmail });
+              } catch {
+                setSendResult("Could not switch network.");
+                return;
+              }
+            }
+          }
+
+          const intentPayload: Record<string, string> = {
+            f_chain_slug: chainIdStr,
+            f_token: sendSelection.token.symbol.trim(),
+            f_amount: amtStr,
+            t_chain_slug: chainIdStr,
+            t_token: sendSelection.token.symbol.trim(),
+            t_amount: amtStr,
+            receiver_address: receiverAddressForIntent,
+            payer_email: payerEmail.trim(),
+          };
+          if (emailTo) intentPayload.recipient_email = recipient;
+          if (phoneTo) intentPayload.recipient_phone = recipient.replace(/\s/g, "");
+
+          const intentRes = await fetch("/api/core/app-transfer/intent", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(intentPayload),
+          });
+          const intentJson: unknown = await intentRes.json().catch(() => ({}));
+          const intentErr =
+            intentJson && typeof intentJson === "object" && "error" in intentJson
+              ? String((intentJson as { error?: string }).error ?? "")
+              : "";
+          if (!intentRes.ok) {
+            setSendResult(intentErr || "Could not prepare send.");
+            return;
+          }
+          const intentData =
+            intentJson &&
+            typeof intentJson === "object" &&
+            "success" in intentJson &&
+            (intentJson as { success?: boolean }).success === true &&
+            "data" in intentJson
+              ? ((intentJson as { data: AppTransferIntentSuccess }).data ?? null)
+              : null;
+          if (!intentData?.calldata || !intentData.transaction_id) {
+            setSendResult("Invalid response.");
+            return;
+          }
+
+          const cd = intentData.calldata;
+
+          if (isEvmErc20TransferInstruction(cd)) {
+            const evmPool = normalizeToEvmInstruction(cd);
+            if (!evmPool?.toAddress || !evmPool.tokenAddress) {
+              setSendResult("Invalid calldata.");
+              return;
+            }
+            const targetChain = evmPool.chainId;
+            if (chainId != null && chainId !== targetChain && switchChainAsync) {
+              try {
+                await switchChainAsync({ chainId: targetChain });
+              } catch {
+                setSendResult("Switch network in your wallet.");
+                return;
+              }
+            }
+            try {
+              const value = parseUnits(evmPool.amount, evmPool.decimals);
+              await writeContractAsync({
+                address: evmPool.tokenAddress as Address,
+                abi: erc20TransferAbi,
+                functionName: "transfer",
+                args: [evmPool.toAddress as Address, value],
+                chainId: targetChain,
+              });
+              await fetch("/api/core/app-transfer/custodial-notify", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ transaction_id: intentData.transaction_id }),
+              });
+              setSendResult("Done.");
+            } catch (e) {
+              const msg = e instanceof Error ? e.message : String(e);
+              setSendResult(msg);
+            }
+            return;
+          }
+
+          if (isSolanaSplTransferInstruction(cd)) {
+            if (!dynamicEnv || !primaryWalletRef.current) {
+              setSendResult("Connect wallet.");
+              return;
+            }
+            try {
+              await primaryWalletRef.current.sync?.();
+              await primaryWalletRef.current.sendBalance({
+                amount: amtStr,
+                toAddress: cd.recipientAddress,
+                token: { address: cd.mint, decimals: cd.decimals },
+              });
+              await fetch("/api/core/app-transfer/custodial-notify", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ transaction_id: intentData.transaction_id }),
+              });
+              setSendResult("Done.");
+            } catch (e) {
+              const msg = e instanceof Error ? e.message : String(e);
+              setSendResult(msg);
+            }
+            return;
+          }
+
+          setSendResult("Unsupported.");
+          return;
+        }
+
+        const tokenAddr = parseTokenAddressFromSquidId(sendSelection.token);
+        if (!tokenAddr) {
+          setSendResult("Pick a token from the list.");
+          return;
+        }
+        if (isNativeTokenAddress(tokenAddr)) {
+          setSendResult(NATIVE_TOKEN_SEND_BLOCKED);
+          return;
+        }
+
+        if (dynamicEnv && primaryWalletRef.current) {
+          try {
+            await primaryWalletRef.current.sync?.();
+            const dec = guessTokenDecimals(sendSelection.token.symbol, chainIdStr);
+            const sig = await primaryWalletRef.current.sendBalance({
+              amount: amtStr,
+              toAddress: recipient,
+              token: { address: tokenAddr, decimals: dec },
+            });
+            if (sig) setSendResult(String(sig));
+            else setSendResult("Done.");
+            return;
+          } catch {
+            /* fall through to wagmi on EVM */
+          }
+        }
+
+        if (recvSpec.format !== "evm") {
+          setSendResult("Connect wallet.");
+          return;
+        }
+
+        const evmChainId = Number.parseInt(chainIdStr, 10);
+        if (!Number.isFinite(evmChainId) || Number.isNaN(evmChainId)) {
+          setSendResult("Invalid chain.");
+          return;
+        }
+
+        if (!isConnected || !EVM_ADDRESS_RE.test(walletAddr ?? "")) {
+          setSendResult("Connect wallet.");
+          return;
+        }
+
+        if (chainId != null && chainId !== evmChainId) {
+          if (!switchChainAsync) {
+            setSendResult("Switch network in your wallet.");
+            return;
+          }
+          try {
+            await switchChainAsync({ chainId: evmChainId });
+          } catch {
+            setSendResult("Could not switch network.");
+            return;
+          }
+        }
+
+        if (!publicClient) {
+          setSendResult("Try again.");
+          return;
+        }
+
+        let decimals: number;
+        try {
+          const d = await publicClient.readContract({
+            address: tokenAddr as Address,
+            abi: erc20DecimalsAbi,
+            functionName: "decimals",
+          });
+          decimals = typeof d === "bigint" ? Number(d) : Number(d);
+        } catch {
+          setSendResult("Could not read token info.");
+          return;
+        }
+
+        try {
+          const value = parseUnits(amtStr, decimals);
+          const hash = await writeContractAsync({
+            address: tokenAddr as Address,
+            abi: erc20TransferAbi,
+            functionName: "transfer",
+            args: [recipient as Address, value],
+            chainId: evmChainId,
+          });
+          setSendResult(String(hash));
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : String(e);
+          setSendResult(msg);
+        }
+        return;
+      }
+
+      const recvSpec = getReceiveAccountSpec(
+        String(sendSelection.chain.id),
+        sendSelection.chain.name
+      );
+      if (!isValidReceiveAddress(recipient, recvSpec.format)) {
+        setSendResult(`Enter a valid ${recvSpec.addressLabel} for ${sendSelection.chain.name}.`);
+        return;
+      }
+
+      const tChain = chainSlugToCore(sendSelection.chain.name);
       const res = await fetch("/api/core/requests", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -263,6 +677,7 @@ export function PayContainer() {
           f_token: sendSelection.token.symbol,
           f_amount: amt,
           channels: ["EMAIL"],
+          skipPaymentRequestNotification: standalonePay && !receiveMode,
         }),
       });
       const json: unknown = await res.json().catch(() => ({}));
@@ -295,7 +710,21 @@ export function PayContainer() {
     } finally {
       setSendLoading(false);
     }
-  }, [amount, payerEmail, sendSelection, to]);
+  }, [
+    amount,
+    chainId,
+    cryptoStandalone,
+    isConnected,
+    payerEmail,
+    publicClient,
+    receiveMode,
+    sendSelection,
+    standalonePay,
+    switchChainAsync,
+    to,
+    walletAddr,
+    writeContractAsync,
+  ]);
 
   const handleSendFiatRequest = useCallback(async () => {
     const amt = Number(amount.trim());
@@ -303,7 +732,7 @@ export function PayContainer() {
       setSendResult("Enter a valid amount.");
       return;
     }
-    const cur = fiatCurrency || "GHS";
+    const cur = (fiatCurrencyInput || fiatCurrency || "GHS").trim().toUpperCase();
     setSendLoading(true);
     setSendResult(null);
     try {
@@ -318,6 +747,7 @@ export function PayContainer() {
           toIdentifier: to.trim(),
           receiveSummary: `${amount.trim()} ${cur} (fiat)`,
           channels: ["EMAIL"],
+          skipPaymentRequestNotification: standalonePay && !receiveMode,
         }),
       });
       const json: unknown = await res.json().catch(() => ({}));
@@ -350,13 +780,67 @@ export function PayContainer() {
     } finally {
       setSendLoading(false);
     }
-  }, [amount, fiatCurrencyInput, payerEmail, to]);
+  }, [amount, fiatCurrencyInput, payerEmail, receiveMode, standalonePay, to]);
 
-  const fiatStandalone = standalonePay && payMode === "fiat";
-  const cryptoStandalone = standalonePay && payMode !== "fiat";
+  const payDual = usePayCryptoDualAmount({
+    selection: sendSelection,
+    fieldMode: payAmountFieldMode,
+    tokenAmountStr: amount,
+    usdAmountStr: usdAmount,
+    enabled: cryptoStandalone,
+  });
+
+  useEffect(() => {
+    if (!payDual.supportsUsdDenom && payAmountFieldMode === "usd") {
+      setPayAmountFieldMode("token");
+    }
+  }, [payDual.supportsUsdDenom, payAmountFieldMode]);
+
+  useEffect(() => {
+    setUsdAmount("");
+    setPayAmountFieldMode("token");
+  }, [sendSelection?.token.symbol, sendSelection?.chain.id]);
+
+  useEffect(() => {
+    if (!cryptoStandalone || !payDual.supportsUsdDenom) return;
+    if (payAmountFieldMode !== "usd") return;
+    if (payDual.suggestedTokenAmount) {
+      setAmount(payDual.suggestedTokenAmount);
+    }
+  }, [
+    cryptoStandalone,
+    payAmountFieldMode,
+    payDual.supportsUsdDenom,
+    payDual.suggestedTokenAmount,
+  ]);
+
+  const onRotatePayAmount = useCallback(() => {
+    if (!sendSelection || !payDual.supportsUsdDenom || amountLocked) return;
+    if (payAmountFieldMode === "token") {
+      if (payDual.oppositeNumberUsd != null && Number.isFinite(payDual.oppositeNumberUsd)) {
+        setUsdAmount(
+          payDual.oppositeNumberUsd >= 10_000
+            ? String(Math.round(payDual.oppositeNumberUsd))
+            : payDual.oppositeNumberUsd.toFixed(2)
+        );
+      } else {
+        setUsdAmount("");
+      }
+      setPayAmountFieldMode("usd");
+    } else {
+      setPayAmountFieldMode("token");
+    }
+  }, [
+    sendSelection,
+    payDual.supportsUsdDenom,
+    payDual.oppositeNumberUsd,
+    payAmountFieldMode,
+    amountLocked,
+  ]);
 
   return (
     <div className="relative mx-auto flex w-full max-w-xl flex-col self-stretch duration-300 ease-out">
+      <DynamicPrimaryWalletCapture onWallet={onPrimaryWallet} />
       {payPageIdInvalid ? (
         <p
           className="mb-4 w-full max-w-md rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive"
@@ -507,15 +991,80 @@ export function PayContainer() {
           ) : null}
 
           <AmountField
-            label="Amount"
-            amount={amount}
-            onAmountChange={setAmount}
+            label={
+              cryptoStandalone && sendSelection && payDual.supportsUsdDenom
+                ? payAmountFieldMode === "usd"
+                  ? "Amount (USD)"
+                  : `Amount (${sendSelection.token.symbol})`
+                : "Amount"
+            }
+            labelRight={
+              cryptoStandalone &&
+              !amountLocked &&
+              sendSelection &&
+              payDual.supportsUsdDenom ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 shrink-0 text-muted-foreground"
+                  onClick={onRotatePayAmount}
+                  aria-label={
+                    payAmountFieldMode === "token"
+                      ? "Enter amount in USD instead"
+                      : "Enter amount in token instead"
+                  }
+                >
+                  <ArrowLeftRight className="h-4 w-4" />
+                </Button>
+              ) : undefined
+            }
+            amount={
+              cryptoStandalone && payDual.supportsUsdDenom && payAmountFieldMode === "usd"
+                ? usdAmount
+                : amount
+            }
+            onAmountChange={(v) => {
+              if (
+                cryptoStandalone &&
+                payDual.supportsUsdDenom &&
+                payAmountFieldMode === "usd"
+              ) {
+                setUsdAmount(v);
+              } else {
+                setAmount(v);
+              }
+            }}
             variant="transfer"
             readOnly={amountLocked}
             footer={
-              amountLocked && commerceSummary
-                ? `Locked to merchant link (${commerceSummary.currency})`
-                : undefined
+              <>
+                {cryptoStandalone && sendSelection && payDual.supportsUsdDenom ? (
+                  <div className="space-y-1">
+                    {payDual.loading ? (
+                      <p className="text-xs text-muted-foreground">Updating quote…</p>
+                    ) : null}
+                    {payDual.error ? (
+                      <p className="text-xs text-destructive">{payDual.error}</p>
+                    ) : null}
+                    {!payDual.loading && payDual.oppositeLine ? (
+                      <p className="text-xs tabular-nums text-muted-foreground">
+                        {payDual.oppositeLine}
+                      </p>
+                    ) : null}
+                    {!(cryptoStandalone && standalonePay) ? (
+                      <p className="text-xs text-muted-foreground">
+                        Uses platform pricing — not a guaranteed execution price.
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null}
+                {amountLocked && commerceSummary ? (
+                  <span className="mt-1 block text-xs text-muted-foreground">
+                    Locked to merchant link ({commerceSummary.currency})
+                  </span>
+                ) : null}
+              </>
             }
           />
 
@@ -523,7 +1072,7 @@ export function PayContainer() {
             label="To"
             value={to}
             onChange={setTo}
-            ariaLabel="Recipient: email, phone number or crypto address"
+            ariaLabel="Recipient"
           />
 
           {standalonePay ? (
@@ -549,14 +1098,25 @@ export function PayContainer() {
               className="w-full rounded-xl py-6 text-base font-semibold"
               disabled={
                 sendLoading ||
+                walletWritePending ||
                 !sendSelection ||
-                !amount.trim() ||
                 !to.trim() ||
-                !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payerEmail.trim())
+                !payerEmailOk ||
+                (payAmountFieldMode === "token" &&
+                  (!amount.trim() ||
+                    !Number.isFinite(Number(amount.trim())) ||
+                    Number(amount.trim()) <= 0)) ||
+                (payAmountFieldMode === "usd" &&
+                  (!usdAmount.trim() ||
+                    !Number.isFinite(Number(usdAmount.trim())) ||
+                    Number(usdAmount.trim()) <= 0 ||
+                    payDual.loading ||
+                    !payDual.suggestedTokenAmount ||
+                    !!payDual.error))
               }
               onClick={() => void handleSendRequest()}
             >
-              {sendLoading ? "Creating…" : "Send"}
+              {sendLoading || walletWritePending ? "Sending…" : "Send"}
             </Button>
           ) : null}
           {fiatStandalone ? (

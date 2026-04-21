@@ -4,12 +4,13 @@ import { Input } from "@/components/ui/input";
 import {
   FLOW_FIELD_SHELL,
   FLOW_FIELD_LABEL,
-  FLOW_INPUT_AMOUNT_DEFAULT,
   FLOW_INPUT_AMOUNT_TRANSFER,
 } from "@/components/flows/flow-field-classes";
 
 export interface AmountFieldProps {
   label: string;
+  /** Shown on the same row as the label (e.g. token / USD toggle). */
+  labelRight?: React.ReactNode;
   amount: string;
   onAmountChange: (value: string) => void;
   /** Shown below the input (e.g. quote or price preview) */
@@ -23,6 +24,7 @@ export interface AmountFieldProps {
 
 export function AmountField({
   label,
+  labelRight,
   amount,
   onAmountChange,
   footer,
@@ -35,7 +37,10 @@ export function AmountField({
   const inputClass = FLOW_INPUT_AMOUNT_TRANSFER;
   return (
     <div className={`${FLOW_FIELD_SHELL}`}>
-      <p className={FLOW_FIELD_LABEL}>{label}</p>
+      <div className="flex items-center justify-between gap-2">
+        <p className={FLOW_FIELD_LABEL}>{label}</p>
+        {labelRight != null ? <div className="shrink-0">{labelRight}</div> : null}
+      </div>
       <div className="flex items-center justify-between text-card-foreground p-0">
         <Input
           type="text"
