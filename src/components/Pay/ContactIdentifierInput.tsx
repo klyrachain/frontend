@@ -10,14 +10,16 @@ export function ContactIdentifierInput({
   onChange,
   placeholder = "Email, phone or wallet address",
   ariaLabel,
+  className,
 }: {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
   ariaLabel: string;
+  className?: string;
 }) {
   return (
-    <div className="flex min-h-12 items-center">
+    <div className={cn("flex min-h-12 min-w-0 flex-1 items-center", className)}>
       <Input
         type="text"
         inputMode="text"

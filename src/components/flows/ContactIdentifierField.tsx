@@ -1,11 +1,13 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { ContactIdentifierInput } from "@/components/Pay/ContactIdentifierInput";
 import {
   FLOW_FIELD_SHELL,
   FLOW_FIELD_LABEL_TEXT,
 } from "@/components/flows/flow-field-classes";
 import { cn, getContactIdentifierType } from "@/lib/utils";
+import { isLikelyFullInternationalPhone } from "@/lib/phone-dial-codes";
 import { Mail, Phone, Wallet } from "lucide-react";
 
 export interface ContactIdentifierFieldProps {
@@ -15,6 +17,8 @@ export interface ContactIdentifierFieldProps {
   ariaLabel: string;
   placeholder?: string;
   description?: string;
+  /** Shown to the left of the input when the value is a national phone (no +country prefix). */
+  phoneDialAccessory?: ReactNode;
 }
 
 export function ContactIdentifierField({
@@ -24,10 +28,13 @@ export function ContactIdentifierField({
   ariaLabel,
   placeholder,
   description,
+  phoneDialAccessory,
 }: ContactIdentifierFieldProps) {
   const hasDescription = description != null && description !== "";
 
   const type = getContactIdentifierType(value);
+  const showPhoneDial =
+    type === "phone" && phoneDialAccessory != null && !isLikelyFullInternationalPhone(value);
   return (
     <div className={FLOW_FIELD_SHELL}>
       <p
@@ -53,12 +60,15 @@ export function ContactIdentifierField({
       {hasDescription && (
         <p className="mb-3 text-sm text-card-foreground/70">{description}</p>
       )}
-      <ContactIdentifierInput
-        value={value}
-        onChange={onChange}
-        placeholder={placeholder}
-        ariaLabel={ariaLabel}
-      />
+      <div className="flex min-h-12 w-full min-w-0 items-stretch gap-2">
+        {showPhoneDial ? <div className="flex shrink-0 items-stretch">{phoneDialAccessory}</div> : null}
+        <ContactIdentifierInput
+          value={value}
+          onChange={onChange}
+          placeholder={placeholder}
+          ariaLabel={ariaLabel}
+        />
+      </div>
     </div>
   );
 }

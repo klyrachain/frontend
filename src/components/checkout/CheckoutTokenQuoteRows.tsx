@@ -32,6 +32,7 @@ import {
   emptyCheckoutQuote,
 } from "@/components/checkout/CheckoutQuoteRow";
 import { CheckoutNonEvmLinkedAddresses } from "@/components/checkout/CheckoutNonEvmLinkedAddresses";
+import { CommerceCheckoutWalletPay } from "@/components/checkout/CommerceCheckoutWalletPay";
 import { isNonEvmCheckoutChainId } from "@/lib/checkout-chain-family";
 import { resolveCheckoutPaystackFiat } from "@/lib/paystack-market-fiat";
 import type { TokenSelection } from "@/components/Exchange/TokenChainSelectModal";
@@ -295,6 +296,9 @@ export function CheckoutTokenQuoteRows({
   const [morapayError, setMorapayError] = useState<string | null>(null);
   const [morapayLoading, setMorapayLoading] = useState(false);
   const [paymentError, setPaymentError] = useState<string | null>(null);
+  /** In commerce checkout, token pay uses an inline wallet block instead of swapping the whole card. */
+  const [walletCheckoutPayload, setWalletCheckoutPayload] =
+    useState<CheckoutContinuePayload | null>(null);
   const [paystackCountries, setPaystackCountries] = useState<PaystackCountry[]>([]);
   const [selectedFiatCurrency, setSelectedFiatCurrency] = useState<string>("");
   const [fiatQuoteAmount, setFiatQuoteAmount] = useState<string>("");
@@ -306,6 +310,18 @@ export function CheckoutTokenQuoteRows({
   const invoiceCurrencyUpper = (fiatCurrency ?? "").trim().toUpperCase();
   const invoiceAmountNumber = Number.parseFloat((fiatAmount ?? "").trim());
   const isClaimReceive = variant === "claim_receive";
+
+  const tokenWalletCheckoutOpen =
+    !isClaimReceive &&
+    variant === "checkout" &&
+    walletCheckoutPayload?.flow === "token" &&
+    walletCheckoutPayload.selectedRow != null;
+
+  useEffect(() => {
+    if (paymentFlow !== "token") {
+      setWalletCheckoutPayload(null);
+    }
+  }, [paymentFlow]);
 
   useEffect(() => {
     if (!payPageId?.trim() || chargeKindNormalized !== "CRYPTO") {
@@ -693,6 +709,7 @@ export function CheckoutTokenQuoteRows({
     setRowSpecs(next);
     setSelectedRowId(spec.id);
     setPaymentFlow("token");
+    setWalletCheckoutPayload(null);
     setAggregateAllocations(null);
     setPaymentError(null);
     if (payPageId?.trim() && chargeKindNormalized === "CRYPTO") {
@@ -843,11 +860,11 @@ export function CheckoutTokenQuoteRows({
         return;
       }
     }
-    if (!onContinueToPay) {
-      setPaymentError("Token payment flow is not wired yet on this checkout page.");
+    if (!payPageId?.trim()) {
+      setPaymentError("Payment link is not available for wallet checkout.");
       return;
     }
-    onContinueToPay({ flow: "token", selectedRow: row, quotes });
+    setWalletCheckoutPayload({ flow: "token", selectedRow: row, quotes });
   }, [
     paymentFlow,
     submitMorapay,
@@ -861,6 +878,7 @@ export function CheckoutTokenQuoteRows({
     switchChainAsync,
     isClaimReceive,
     onContinueToClaim,
+    payPageId,
   ]);
 
   const morapayFields = (idSuffix: string) => (
@@ -976,6 +994,7 @@ export function CheckoutTokenQuoteRows({
                   setCryptoFiatTab("crypto");
                   setPaymentFlow("token");
                   setFiatExpanded(false);
+                  setWalletCheckoutPayload(null);
                   setMorapayError(null);
                 }}
               >
@@ -1027,6 +1046,7 @@ export function CheckoutTokenQuoteRows({
                     onSelect={() => {
                       setSelectedRowId(row.id);
                       setPaymentFlow("token");
+                      setWalletCheckoutPayload(null);
                     }}
                   />
                 ))}
@@ -1075,6 +1095,7 @@ export function CheckoutTokenQuoteRows({
                         setCryptoFiatTab("fiat");
                         setPaymentFlow("morapay");
                         setFiatExpanded(true);
+                        setWalletCheckoutPayload(null);
                         setMorapayError(null);
                       }}
                     >
@@ -1108,7 +1129,7 @@ export function CheckoutTokenQuoteRows({
               >
                 {morapayLoading ? "Redirecting…" : "Continue to pay"}
               </Button>
-            ) : isClaimReceive && claimSuppressPrimaryCta ? null : (
+            ) : isClaimReceive && claimSuppressPrimaryCta ? null : tokenWalletCheckoutOpen ? null : (
               <Button
                 type="button"
                 size="lg"
@@ -1116,9 +1137,26 @@ export function CheckoutTokenQuoteRows({
                 disabled={morapayLoading || claimContinueBlocked}
                 onClick={() => void handleContinue()}
               >
-                {isClaimReceive ? "Continue to claim" : "Continue to pay"}
+                {isClaimReceive ? "Continue to claim" : "Pay"}
               </Button>
             )}
+            {tokenWalletCheckoutOpen && payPageId?.trim() && walletCheckoutPayload?.selectedRow ? (
+              <CommerceCheckoutWalletPay
+                key={`${walletCheckoutPayload.selectedRow.id}-${
+                  walletCheckoutPayload.quotes[walletCheckoutPayload.selectedRow.id]?.cryptoAmount ?? ""
+                }`}
+                commerce={{
+                  id: payPageId.trim(),
+                  amount: fiatAmount ?? "",
+                  currency: fiatCurrency ?? "",
+                  chargeKind: invoiceChargeKind ?? "FIAT",
+                }}
+                payload={walletCheckoutPayload}
+                onClose={() => setWalletCheckoutPayload(null)}
+                embedded
+                autoPrepareIntent
+              />
+            ) : null}
             {paymentError ? (
               <p className="text-center text-xs text-destructive" role="alert">
                 {paymentError}

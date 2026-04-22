@@ -179,11 +179,21 @@ export function PayContainer() {
   const receiveMode = searchParams.get("receive") === "1";
   const urlAmount = searchParams.get("amount")?.trim() ?? "";
   const urlTo = searchParams.get("to")?.trim() ?? "";
-  const payMode = (searchParams.get("mode")?.trim().toLowerCase() ?? "") as
+  const urlToken = searchParams.get("token")?.trim() ?? "";
+  const urlFrom = searchParams.get("from")?.trim() ?? "";
+  const modeParam = (searchParams.get("mode")?.trim().toLowerCase() ?? "") as
     | ""
     | "fiat"
     | "crypto";
   const fiatCurrency = searchParams.get("currency")?.trim().toUpperCase() ?? "";
+
+  /** Without this, missing `mode` defaults the page to crypto (fiat fields hidden). */
+  const payMode = useMemo((): "fiat" | "crypto" | "" => {
+    if (modeParam === "fiat" || modeParam === "crypto") return modeParam;
+    if (receiveMode && urlToken) return "crypto";
+    if (receiveMode && !urlToken && fiatCurrency.length > 0) return "fiat";
+    return "";
+  }, [modeParam, receiveMode, urlToken, fiatCurrency]);
 
   const [sendSelection, setSendSelection] = useState<TokenSelection | null>(null);
   const [amount, setAmount] = useState("");
@@ -239,6 +249,11 @@ export function PayContainer() {
   useEffect(() => {
     if (fiatCurrency) setFiatCurrencyInput(fiatCurrency);
   }, [fiatCurrency]);
+
+  useEffect(() => {
+    if (!receiveMode || !urlFrom) return;
+    if (EMAIL_RE.test(urlFrom)) setPayerEmail(urlFrom);
+  }, [receiveMode, urlFrom]);
 
   useEffect(() => {
     if (!payPageId) {
