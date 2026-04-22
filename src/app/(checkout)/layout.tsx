@@ -28,7 +28,7 @@ export default function CheckoutLayout({
 }) {
   return (
     <DynamicRootProvider>
-    <div className="landing-page relative min-h-screen bg-transparent text-foreground">
+    <div className="app-premium-ui landing-page relative min-h-screen bg-transparent text-foreground">
       {/* <HeroShaderBackground
         embeddedText={HERO_CONFIG.embeddedText}
         embeddedTextAnimation="pop"
@@ -49,7 +49,7 @@ export default function CheckoutLayout({
           id="checkout-main"
           role="main"
           tabIndex={-1}
-          className="flex min-h-screen flex-col items-center justify-center px-1 py-12"
+          className="flex min-h-screen flex-col items-center justify-center px-2 py-12 app-premium-ui"
         >
           {children}
         </main>

@@ -16,6 +16,8 @@ import type { CheckoutDisplayRow } from "@/lib/checkout-display-rows";
 import type { PayoutQuoteRowState } from "@/hooks/use-checkout-payout-quotes";
 import { FlagSelect } from "@/components/flows";
 import { resolveCheckoutPaystackFiat } from "@/lib/paystack-market-fiat";
+import { presentationFromRaw } from "@/lib/app-error-presentation";
+import { AppErrorPanel } from "@/components/feedback/app-error-panel";
 
 const CheckoutWalletHeaderAction = dynamic(
   () =>
@@ -330,6 +332,8 @@ export function ClaimLinkClient() {
   const [bankOptions, setBankOptions] = useState<Array<{ name: string; code: string }>>([]);
   const [banksLoading, setBanksLoading] = useState(false);
   const [resolveLoading, setResolveLoading] = useState(false);
+
+  const errorPresentation = useMemo(() => presentationFromRaw(error), [error]);
 
   const loadDetails = useCallback(async (token: string): Promise<UnlockedDetails | null> => {
     const res = await fetch(`/api/core/claims/unlocked/${encodeURIComponent(token)}`, { cache: "no-store" });
@@ -743,7 +747,7 @@ export function ClaimLinkClient() {
   if (doneMessage) {
     return (
       <article className="glass-card w-full max-w-lg overflow-visible p-6 shadow-xl">
-        <p className="text-center text-lg font-medium text-primary">{doneMessage}</p>
+        <p className="font-display text-center text-lg font-medium text-primary">{doneMessage}</p>
         <footer className="mt-8 pt-4 text-center text-xs text-muted-foreground">Powered by Morapay</footer>
       </article>
     );
@@ -753,7 +757,7 @@ export function ClaimLinkClient() {
     <article className="glass-card w-full max-w-lg overflow-visible p-6 shadow-xl">
       <header className="mb-4 flex flex-wrap items-start justify-between gap-3 border-b border-border/60 pb-3">
         <div className="min-w-0">
-          <h1 className="text-xl font-semibold text-card-foreground">Receive payment</h1>
+          <h1 className="font-display text-xl font-semibold text-card-foreground">Receive payment</h1>
           <p className="mt-1 text-sm text-muted-foreground">Verify your identity, then choose how you receive funds.</p>
         </div>
         {step === "payout" ? (
@@ -775,10 +779,12 @@ export function ClaimLinkClient() {
         </section>
       ) : null}
 
-      {!loading && error ? (
-        <p className="mb-4 text-sm text-destructive" role="alert">
-          {error}
-        </p>
+      {!loading && error && errorPresentation ? (
+        <AppErrorPanel
+          presentation={errorPresentation}
+          className="mb-4 text-left"
+          onDismiss={() => setError(null)}
+        />
       ) : null}
 
       {!loading && linkOk && step === "recipient" ? (

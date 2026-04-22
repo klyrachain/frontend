@@ -177,7 +177,7 @@ export function CheckoutCodeClient({
   const payHrefRequest = `/pay?requestLinkId=${encodeURIComponent(code.trim())}`;
 
   return (
-    <article className="glass-card w-full max-w-lg overflow-visible p-6 shadow-xl">
+    <article className="glass-card w-full max-w-lg overflow-visible p-4 py-6 shadow-2xl">
       <header className="mb-4 flex flex-wrap items-start justify-between gap-3 pb-3">
         <h1 className="text-xl font-semibold text-card-foreground">Checkout</h1>
         <CheckoutWalletHeaderAction />

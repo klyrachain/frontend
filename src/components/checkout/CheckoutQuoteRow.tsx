@@ -55,7 +55,7 @@ export function CheckoutQuoteRow({
       className={cn(
         "rounded-lg px-3 py-2.5 transition-colors",
         selected
-          ? "border border-primary bg-primary/15 ring-2 ring-primary/40"
+          ? "border border-primary bg-primary/15 ring-0 ring-primary/40"
           : ""
       )}
     >

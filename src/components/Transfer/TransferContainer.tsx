@@ -209,7 +209,7 @@ export function TransferContainer() {
     <div className="relative mx-auto flex w-full max-w-xl flex-col self-stretch duration-300 ease-out">
       <article className="glass-card h-fit w-full shrink-0 overflow-hidden p-2 shadow-xl transition-all duration-300 ease-out min-w-0">
         <header className="mb-6 flex flex-row items-center justify-between gap-2 pl-2">
-          <h3 className="text-xl font-semibold text-card-foreground">Transfer</h3>
+          <h3 className="text-3xl font-semibold text-card-foreground">Transfer</h3>
           <div className="flex shrink-0 items-center gap-2">
             <FlowsWalletHeaderAction />
             <div className="relative shrink-0">
@@ -259,7 +259,7 @@ export function TransferContainer() {
         </header>
 
         <section className="flex flex-col gap-4">
-          <div className="relative flex items-stretch gap-2">
+          <div className="relative flex items-stretch gap-2 max-sm:flex-col max-sm:space-y-2">
             <TransferTokenColumn
               label="From"
               selection={leftSelection}
@@ -271,7 +271,7 @@ export function TransferContainer() {
               pricePreview={PRICE_PREVIEW_DEFAULT}
               hideFooterWhenPreviewIs={PRICE_PREVIEW_DEFAULT}
             />
-            <div className="absolute left-1/2 top-1/2 z-10 -my-1 flex -translate-x-1/2 justify-center">
+            <div className="absolute left-1/2 top-1/2 z-10 -my-1 flex -translate-x-1/2 justify-center max-sm:hidden">
               <button
                 type="button"
                 className="rounded-full border-2 border-card bg-green-950/90 p-[0.45rem] shadow-md transition-colors"
@@ -284,13 +284,13 @@ export function TransferContainer() {
             <TransferTokenColumn
               label="To"
               selection={rightSelection}
-              onSelectClick={() => openSelectModal("right")}
-              suggestions={suggestedSelections}
-              onSuggestedSelect={setRightSelection}
-              excludeSymbol={leftSelection?.token.symbol}
-              side="right"
-              pricePreview={toPricePreview}
-            />
+                onSelectClick={() => openSelectModal("right")}
+                suggestions={suggestedSelections}
+                onSuggestedSelect={setRightSelection}
+                excludeSymbol={leftSelection?.token.symbol}
+                side="right"
+                pricePreview={toPricePreview}
+              />
           </div>
 
           <AmountField

@@ -11,7 +11,7 @@ export default function FlowsLayout({
 }) {
   return (
     <DynamicRootProvider>
-    <div className="landing-page relative min-h-screen bg-white text-foreground">
+    <div className="app-premium-ui landing-page relative min-h-screen bg-white text-foreground">
       {/* <HeroShaderBackground
         embeddedText={HERO_CONFIG.embeddedText}
         embeddedTextAnimation="pop"

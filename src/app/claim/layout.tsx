@@ -6,7 +6,7 @@ import { PaintedBackground } from "@/components/Landing/Paintedbackground";
 export default function ClaimLayout({ children }: { children: React.ReactNode }) {
   return (
     <DynamicRootProvider>
-      <div className="landing-page relative min-h-screen bg-transparent text-foreground">
+      <div className="app-premium-ui landing-page relative min-h-screen bg-transparent text-foreground">
         <PaintedBackground />
         <div className="relative z-20">
           <main

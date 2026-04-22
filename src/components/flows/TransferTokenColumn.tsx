@@ -52,8 +52,8 @@ export function TransferTokenColumn({
         excludeSymbol={excludeSymbol}
         side={side}
       />
-      <div className={`flex min-w-0 flex-1 flex-col ${FLOW_FIELD_SHELL} bg-white`}>
-        <p className={`${FLOW_FIELD_LABEL} `}>{label}</p>
+      <div className={`flex min-w-0 flex-1 flex-col ${FLOW_FIELD_SHELL} bg-white `}>
+        <p className={`${FLOW_FIELD_LABEL} bg-red-00`}>{label}</p>
         <button
           type="button"
           className={`${FLOW_TOKEN_TRIGGER} justify-between`}
@@ -64,7 +64,7 @@ export function TransferTokenColumn({
               : "Select token"
           }
         >
-          <div className="flex min-w-0 flex-1 items-center gap-2 bg-red-00">
+          <div className="flex min-w-0 flex-1 items-center gap-2">
             {selection ? (
               <>
                 <TokenAvatarWithFallback

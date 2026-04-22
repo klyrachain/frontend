@@ -240,11 +240,11 @@ export function ReceiveContainer() {
       <article className="glass-card h-fit w-full shrink-0 overflow-hidden p-2 shadow-xl transition-all duration-300 ease-out min-w-0">
         <header className="mb-6 space-y-4 pl-2">
           <div className="flex flex-row items-center justify-between gap-3">
-            <h1 className="text-2xl font-semibold text-card-foreground">I want to receive</h1>
+            <h1 className="text-3xl font-semibold text-card-foreground">I want to receive</h1>
             <FlowsWalletHeaderAction />
           </div>
           <div
-            className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-start"
+            className="w-full gap-2 space-x-2 flex-row items-center justify-start"
             role="tablist"
             aria-label="Receive as crypto or fiat"
           >
@@ -273,13 +273,13 @@ export function ReceiveContainer() {
                 Fiat
               </Button>
           </div>
-          {receiveTab === "fiat" ? (
+          {/* {receiveTab === "fiat" ? (
             <p className="text-xs text-card-foreground/70">
               Payer completes with card or mobile money (no gas).
               <br/> You share a Pay link
               aligned with platform settlement.
             </p>
-          ) : null}
+          ) : null} */}
         </header>
 
         <section className="flex flex-col gap-2" aria-label="Receive payment details">

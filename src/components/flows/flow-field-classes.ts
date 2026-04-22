@@ -7,9 +7,9 @@ export const FLOW_FIELD_SHELL =
   "rounded-xl border border-border bg-white dark:bg-primary/40 p-3 px-4";
 
 export const FLOW_FIELD_LABEL_TEXT =
-  "text-xs font-medium text-card-foreground/70 flex items-center gap-2";
+  " font-medium text-card-foreground/70 flex items-center gap-2";
 
-export const FLOW_FIELD_LABEL = `mb-2 ${FLOW_FIELD_LABEL_TEXT}`;
+export const FLOW_FIELD_LABEL = `${FLOW_FIELD_LABEL_TEXT}`;
 
 /** Control row height: matches h-12 across token triggers and inputs */
 export const FLOW_CONTROL_MIN_H = "min-h-12";

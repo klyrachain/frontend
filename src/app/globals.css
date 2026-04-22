@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @source "../";
 @import "tw-animate-css";
+@import "../styles/app-font-faces.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -117,6 +118,11 @@
   --z-toast: 120;
   --font-sans-active: var(--font-geist-sans);
   --font-mono-active: var(--font-geist-mono);
+  /** Premium UI surfaces (claim, marketing): self-hosted variables + Next font fallbacks */
+  --font-app-sans: "PlusJakartaSans-Variable", var(--font-plus-jakarta), ui-sans-serif, system-ui,
+    sans-serif;
+  --font-app-display: "Alpino-Variable", var(--font-inter-tight), ui-sans-serif, system-ui, sans-serif;
+  --font-app-accent: "Ranade-Variable", var(--font-app-sans);
   /* --background: oklch(1 0 0); */
   /* --background: oklch(0.5707 0.2353 263.31); */
   /* --background: oklch(0.4334 0.233 275.7); */
@@ -221,6 +227,18 @@ html[data-mono-font="jetbrainsMono"] {
 }
 html[data-mono-font="ibmPlexMono"] {
   --font-mono-active: var(--font-ibm-plex-mono);
+}
+
+/** Claim / premium app routes: use self-hosted Plus Jakarta + Alpino display */
+.app-premium-ui {
+  font-family: var(--font-app-sans);
+  font-feature-settings: "kern" 1, "liga" 1;
+}
+.app-premium-ui .font-display {
+  font-family: var(--font-app-display);
+}
+.app-premium-ui .font-accent {
+  font-family: var(--font-app-accent);
 }
 
 /* Liquid glass: opaque base so Safari/Chrome/Brave match (no alpha-dependent rendering) */

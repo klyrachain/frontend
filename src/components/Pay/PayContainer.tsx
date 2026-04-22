@@ -953,7 +953,7 @@ export function PayContainer() {
       ) : null} */}
       <article className="glass-card h-fit w-full shrink-0 overflow-hidden p-2 shadow-xl transition-all duration-300 ease-out min-w-0">
         <header className="mb-6 flex flex-row items-center justify-between gap-3 pl-2">
-          <h1 className="text-2xl font-semibold text-card-foreground">I want to send</h1>
+          <h1 className="text-3xl font-semibold text-card-foreground">I want to send</h1>
           <FlowsWalletHeaderAction />
         </header>
 
