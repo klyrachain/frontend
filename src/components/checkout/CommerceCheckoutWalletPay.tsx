@@ -14,6 +14,7 @@ import {
   isEvmErc20TransferInstruction,
   normalizeToEvmInstruction,
 } from "@/types/payment-instruction";
+import { WalletTxStatusPanel } from "@/components/checkout/WalletTxStatusPanel";
 
 function evmChainShortLabel(chainId: number): string {
   const m: Record<number, string> = {
@@ -45,6 +46,7 @@ type IntentSuccess = {
   calldata: PaymentInstruction;
   next_step?: string;
 };
+
 
 export type CommerceCheckoutWalletPayProps = {
   commerce: Pick<
@@ -80,6 +82,14 @@ export function CommerceCheckoutWalletPay({
   const [txHash, setTxHash] = useState<string | null>(null);
   /** One automatic prepare per mount (parent should remount with `key` when the payer retries from quotes). */
   const didAutoPrepareRef = useRef(false);
+
+  const txStatus = txHash
+    ? ("success" as const)
+    : sendError
+      ? ("error" as const)
+      : isSending
+        ? ("awaiting" as const)
+        : null;
 
   const row = payload.selectedRow;
   const quoteState = row ? payload.quotes[row.id] : undefined;
@@ -377,24 +387,13 @@ export function CommerceCheckoutWalletPay({
     );
   }
 
-  return (
-    <section
-      className={embedded ? "mt-3 space-y-3" : "mt-4 space-y-4"}
-      aria-label="Wallet payment"
-    >
-      <div
-        className={
-          embedded
-            ? "space-y-3 rounded-lg border border-primary/25 bg-primary/5 p-3 text-left text-sm"
-            : "space-y-4 rounded-lg border border-primary/25 bg-primary/5 p-4 text-left text-sm"
-        }
-      >
-        {!embedded ? (
+  if (!embedded) {
+    return (
+      <section className="mt-4 space-y-4" aria-label="Wallet payment">
+        <div className="space-y-4 rounded-lg border border-primary/25 bg-primary/5 p-4 text-left text-sm">
           <div className="flex flex-wrap items-center justify-center gap-2">
             <p className="font-medium text-card-foreground">Pay with your wallet</p>
           </div>
-        ) : null}
-        {!embedded ? (
           <p className="text-muted-foreground text-center">
             Send{" "}
             <span className="font-medium text-card-foreground">
@@ -402,64 +401,130 @@ export function CommerceCheckoutWalletPay({
             </span>{" "}
             for {commerce.amount} {commerce.currency}.
           </p>
-        ) : (
-          <p className="text-center text-xs text-muted-foreground">
-            {intentLoading && !intentResult ? (
-              <span className="font-medium text-card-foreground">Preparing payment...</span>
-            ) : intentResult && isEvmErc20TransferInstruction(intentResult.calldata) && !txHash ? (
-              <span>Approve the transfer in your wallet.</span>
-            ) : null}
-          </p>
-        )}
-        {evmChainId != null &&
-        isConnected &&
-        chainId != null &&
-        chainId !== evmChainId &&
-        !intentResult &&
-        !intentLoading ? (
-          <p
-            className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-center text-xs text-amber-950 dark:text-amber-100"
-            role="status"
-          >
-            Your wallet is on {evmChainShortLabel(chainId)}; this payment uses{" "}
-            {evmChainShortLabel(evmChainId)}. <span className="font-medium">Pay</span> will switch
-            networks first, then prepare the transaction.
-          </p>
-        ) : null}
-        {primaryButton}
-        {txHash ? (
-          <p className="text-center text-xs text-primary">
-            <span className="font-mono break-all">{txHash}</span>
-          </p>
-        ) : null}
-        {intentError ? (
-          <p className="text-xs text-destructive" role="alert">
-            {intentError}
-          </p>
-        ) : null}
-        {sendError ? (
-          <p className="text-xs text-destructive" role="alert">
-            {sendError}
-          </p>
-        ) : null}
-        {!embedded ? (
+          {evmChainId != null &&
+          isConnected &&
+          chainId != null &&
+          chainId !== evmChainId &&
+          !intentResult &&
+          !intentLoading ? (
+            <p
+              className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-center text-xs text-amber-950 dark:text-amber-100"
+              role="status"
+            >
+              Your wallet is on {evmChainShortLabel(chainId)}; this payment uses{" "}
+              {evmChainShortLabel(evmChainId)}. <span className="font-medium">Pay</span> will switch
+              networks first, then prepare the transaction.
+            </p>
+          ) : null}
+          {primaryButton}
+          {txHash ? (
+            <p className="text-center text-xs text-primary">
+              <span className="font-mono break-all">{txHash}</span>
+            </p>
+          ) : null}
+          {intentError ? (
+            <p className="text-xs text-destructive" role="alert">
+              {intentError}
+            </p>
+          ) : null}
+          {sendError ? (
+            <p className="text-xs text-destructive" role="alert">
+              {sendError}
+            </p>
+          ) : null}
           <p className="text-[0.7rem] leading-snug text-muted-foreground text-center">
             Complete settlement using your operator.
           </p>
-        ) : null}
-        <div className="flex justify-center">
-          <Button
-            type="button"
-            size="sm"
-            variant="ghost"
-            className="px-0 text-muted-foreground"
-            onClick={onClose}
-            disabled={intentLoading || isSending}
-          >
-            {txHash ? "Close" : "Cancel"}
-          </Button>
+          <div className="flex justify-center">
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              className="px-0 text-muted-foreground"
+              onClick={onClose}
+              disabled={intentLoading || isSending}
+            >
+              {txHash ? "Close" : "Cancel"}
+            </Button>
+          </div>
         </div>
-      </div>
+      </section>
+    );
+  }
+
+  return (
+    <section className="mt-3 space-y-2" aria-label="Wallet payment">
+      <p className="text-center text-xs font-medium text-muted-foreground">
+        Pay with your wallet
+      </p>
+
+      {txStatus !== null ? (
+        <WalletTxStatusPanel
+          status={txStatus}
+          message={sendError ?? undefined}
+          txHash={txHash}
+          onRetry={
+            txStatus === "error"
+              ? () => {
+                  setSendError(null);
+                }
+              : undefined
+          }
+          onDismiss={txStatus !== "awaiting" ? onClose : undefined}
+          dismissLabel={txHash ? "Close" : "Cancel"}
+        />
+      ) : (
+        <div className="space-y-3 rounded-lg border border-primary/25 bg-primary/5 p-3 text-left text-sm">
+        {/* <div> */}
+          <p className="text-center text-xs text-muted-foreground">
+            {/* {intentLoading && !intentResult ? (
+              <span className="font-medium text-card-foreground">Preparing payment...</span>
+            ) :  */}
+            {intentResult && isEvmErc20TransferInstruction(intentResult.calldata) && (
+              <span>
+                Continue to send{" "}
+                <span className="font-medium text-card-foreground">
+                  {cryptoAmount || "—"} {cryptoSymbol}
+                </span>{" "}
+                for {commerce.amount} {commerce.currency}.
+              </span>
+            )}
+          </p>
+          {evmChainId != null &&
+          isConnected &&
+          chainId != null &&
+          chainId !== evmChainId &&
+          !intentResult &&
+          !intentLoading ? (
+            <p
+              className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-center text-xs text-amber-950 dark:text-amber-100"
+              role="status"
+            >
+              Your wallet is on {evmChainShortLabel(chainId)}; this payment uses{" "}
+              {evmChainShortLabel(evmChainId)}. <span className="font-medium">Pay</span> will switch
+              networks first, then prepare the transaction.
+            </p>
+          ) : null}
+          {primaryButton}
+          {intentError ? (
+            <p className="text-xs text-destructive" role="alert">
+              {intentError}
+            </p>
+          ) : null}
+          <div className="flex justify-center">
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              className="px-0 text-muted-foreground"
+              onClick={onClose}
+              disabled={intentLoading || isSending}
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { isRequestLinkIdHex } from "@/lib/checkout-link-code";
+import { presentationFromRaw } from "@/lib/app-error-presentation";
+import { AppErrorPanel } from "@/components/feedback/app-error-panel";
 import type { PublicCommercePaymentLink } from "@/types/checkout-public.types";
 import { CheckoutTokenQuoteRows } from "@/components/checkout/CheckoutTokenQuoteRows";
 
@@ -95,6 +97,8 @@ export function CheckoutCodeClient({
     if (!commerce?.amount || !commerce.currency) return "";
     return `${commerce.amount} ${commerce.currency}`;
   }, [commerce?.amount, commerce?.currency]);
+
+  const errorPresentation = useMemo(() => presentationFromRaw(error), [error]);
 
   useEffect(() => {
     if (!code.trim()) {
@@ -188,10 +192,8 @@ export function CheckoutCodeClient({
         </section>
       ) : null}
 
-      {!loading && error ? (
-        <p className="text-sm text-destructive" role="alert">
-          {error}
-        </p>
+      {!loading && error && errorPresentation ? (
+        <AppErrorPanel presentation={errorPresentation} className="mb-2" />
       ) : null}
 
       {!loading && commerce ? (

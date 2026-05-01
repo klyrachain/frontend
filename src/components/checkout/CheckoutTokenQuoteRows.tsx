@@ -1026,120 +1026,6 @@ export function CheckoutTokenQuoteRows({
           </div>
         ) : (
           <>
-            {showCryptoQuotesBlock ? (
-              <>
-                <p className="text-center text-xs font-medium text-muted-foreground">
-                  {cryptoQuotesSectionTitle}
-                </p>
-                {displayRowsResolved.map((row) => (
-                  <CheckoutQuoteRow
-                    key={row.id}
-                    label={row.label}
-                    iconSymbol={row.iconSymbol}
-                    invoiceLabel={invoiceLabel}
-                    state={quotes[row.id] ?? emptyCheckoutQuote()}
-                    balanceLabel={byRowId[row.id] ?? "—"}
-                    balanceLoading={balLoading && walletParam.length > 0}
-                    token={tokenByRow.get(row.id) ?? null}
-                    chain={chainFromList(chains, row.balanceChainId)}
-                    selected={selectedRowId === row.id}
-                    onSelect={() => {
-                      setSelectedRowId(row.id);
-                      setPaymentFlow("token");
-                      setWalletCheckoutPayload(null);
-                    }}
-                  />
-                ))}
-                {paymentFlow === "token" &&
-                selectedDisplayRow &&
-                isNonEvmCheckoutChainId(selectedDisplayRow.balanceChainId) ? (
-                  <CheckoutNonEvmLinkedAddresses
-                    balanceChainId={selectedDisplayRow.balanceChainId}
-                    chainName={
-                      chainFromList(chains, selectedDisplayRow.balanceChainId)?.name
-                    }
-                    className="mt-2"
-                  />
-                ) : null}
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="w-full justify-center px-1 text-muted-foreground bg-white p-4 border-none hover:bg-white/40"
-                  onClick={() => setModalOpen(true)}
-                >
-                  <ChevronDown size={7} />
-                  3,400+ tokens
-                </Button>
-                {isClaimReceive && onReceiveFiatInstead ? (
-                  <div className="rounded-lg border border-white/10">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className={fiatMorapaySwitchButtonClass}
-                      onClick={() => onReceiveFiatInstead()}
-                    >
-                      Receive fiat
-                    </Button>
-                  </div>
-                ) : null}
-                {showCryptoFiatCollapsible ? (
-                  <div className="rounded-lg border border-white/10">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className={fiatMorapaySwitchButtonClass}
-                      onClick={() => {
-                        setCryptoFiatTab("fiat");
-                        setPaymentFlow("morapay");
-                        setFiatExpanded(true);
-                        setWalletCheckoutPayload(null);
-                        setMorapayError(null);
-                      }}
-                    >
-                      Pay with fiat
-                    </Button>
-                  </div>
-                ) : null}
-              </>
-            ) : null}
-            {showFiatPayerFields ? morapayFields(showFiatOnrampBusinessFields ? "fiat-onramp" : "crypto") : null}
-            {showCryptoQuotesBlock &&
-            paymentFlow === "aggregate" &&
-            aggregateAllocations?.length ? (
-              <p className="mt-2 text-center text-xs text-muted-foreground">
-                Aggregate split ready ({aggregateAllocations.length} legs). Wallet
-                signing will be added with your provider.
-              </p>
-            ) : null}
-            {showBottomMorapayButton ? (
-              <Button
-                type="button"
-                size="lg"
-                className="mt-3 w-full rounded-xl py-6 font-semibold"
-                disabled={
-                  morapayLoading ||
-                  !selectedFiatCurrency ||
-                  fiatQuoteLoading ||
-                  !!fiatQuoteError
-                }
-                onClick={() => void handleContinue()}
-              >
-                {morapayLoading ? "Redirecting…" : "Continue to pay"}
-              </Button>
-            ) : isClaimReceive && claimSuppressPrimaryCta ? null : tokenWalletCheckoutOpen ? null : (
-              <Button
-                type="button"
-                size="lg"
-                className="mt-3 w-full rounded-xl py-6 font-semibold"
-                disabled={morapayLoading || claimContinueBlocked}
-                onClick={() => void handleContinue()}
-              >
-                {isClaimReceive ? "Continue to claim" : "Pay"}
-              </Button>
-            )}
             {tokenWalletCheckoutOpen && payPageId?.trim() && walletCheckoutPayload?.selectedRow ? (
               <CommerceCheckoutWalletPay
                 key={`${walletCheckoutPayload.selectedRow.id}-${
@@ -1156,12 +1042,129 @@ export function CheckoutTokenQuoteRows({
                 embedded
                 autoPrepareIntent
               />
-            ) : null}
-            {paymentError ? (
-              <p className="text-center text-xs text-destructive" role="alert">
-                {paymentError}
-              </p>
-            ) : null}
+            ) : (
+              <>
+                {showCryptoQuotesBlock ? (
+                  <>
+                    <p className="text-center text-xs font-medium text-muted-foreground">
+                      {cryptoQuotesSectionTitle}
+                    </p>
+                    {displayRowsResolved.map((row) => (
+                      <CheckoutQuoteRow
+                        key={row.id}
+                        label={row.label}
+                        iconSymbol={row.iconSymbol}
+                        invoiceLabel={invoiceLabel}
+                        state={quotes[row.id] ?? emptyCheckoutQuote()}
+                        balanceLabel={byRowId[row.id] ?? "—"}
+                        balanceLoading={balLoading && walletParam.length > 0}
+                        token={tokenByRow.get(row.id) ?? null}
+                        chain={chainFromList(chains, row.balanceChainId)}
+                        selected={selectedRowId === row.id}
+                        onSelect={() => {
+                          setSelectedRowId(row.id);
+                          setPaymentFlow("token");
+                          setWalletCheckoutPayload(null);
+                        }}
+                      />
+                    ))}
+                    {paymentFlow === "token" &&
+                    selectedDisplayRow &&
+                    isNonEvmCheckoutChainId(selectedDisplayRow.balanceChainId) ? (
+                      <CheckoutNonEvmLinkedAddresses
+                        balanceChainId={selectedDisplayRow.balanceChainId}
+                        chainName={
+                          chainFromList(chains, selectedDisplayRow.balanceChainId)?.name
+                        }
+                        className="mt-2"
+                      />
+                    ) : null}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="w-full justify-center px-1 text-muted-foreground bg-white p-4 border-none hover:bg-white/40"
+                      onClick={() => setModalOpen(true)}
+                    >
+                      <ChevronDown size={7} />
+                      3,400+ tokens
+                    </Button>
+                    {isClaimReceive && onReceiveFiatInstead ? (
+                      <div className="rounded-lg border border-white/10">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className={fiatMorapaySwitchButtonClass}
+                          onClick={() => onReceiveFiatInstead()}
+                        >
+                          Receive fiat
+                        </Button>
+                      </div>
+                    ) : null}
+                    {showCryptoFiatCollapsible ? (
+                      <div className="rounded-lg border border-white/10">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className={fiatMorapaySwitchButtonClass}
+                          onClick={() => {
+                            setCryptoFiatTab("fiat");
+                            setPaymentFlow("morapay");
+                            setFiatExpanded(true);
+                            setWalletCheckoutPayload(null);
+                            setMorapayError(null);
+                          }}
+                        >
+                          Pay with fiat
+                        </Button>
+                      </div>
+                    ) : null}
+                  </>
+                ) : null}
+                {showFiatPayerFields ? morapayFields(showFiatOnrampBusinessFields ? "fiat-onramp" : "crypto") : null}
+                {showCryptoQuotesBlock &&
+                paymentFlow === "aggregate" &&
+                aggregateAllocations?.length ? (
+                  <p className="mt-2 text-center text-xs text-muted-foreground">
+                    Aggregate split ready ({aggregateAllocations.length} legs). Wallet
+                    signing will be added with your provider.
+                  </p>
+                ) : null}
+                {showBottomMorapayButton ? (
+                  <Button
+                    type="button"
+                    size="lg"
+                    className="mt-3 w-full rounded-xl py-6 font-semibold"
+                    disabled={
+                      morapayLoading ||
+                      !selectedFiatCurrency ||
+                      fiatQuoteLoading ||
+                      !!fiatQuoteError
+                    }
+                    onClick={() => void handleContinue()}
+                  >
+                    {morapayLoading ? "Redirecting…" : "Continue to pay"}
+                  </Button>
+                ) : isClaimReceive && claimSuppressPrimaryCta ? null : (
+                  <Button
+                    type="button"
+                    size="lg"
+                    className="mt-3 w-full rounded-xl py-6 font-semibold"
+                    disabled={morapayLoading || claimContinueBlocked}
+                    onClick={() => void handleContinue()}
+                  >
+                    {isClaimReceive ? "Continue to claim" : "Pay"}
+                  </Button>
+                )}
+                {paymentError ? (
+                  <p className="text-center text-xs text-destructive" role="alert">
+                    {paymentError}
+                  </p>
+                ) : null}
+              </>
+            )}
           </>
         )}
       </section>
