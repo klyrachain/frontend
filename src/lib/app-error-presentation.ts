@@ -73,6 +73,11 @@ function classifyRawToKey(raw: string): string {
   return config.defaultKey;
 }
 
+export function presentationByKey(key: string): ErrorPresentation {
+  const entry = config.entries[key] ?? config.entries[config.defaultKey];
+  return { key, ...(entry ?? { rive: "/rive/22487-42095-look.riv", title: "Something paused", message: "We hit a small snag. Give it another try in a moment." }) };
+}
+
 export function presentationFromRaw(raw: string | null | undefined): ErrorPresentation | null {
   if (raw == null || !String(raw).trim()) return null;
   const key = classifyRawToKey(String(raw));

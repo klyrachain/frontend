@@ -19,7 +19,12 @@
     "not_found": {
       "rive": "/rive/not-found-1.riv",
       "title": "This link is not here",
-      "message": "We looked everywhere, but this claim link does not show up. Double-check the URL or ask the sender for a fresh link."
+      "message": "We looked everywhere but this link does not exist. Double-check the URL or ask the sender for a fresh one."
+    },
+    "page_not_found": {
+      "rive": "/rive/not-found-1.riv",
+      "title": "Nothing here",
+      "message": "We looked everywhere but this page does not exist. Double-check the URL or head back home."
     },
     "invalid_link": {
       "rive": "/rive/not-found-1.riv",

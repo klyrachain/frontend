@@ -14,7 +14,8 @@ import {
   isEvmErc20TransferInstruction,
   normalizeToEvmInstruction,
 } from "@/types/payment-instruction";
-import { WalletTxStatusPanel } from "@/components/checkout/WalletTxStatusPanel";
+
+const WALLET_CARD_ANIMATION_PATH = "/checkout/wallet-card-animation";
 
 function evmChainShortLabel(chainId: number): string {
   const m: Record<number, string> = {
@@ -47,7 +48,6 @@ type IntentSuccess = {
   next_step?: string;
 };
 
-
 export type CommerceCheckoutWalletPayProps = {
   commerce: Pick<
     PublicCommercePaymentLink,
@@ -57,7 +57,7 @@ export type CommerceCheckoutWalletPayProps = {
   onClose: () => void;
   /**
    * When true (default), fetches transfer intent as soon as this block mounts so the user only
-   * confirms rates once (quotes page) then taps Approve when calldata is ready.
+   * confirms rates once (quotes page) then signs the transfer in the wallet when calldata is ready.
    */
   autoPrepareIntent?: boolean;
   /** Tighter layout when rendered under token quotes on the same card. */
@@ -83,14 +83,6 @@ export function CommerceCheckoutWalletPay({
   /** One automatic prepare per mount (parent should remount with `key` when the payer retries from quotes). */
   const didAutoPrepareRef = useRef(false);
 
-  const txStatus = txHash
-    ? ("success" as const)
-    : sendError
-      ? ("error" as const)
-      : isSending
-        ? ("awaiting" as const)
-        : null;
-
   const row = payload.selectedRow;
   const quoteState = row ? payload.quotes[row.id] : undefined;
   const cryptoAmount = quoteState?.cryptoAmount?.trim() ?? "";
@@ -109,24 +101,35 @@ export function CommerceCheckoutWalletPay({
 
   const tAmountForIntent = (commerce.amount ?? "").trim();
 
-  const createIntent = useCallback(async () => {
+  const createIntent = useCallback(async (cardTabWindow?: Window | null) => {
+    const abandonCardTab = () => {
+      try {
+        cardTabWindow?.close();
+      } catch {
+        /* ignore */
+      }
+    };
     setIntentError(null);
     setIntentResult(null);
     setSendError(null);
     setTxHash(null);
     if (!isTokenFlow || !row || !evmChainId || nonEvm) {
+      abandonCardTab();
       setIntentError("This payment path needs the Transfer app.");
       return;
     }
     if (!cryptoAmount || Number.parseFloat(cryptoAmount) <= 0) {
+      abandonCardTab();
       setIntentError("Quote is not ready. Wait for amounts or pick another token.");
       return;
     }
     if (!isConnected || !address?.startsWith("0x") || address.length !== 42) {
+      abandonCardTab();
       setIntentError("Connect an EVM wallet (e.g. MetaMask) on the same network as this token.");
       return;
     }
     if (!tAmountForIntent || Number.parseFloat(tAmountForIntent) <= 0) {
+      abandonCardTab();
       setIntentError("Invalid invoice amount for this link.");
       return;
     }
@@ -134,6 +137,7 @@ export function CommerceCheckoutWalletPay({
     try {
       if (chainId != null && chainId !== evmChainId) {
         if (!switchChainAsync) {
+          abandonCardTab();
           setIntentError(
             `Switch your wallet to ${evmChainShortLabel(evmChainId)} — this token pays on that network only.`
           );
@@ -142,6 +146,7 @@ export function CommerceCheckoutWalletPay({
         try {
           await switchChainAsync({ chainId: evmChainId });
         } catch {
+          abandonCardTab();
           setIntentError(
             `Could not switch networks. Open your wallet and select ${evmChainShortLabel(evmChainId)}, then try again.`
           );
@@ -169,6 +174,7 @@ export function CommerceCheckoutWalletPay({
           ? String((json as { error?: string }).error ?? "")
           : "";
       if (!res.ok) {
+        abandonCardTab();
         setIntentError(err || "Could not prepare payment.");
         return;
       }
@@ -181,18 +187,39 @@ export function CommerceCheckoutWalletPay({
           ? ((json as { data: IntentSuccess }).data ?? null)
           : null;
       if (!data?.transaction_id || !data.calldata) {
+        abandonCardTab();
         setIntentError("Invalid response from payment service.");
         return;
       }
       if (isEvmErc20TransferInstruction(data.calldata)) {
         const evm = normalizeToEvmInstruction(data.calldata);
         if (!evm?.toAddress || !evm.tokenAddress) {
+          abandonCardTab();
           setIntentError("Invalid response from payment service.");
           return;
         }
       }
       setIntentResult(data);
+      if (cardTabWindow) {
+        if (isEvmErc20TransferInstruction(data.calldata)) {
+          try {
+            cardTabWindow.location.href = new URL(
+              WALLET_CARD_ANIMATION_PATH,
+              window.location.href
+            ).href;
+          } catch {
+            abandonCardTab();
+          }
+        } else {
+          abandonCardTab();
+        }
+      }
     } catch {
+      try {
+        cardTabWindow?.close();
+      } catch {
+        /* ignore */
+      }
       setIntentError("Network error. Try again.");
     } finally {
       setIntentLoading(false);
@@ -283,7 +310,10 @@ export function CommerceCheckoutWalletPay({
           size="lg"
           className="w-full rounded-xl py-6 text-base font-semibold"
           disabled={intentLoading || !cryptoAmount || !isConnected}
-          onClick={() => void createIntent()}
+          onClick={() => {
+            const tab = window.open("about:blank", "_blank", "noopener,noreferrer");
+            void createIntent(tab);
+          }}
         >
           {intentLoading ? "Preparing…" : "Pay"}
         </Button>
@@ -317,7 +347,7 @@ export function CommerceCheckoutWalletPay({
         disabled={isSending || !isConnected}
         onClick={() => void sendToPool()}
       >
-        {isSending ? "Confirm in wallet…" : "Approve"}
+        {isSending ? "Confirm in wallet…" : "Sign in wallet"}
       </Button>
     );
   }, [
@@ -387,13 +417,24 @@ export function CommerceCheckoutWalletPay({
     );
   }
 
-  if (!embedded) {
-    return (
-      <section className="mt-4 space-y-4" aria-label="Wallet payment">
-        <div className="space-y-4 rounded-lg border border-primary/25 bg-primary/5 p-4 text-left text-sm">
+  return (
+    <section
+      className={embedded ? "mt-3 space-y-3" : "mt-4 space-y-4"}
+      aria-label="Wallet payment"
+    >
+      <div
+        className={
+          embedded
+            ? "space-y-3 rounded-lg border border-primary/25 bg-primary/5 p-3 text-left text-sm"
+            : "space-y-4 rounded-lg border border-primary/25 bg-primary/5 p-4 text-left text-sm"
+        }
+      >
+        {!embedded ? (
           <div className="flex flex-wrap items-center justify-center gap-2">
             <p className="font-medium text-card-foreground">Pay with your wallet</p>
           </div>
+        ) : null}
+        {!embedded ? (
           <p className="text-muted-foreground text-center">
             Send{" "}
             <span className="font-medium text-card-foreground">
@@ -401,130 +442,64 @@ export function CommerceCheckoutWalletPay({
             </span>{" "}
             for {commerce.amount} {commerce.currency}.
           </p>
-          {evmChainId != null &&
-          isConnected &&
-          chainId != null &&
-          chainId !== evmChainId &&
-          !intentResult &&
-          !intentLoading ? (
-            <p
-              className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-center text-xs text-amber-950 dark:text-amber-100"
-              role="status"
-            >
-              Your wallet is on {evmChainShortLabel(chainId)}; this payment uses{" "}
-              {evmChainShortLabel(evmChainId)}. <span className="font-medium">Pay</span> will switch
-              networks first, then prepare the transaction.
-            </p>
-          ) : null}
-          {primaryButton}
-          {txHash ? (
-            <p className="text-center text-xs text-primary">
-              <span className="font-mono break-all">{txHash}</span>
-            </p>
-          ) : null}
-          {intentError ? (
-            <p className="text-xs text-destructive" role="alert">
-              {intentError}
-            </p>
-          ) : null}
-          {sendError ? (
-            <p className="text-xs text-destructive" role="alert">
-              {sendError}
-            </p>
-          ) : null}
+        ) : (
+          <p className="text-center text-xs text-muted-foreground">
+            {intentLoading && !intentResult ? (
+              <span className="font-medium text-card-foreground">Preparing payment...</span>
+            ) : intentResult && isEvmErc20TransferInstruction(intentResult.calldata) && !txHash ? (
+              <span>Confirm the transfer in your wallet.</span>
+            ) : null}
+          </p>
+        )}
+        {evmChainId != null &&
+        isConnected &&
+        chainId != null &&
+        chainId !== evmChainId &&
+        !intentResult &&
+        !intentLoading ? (
+          <p
+            className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-center text-xs text-amber-950 dark:text-amber-100"
+            role="status"
+          >
+            Your wallet is on {evmChainShortLabel(chainId)}; this payment uses{" "}
+            {evmChainShortLabel(evmChainId)}. <span className="font-medium">Pay</span> will switch
+            networks first, then prepare the transaction.
+          </p>
+        ) : null}
+        {primaryButton}
+        {txHash ? (
+          <p className="text-center text-xs text-primary">
+            <span className="font-mono break-all">{txHash}</span>
+          </p>
+        ) : null}
+        {intentError ? (
+          <p className="text-xs text-destructive" role="alert">
+            {intentError}
+          </p>
+        ) : null}
+        {sendError ? (
+          <p className="text-xs text-destructive" role="alert">
+            {sendError}
+          </p>
+        ) : null}
+        {!embedded ? (
           <p className="text-[0.7rem] leading-snug text-muted-foreground text-center">
             Complete settlement using your operator.
           </p>
-          <div className="flex justify-center">
-            <Button
-              type="button"
-              size="sm"
-              variant="ghost"
-              className="px-0 text-muted-foreground"
-              onClick={onClose}
-              disabled={intentLoading || isSending}
-            >
-              {txHash ? "Close" : "Cancel"}
-            </Button>
-          </div>
+        ) : null}
+        <div className="flex justify-center">
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            className="px-0 text-muted-foreground"
+            onClick={onClose}
+            disabled={intentLoading || isSending}
+          >
+            {txHash ? "Close" : "Cancel"}
+          </Button>
         </div>
-      </section>
-    );
-  }
-
-  return (
-    <section className="mt-3 space-y-2" aria-label="Wallet payment">
-      <p className="text-center text-xs font-medium text-muted-foreground">
-        Pay with your wallet
-      </p>
-
-      {txStatus !== null ? (
-        <WalletTxStatusPanel
-          status={txStatus}
-          message={sendError ?? undefined}
-          txHash={txHash}
-          onRetry={
-            txStatus === "error"
-              ? () => {
-                  setSendError(null);
-                }
-              : undefined
-          }
-          onDismiss={txStatus !== "awaiting" ? onClose : undefined}
-          dismissLabel={txHash ? "Close" : "Cancel"}
-        />
-      ) : (
-        <div className="space-y-3 rounded-lg border border-primary/25 bg-primary/5 p-3 text-left text-sm">
-        {/* <div> */}
-          <p className="text-center text-xs text-muted-foreground">
-            {/* {intentLoading && !intentResult ? (
-              <span className="font-medium text-card-foreground">Preparing payment...</span>
-            ) :  */}
-            {intentResult && isEvmErc20TransferInstruction(intentResult.calldata) && (
-              <span>
-                Continue to send{" "}
-                <span className="font-medium text-card-foreground">
-                  {cryptoAmount || "—"} {cryptoSymbol}
-                </span>{" "}
-                for {commerce.amount} {commerce.currency}.
-              </span>
-            )}
-          </p>
-          {evmChainId != null &&
-          isConnected &&
-          chainId != null &&
-          chainId !== evmChainId &&
-          !intentResult &&
-          !intentLoading ? (
-            <p
-              className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-center text-xs text-amber-950 dark:text-amber-100"
-              role="status"
-            >
-              Your wallet is on {evmChainShortLabel(chainId)}; this payment uses{" "}
-              {evmChainShortLabel(evmChainId)}. <span className="font-medium">Pay</span> will switch
-              networks first, then prepare the transaction.
-            </p>
-          ) : null}
-          {primaryButton}
-          {intentError ? (
-            <p className="text-xs text-destructive" role="alert">
-              {intentError}
-            </p>
-          ) : null}
-          <div className="flex justify-center">
-            <Button
-              type="button"
-              size="sm"
-              variant="ghost"
-              className="px-0 text-muted-foreground"
-              onClick={onClose}
-              disabled={intentLoading || isSending}
-            >
-              Cancel
-            </Button>
-          </div>
-        </div>
-      )}
+      </div>
     </section>
   );
 }
