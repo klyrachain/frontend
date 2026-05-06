@@ -1,6 +1,2 @@
-ignoredBuiltDependencies:
-  - sharp
-  - unrs-resolver
-
-patchedDependencies:
-  '@shadergradient/react': patches/@shadergradient__react.patch
+packages:
+  - "apps/*"
